@@ -66,10 +66,58 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\chapter{Introduction}
-\label{ch:intro}
+%\chapter{Introduction}
+%\label{ch:intro}
+%\todo{\dots}
 
-\todo{\dots}
+\section{Introduction}
+Focus on computation of edit distance. That is, insert / delete of cost 1, match of cost 0. This can be generalized to different classes of scoring functions, which in some cases results in more complicated algorithms with worse asymptotic running time and space consumption, even if the cost function is assumed to be computable in constant time.
+
+Focus on how well strings can be compressed as SLPs, compared to other encodings ex BWT and entropy based compression algorithms (ex Huffman encoding). Try to think about algorithms that works for these other (presumably better) compression algorithms.
+
+\section{Compression of strings}
+Describe and discuss different types of string compression.
+\begin{itemize}
+  \item Information theoretical bound for compression, and encoding schemes satisfying this bound (ex Huffman encoding / Arithmetic coding).
+  \item Definition of SLPs, and compression schemes transformable to SLPs (Z77, Z78, LZW).
+  \item Other transformations possibly making subsequent compression more efficient (ex BWT)
+\end{itemize}
+
+\section{Simpel}
+\todo{Give credit to some guy!}
+A standard dynamic programming algorithm for solving the Edit Distance problem, is denoted the simple algorithm or simple implementation. It is given two string $A[1..n]$ and $B[1..m]$ for which the edit distance should be computed, and fills out a matrix of size $n \times m$ where a given entry $(i, j)$ corresponds to the edit distance between $A[1..i]$ and $B[1..j]$. The rules for filling out a table entry follows directly from the definition of edit distance when extending a string, and are as follows:
+\todo{match, insert, delete}
+The base case where a string is aligned to the empty string is trivially $0$. Therefore the edit distance between two string can be computed using both $O(nm)$ time and space. Notice that an easy optimization where only the last row used is stored in memory reduces the space consumption to $O(\min\{n, m\})$.
+
+\subsection{Backtracking}
+If the actual alignment(s) of the strings is desirable, it can be found by a standard back-tracking approach on the computed matrix.
+
+This however implies that the simple space optimization from before does not work, as all entries in the computed table potentially is needed for the backtracking. However, a divide-and-conquer algorithm was given by Hirshberg\todo{Cite} that reduces the space consumption of $O(\min\{n, m\})$ without asymptotically increasing the running time.\todo{Describe the approach?}
+
+\subsection{Optimizations}
+Ideas:
+\begin{itemize}
+  \item Compute matrix only around its diagonal, and then extend if needed.
+  \item Using SIMD instructions.
+  \item Parallelization (CPU / GPU).
+\end{itemize}
+
+\section{Compression based algorithms}
+At the time of writing, there is no known algorithm for solving the edit distance problem faster than $O(nm)$\todo{Cite}. A recent approach for speeding up the computation of edit distance, is to do some compression of the strings before aligning them, and then in some way do the edit distance computation using the compressed strings, which in many cases will be shorter than the original input.
+
+\subsection{The 4 Russian Trick}
+This approach was not originally presented as a compression based algorithm, but using that each entry in the dynamic programming matrix is changing at most 1 from an adjacent entry, it is possible to encode blocks of the matrix, pre-compute all of them, and then fill out the dynamic programming matrix block-by-block.
+\todo{Remember and describe how it actually works.}
+
+\subsection{Run-Length Encoding}
+\begin{itemize}
+  \item \todo{Describe RLE}
+  \item Not the focus / implemented in this thesis, but the result is included for completeness. Refer old thesis for experimental results of this approach?
+  \item \todo{cite} gave an algorithm running in time $O(nm)$ where $n$ and $m$ denotes the size of the compressed sequences. This is the first result where the running time is only depending on the length of the compressed strings. However, for string not containing long runs of the same symbol, RLE will generate strings longer than the original input!
+\end{itemize}
+
+\subsection{Compression based on SLPs}
+This is the main focus of this thesis.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
