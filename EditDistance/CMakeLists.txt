@@ -13,7 +13,7 @@ ENDIF(APPLE)
 
 set(ROOT_SRCS "main.cpp")
 set(SIMPLE_SRCS "simple/simple.hpp")
-set(COMPRESSION_SRCS "compression/SLP.hpp")
+set(COMPRESSION_SRCS "compression/SLP.hpp" "compression/DIST.hpp")
 set(UTILS_SRCS "utils/allocator.hpp")
 set(BENCHMARK_SRCS "benchmark/benchmarker.hpp")
 
