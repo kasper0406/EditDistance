@@ -6,6 +6,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <unordered_set>
+#include <unordered_map>
 
 using namespace std;
 
@@ -18,14 +19,10 @@ namespace SLP {
   
   class Production {
   public:
-    Production() : associatedString(""), derivedStringLength(0), parent_(nullptr) { }
+    Production() : associatedString(""), derivedStringLength(0), DISTTableIndex(-1), reclaimCount_(0) { }
     
     virtual ~Production() { };
     virtual void accept(Visitor* visitor) = 0;
-    
-    void setParent(NonTerminal* parent) { parent_ = parent; }
-    NonTerminal* parent() const { return parent_; }
-    
     
     /**
      * Information used for x-partition.
@@ -34,8 +31,13 @@ namespace SLP {
     string associatedString;
     uint64_t derivedStringLength;
     
-  protected:
-    NonTerminal* parent_;
+    int64_t DISTTableIndex; // Index into the dist table, making constant lookup possible
+    
+    void incReclaimCount() { reclaimCount_++; }
+    bool decReclaimCount() { return --reclaimCount_ == 0; }
+    
+  private:
+    uint64_t reclaimCount_;
   };
   
   class Terminal : public Production {
@@ -56,18 +58,23 @@ namespace SLP {
   public:
     NonTerminal(uint64_t name, Production* left, Production* right)
       : left_(left), right_(right), name_(name)
-    { }
+    {
+      left_->incReclaimCount();
+      right_->incReclaimCount();
+    }
     
     ~NonTerminal() {
-      delete left_;
-      delete right_;
+      if (left_->decReclaimCount())
+        delete left_;
+      if (right_->decReclaimCount())
+        delete right_;
+      left_ = right_ = nullptr;
     }
     
     NonTerminal(NonTerminal&& other) {
       left_ = move(other.left_);
       right_ = move(other.right_);
-      parent_ = move(other.parent_);
-      name_= move(other.name_);
+      name_ = move(other.name_);
     }
     
     NonTerminal(const NonTerminal& other) {
@@ -77,7 +84,6 @@ namespace SLP {
     NonTerminal& operator=(const NonTerminal&& other) {
       left_ = move(other.left_);
       right_ = move(other.right_);
-      parent_ = move(other.parent_);
       name_= move(other.name_);
       return *this;
     }
@@ -153,17 +159,51 @@ namespace SLP {
       } else {
         uint64_t len = input.length();
         
-        NonTerminal* nonTerminal = new NonTerminal(++count,
-                                                   buildTree(input.substr(0, (len + 1) / 2)),
-                                                   buildTree(input.substr((len + 1) / 2, len / 2)));
-        nonTerminal->right()->setParent(nonTerminal);
-        nonTerminal->left()->setParent(nonTerminal);
-        
-        return nonTerminal;
+        return new NonTerminal(++count,
+                               buildTree(input.substr(0, (len + 1) / 2)),
+                               buildTree(input.substr((len + 1) / 2, len / 2)));
       }
     }
     
     uint64_t count;
+  };
+  
+  class SimpleCompressionSLPBuilder {
+  public:
+    static SLP build(string input) {
+      return SLP(SimpleCompressionSLPBuilder().buildTree(input), input.size());
+    }
+    
+  private:
+    SimpleCompressionSLPBuilder() : count(0) { }
+    
+    Production* buildTree(string input) {
+      // Check if string is already derived by some variable
+      if (compressed.count(input) > 0) {
+        // Already in map
+        return compressed[input];
+      } else {
+        Production* result;
+        
+        if (input.size() == 1) {
+          result = new Terminal(input[0]);
+        } else {
+          uint64_t len = input.length();
+          
+          NonTerminal* nonTerminal = new NonTerminal(++count,
+                                                     buildTree(input.substr(0, (len + 1) / 2)),
+                                                     buildTree(input.substr((len + 1) / 2, len / 2)));
+          
+          result = nonTerminal;
+        }
+        
+        compressed[input] = result;
+        return result;
+      }
+    }
+    
+    uint64_t count;
+    unordered_map<string, Production*> compressed;
   };
   
   class SLPUnfoldedPrinter : public Visitor {
@@ -199,29 +239,73 @@ namespace SLP {
     uint64_t count_;
   };
   
-  class Partitioner : public Visitor {
+  class SLPFoldedPrinter : public Visitor {
+  public:
+    void visit(Terminal* terminal) {
+      if (seen.count(terminal) > 0) return;
+      seen.insert(terminal);
+      
+      ss_ << "\"n" << terminal << "\" [label=\"" << terminal->symbol() << "\",shape=\"plaintext\"];" << endl;
+    }
+    
+    void visit(NonTerminal* nonTerminal) {
+      if (seen.count(nonTerminal) > 0) return;
+      seen.insert(nonTerminal);
+      
+      ss_ << "\"n" << nonTerminal << "\" [label=\"X" << nonTerminal->name() << "\"];" << endl;
+      ss_ << "\"n" << nonTerminal << "\" -- \"n" << nonTerminal->left() << "\";" << endl;
+      nonTerminal->left()->accept(this);
+      ss_ << "\"n" << nonTerminal << "\" -- \"n" << nonTerminal->right() << "\";" << endl;
+      nonTerminal->right()->accept(this);
+    }
+    
+    static string toDot(const SLP& slp) {
+      SLPFoldedPrinter printer(slp);
+      
+      printer.ss_ << "graph G {" << endl;
+      printer.slp_.root()->accept(&printer);
+      printer.ss_ << "}" << endl;
+      
+      return printer.ss_.str();
+    }
+    
+  private:
+    SLPFoldedPrinter(const SLP& slp) : slp_(slp) { }
+    
+    const SLP& slp_;
+    stringstream ss_;
+    unordered_set<Production*> seen;
+  };
+  
+  class BlockConstructor : public Visitor {
   public:
     void visit(Terminal* terminal) {
       terminal->derivedStringLength = 1;
       terminal->associatedString = string(1, terminal->symbol());
       
       if (x_ == 1) {
-        keyVertices.push_back(terminal);
+        addKeyProduction(terminal);
       }
     }
     
     void visit(NonTerminal* nonTerminal) {
       if (nonTerminal->derivedStringLength != 0) {
-        assert(nonTerminal->derivedStringLength >= x_ && nonTerminal->derivedStringLength < 2 * x_);
-        assert(nonTerminal->left()->derivedStringLength < x_ && nonTerminal->right()->derivedStringLength < x_);
-        
-        keyVertices.push_back(nonTerminal);
-        
-        return; // This production is already handled.
+        if (nonTerminal->derivedStringLength >= x_ &&
+            nonTerminal->left()->derivedStringLength < x_ && nonTerminal->right()->derivedStringLength < x_) {
+          assert(nonTerminal->derivedStringLength < 2 * x_);
+          
+          addKeyProduction(nonTerminal);
+          return; // We are done with the subtree
+        }
       }
       
+      parentStack.push_back({ LEFT, nonTerminal });
       nonTerminal->left()->accept(this);
+      parentStack.pop_back();
+      
+      parentStack.push_back({ RIGHT, nonTerminal });
       nonTerminal->right()->accept(this);
+      parentStack.pop_back();
       
       const uint64_t leftLen = nonTerminal->left()->derivedStringLength,
                      rightLen = nonTerminal->right()->derivedStringLength;
@@ -232,37 +316,52 @@ namespace SLP {
         nonTerminal->associatedString = ss.str();
         
         if (leftLen + rightLen >= x_) {
-          keyVertices.push_back(nonTerminal);
+          addKeyProduction(nonTerminal);
         }
       }
     }
     
-    static NonTerminal* lca(Production* a, Production* b) {
-      // TODO: Consider faster implementation
-      assert(a != b);
+    /**
+     * Harvest strings in between key vertices i and i + 1
+     */
+    void harvestIntermediateNodes(Production* prevKeyVertex, Production* newKeyVertex) {
+      // Find the LCA of i and i + 1
+      int64_t k = 0;
+      while (k < previousParentStack.size() && k < parentStack.size() && previousParentStack[k] == parentStack[k]) ++k;
+      if (!(k < previousParentStack.size() && k < parentStack.size() && previousParentStack[k].second == parentStack[k].second))
+        k--;
+      Production* lca;
+      if (k < 0) lca = slp_.root();
+      else if (previousParentStack.size() > k) lca = previousParentStack[k].second;
+      else if (parentStack.size() > k) lca = parentStack[k].second;
+      else lca = slp_.root();
       
-      unordered_set<Production*> seen;
-      seen.insert(a); seen.insert(b);
-      
-      NonTerminal* path1 = a->parent();
-      NonTerminal* path2 = b->parent();
-      while (path1 != nullptr || path2 != nullptr) {
-        if (path1 != nullptr) {
-          if (seen.count(path1) > 0) return path1;
-          seen.insert(path1); path1 = path1->parent();
-        }
-        
-        if (path2 != nullptr) {
-          if (seen.count(path2) > 0) return path2;
-          seen.insert(path2); path2 = path2->parent();
-        }
-      }
-      
-      throw runtime_error("This should not happen! Could not find LCA!");
+      harvestLeftPath(prevKeyVertex, previousParentStack, lca);
+      harvestRightPath(newKeyVertex, parentStack, lca);
     }
     
-    void harvestLeftPath(Production* start, const Production* stop, vector<pair<string, Production*>>& partition) {
-      NonTerminal* cur = start->parent();
+    static vector<Production*> buildBlocks(const SLP& slp, uint64_t x) {
+      BlockConstructor blockConstructor(x, slp);
+      
+      // Find key vertices
+      blockConstructor.partition.reserve(slp.derivedLength() / x);
+      slp.root()->accept(&blockConstructor);
+      blockConstructor.harvestLeftPath(blockConstructor.partition[blockConstructor.partition.size() - 1],
+                                       blockConstructor.previousParentStack, nullptr); // Right of last key vertex
+      
+      return blockConstructor.partition;
+    }
+    
+  private:
+    BlockConstructor(uint64_t x, const SLP& slp) : x_(x), slp_(slp) { }
+    
+    enum Direction { LEFT, RIGHT };
+    
+    void harvestLeftPath(Production* start, const vector<pair<Direction, NonTerminal*>>& stack, const Production* stop) {
+      if (start == stop || stack.size() == 0) return;
+      
+      auto parentIterator = stack.rbegin();
+      NonTerminal* cur = parentIterator->second; ++parentIterator;
       Production* prev = start;
       while (cur != stop) {
         string S = "";
@@ -277,17 +376,26 @@ namespace SLP {
           }
           
           prev = cur;
-          cur = cur->parent();
+          if (parentIterator != stack.rend()) {
+            cur = parentIterator->second; ++parentIterator;
+          } else {
+            cur = nullptr;
+          }
         }
         
         if (!S.empty()) {
-          partition.push_back({ S, cur });
+          assert(prev->associatedString.empty() || prev->associatedString == S);
+          prev->associatedString = S;
+          partition.push_back(prev);
         }
       }
     }
     
-    void harvestRightPath(Production* start, const Production* stop, vector<pair<string, Production*>>& partition) {
-      NonTerminal* cur = start->parent();
+    void harvestRightPath(Production* start, const vector<pair<Direction, NonTerminal*>>& stack, const Production* stop) {
+      if (start == stop || stack.size() == 0) return;
+      
+      auto parentIterator = stack.rbegin();
+      NonTerminal* cur = parentIterator->second; ++parentIterator;
       Production* prev = start;
       while (cur != stop) {
         string S = "";
@@ -296,56 +404,48 @@ namespace SLP {
             assert(!cur->left()->associatedString.empty());
             assert(cur->left()->associatedString.length() < x_);
             
-            assert(false);
-            
             stringstream ss;
             ss << cur->left()->associatedString << S;
             S = ss.str();
           }
           
           prev = cur;
-          cur = cur->parent();
+          if (parentIterator != stack.rend()) {
+            cur = parentIterator->second; ++parentIterator;
+          } else {
+            cur = nullptr;
+          }
         }
         
         if (!S.empty()) {
-          partition.push_back({ S, cur });
+          assert(prev->associatedString.empty() || prev->associatedString == S);
+          prev->associatedString = S;
+          partition.push_back(prev);
         }
       }
     }
     
-    void harvestIntermediateNodes(Production* a, Production* b, vector<pair<string, Production*>>& partition) {
-      const NonTerminal* stop = lca(a, b);
-      
-      harvestLeftPath(a, stop, partition);
-      harvestRightPath(b, stop, partition);
-    }
-    
-    static vector<pair<string, Production*>> constructPartition(const SLP& slp, uint64_t x) {
-      Partitioner partitioner(x);
-      
-      // Find key vertices
-      partitioner.keyVertices.reserve(slp.derivedLength() / x);
-      slp.root()->accept(&partitioner);
-      
-      // Find vertices in between
-      vector<pair<string, Production*>> partition;
-      partition.reserve(slp.derivedLength() / x);
-      partitioner.harvestRightPath(partitioner.keyVertices[0], slp.root(), partition);
-      for (int i = 0; i < partitioner.keyVertices.size() - 1; i++) {
-        partition.push_back({ partitioner.keyVertices[i]->associatedString, partitioner.keyVertices[i] });
-        partitioner.harvestIntermediateNodes(partitioner.keyVertices[i], partitioner.keyVertices[i + 1], partition);
+    void addKeyProduction(Production* production) {
+      if (partition.size() == 0)
+        harvestRightPath(production, parentStack, nullptr);
+      else {
+        harvestIntermediateNodes(previousKeyVertex, production);
       }
-      auto lastKeyVertex = partitioner.keyVertices[partitioner.keyVertices.size() - 1];
-      partition.push_back({ lastKeyVertex->associatedString, lastKeyVertex });
-      partitioner.harvestLeftPath(lastKeyVertex, slp.root(), partition);
       
-      return partition;
+      partition.push_back(production);
+      
+      previousParentStack = vector<pair<Direction, NonTerminal*>>(parentStack);
+      previousKeyVertex = production;
     }
-    
-  private:
-    Partitioner(uint64_t x) : x_(x) { }
     
     const uint64_t x_;
-    vector<Production*> keyVertices;
+    const SLP& slp_;
+    
+    Production* previousKeyVertex;
+    vector<pair<Direction, NonTerminal*>> previousParentStack;
+    vector<pair<Direction, NonTerminal*>> parentStack;
+
+    // vector<Production*> keyVertices;
+    vector<Production*> partition;
   };
 }
