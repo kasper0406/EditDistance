@@ -11,8 +11,9 @@ class Simple {
 public:
   Simple(string a, string b) : a_(a), b_(b) { }
   
-  static vector<pair<string, function<uint64_t()>>> run(pair<string, string> input) {
-    Simple* simple = new Simple(input.first, input.second);
+  static vector<pair<string, function<uint64_t()>>> run(tuple<string, string, uint64_t> input) {
+    Simple* simple = new Simple();
+    tie(simple->a_, simple->b_, ignore) = input;
     
     auto compute = [simple]() -> uint64_t {
       return simple->edit_distance();
@@ -71,5 +72,7 @@ public:
   }
   
 private:
+  Simple() { }
+  
   string a_, b_;
 };

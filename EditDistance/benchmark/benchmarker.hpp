@@ -60,19 +60,22 @@ namespace Benchmark {
   }
   
   template <class Implementation>
-  void run_benchmark(uint16_t trials) {
+  void run_benchmark(uint16_t trials, const uint64_t x) {
     string a = generate_string(1000);
     string b = generate_string(1000);
     
     cout << "#Testing: " << Implementation::name() << endl;
     
-    const auto& stages = Implementation::run({ a, b });
+    const auto& stages = Implementation::run({ "a", "b", 1 });
+    for (auto& stage : stages) // Just run the implementation on some very short strings, since this is only to get names of stages!
+      stage.second();
+    
     vector<pair<vector<Measurement>, Statistics>> measurements(stages.size(), pair<vector<Measurement>, Statistics>());
     
     // Run the actual tests
     for (uint16_t trial = 0; trial < trials; ++trial) {
-      auto run = Implementation::run({ a, b });
-      for (uint16_t stage = 0; stage < stages.size(); ++stage) {
+      auto run = Implementation::run({ a, b, x });
+      for (uint16_t stage = 0; stage < run.size(); ++stage) {
         auto& fct = run[stage].second;
         
         Measurement measurement = time(fct);
