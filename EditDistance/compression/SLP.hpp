@@ -19,7 +19,7 @@ namespace SLP {
   
   class Production {
   public:
-    Production() : associatedString(""), derivedStringLength(0), DISTTableIndex(-1), reclaimCount_(0) { }
+    Production() : associatedString(""), derivedStringLength(0), isAddedInPartition(false), DISTTableIndex(-1), reclaimCount_(0) { }
     
     virtual ~Production() { };
     virtual void accept(Visitor* visitor) = 0;
@@ -31,6 +31,7 @@ namespace SLP {
     string associatedString;
     uint64_t derivedStringLength;
     
+    bool isAddedInPartition;
     int64_t DISTTableIndex; // Index into the dist table, making constant lookup possible
     
     void incReclaimCount() { reclaimCount_++; }
@@ -277,9 +278,10 @@ namespace SLP {
     unordered_set<Production*> seen;
   };
   
-  class BlockConstructor : public Visitor {
+  class Partitioner : public Visitor {
   public:
     void visit(Terminal* terminal) {
+      assert(terminal->associatedString.empty() || terminal->associatedString == string(1, terminal->symbol()));
       terminal->derivedStringLength = 1;
       terminal->associatedString = string(1, terminal->symbol());
       
@@ -299,13 +301,13 @@ namespace SLP {
         }
       }
       
-      parentStack.push_back({ LEFT, nonTerminal });
+      parentStack_.push_back({ LEFT, nonTerminal });
       nonTerminal->left()->accept(this);
-      parentStack.pop_back();
+      parentStack_.pop_back();
       
-      parentStack.push_back({ RIGHT, nonTerminal });
+      parentStack_.push_back({ RIGHT, nonTerminal });
       nonTerminal->right()->accept(this);
-      parentStack.pop_back();
+      parentStack_.pop_back();
       
       const uint64_t leftLen = nonTerminal->left()->derivedStringLength,
                      rightLen = nonTerminal->right()->derivedStringLength;
@@ -313,6 +315,8 @@ namespace SLP {
       if (leftLen < x_ && rightLen < x_) {
         stringstream ss;
         ss << nonTerminal->left()->associatedString << nonTerminal->right()->associatedString;
+        
+        assert(nonTerminal->associatedString.empty() || nonTerminal->associatedString == ss.str());
         nonTerminal->associatedString = ss.str();
         
         if (leftLen + rightLen >= x_) {
@@ -327,33 +331,36 @@ namespace SLP {
     void harvestIntermediateNodes(Production* prevKeyVertex, Production* newKeyVertex) {
       // Find the LCA of i and i + 1
       int64_t k = 0;
-      while (k < previousParentStack.size() && k < parentStack.size() && previousParentStack[k] == parentStack[k]) ++k;
-      if (!(k < previousParentStack.size() && k < parentStack.size() && previousParentStack[k].second == parentStack[k].second))
+      while (k < previousParentStack_.size() && k < parentStack_.size() && previousParentStack_[k] == parentStack_[k]) ++k;
+      if (!(k < previousParentStack_.size() && k < parentStack_.size() && previousParentStack_[k].second == parentStack_[k].second))
         k--;
       Production* lca;
       if (k < 0) lca = slp_.root();
-      else if (previousParentStack.size() > k) lca = previousParentStack[k].second;
-      else if (parentStack.size() > k) lca = parentStack[k].second;
+      else if (previousParentStack_.size() > k) lca = previousParentStack_[k].second;
+      else if (parentStack_.size() > k) lca = parentStack_[k].second;
       else lca = slp_.root();
       
-      harvestLeftPath(prevKeyVertex, previousParentStack, lca);
-      harvestRightPath(newKeyVertex, parentStack, lca);
+      harvestLeftPath(prevKeyVertex, previousParentStack_, lca);
+      harvestRightPath(newKeyVertex, parentStack_, lca);
     }
     
-    static vector<Production*> buildBlocks(const SLP& slp, uint64_t x) {
-      BlockConstructor blockConstructor(x, slp);
+    // Returns (partition, blocks)
+    static pair<vector<Production*>, vector<Production*>> partition(const SLP& slp, uint64_t x) {
+      Partitioner partitioner(x, slp);
       
       // Find key vertices
-      blockConstructor.partition.reserve(slp.derivedLength() / x);
-      slp.root()->accept(&blockConstructor);
-      blockConstructor.harvestLeftPath(blockConstructor.partition[blockConstructor.partition.size() - 1],
-                                       blockConstructor.previousParentStack, nullptr); // Right of last key vertex
+      partitioner.partition_.reserve(slp.derivedLength() / x);
+      partitioner.blocks_.reserve(slp.derivedLength() / x);
       
-      return blockConstructor.partition;
+      slp.root()->accept(&partitioner);
+      partitioner.harvestLeftPath(partitioner.partition_[partitioner.partition_.size() - 1],
+                                  partitioner.previousParentStack_, nullptr); // Right of last key vertex
+      
+      return { partitioner.partition_, partitioner.blocks_ };
     }
     
   private:
-    BlockConstructor(uint64_t x, const SLP& slp) : x_(x), slp_(slp) { }
+    Partitioner(uint64_t x, const SLP& slp) : x_(x), slp_(slp) { }
     
     enum Direction { LEFT, RIGHT };
     
@@ -386,7 +393,7 @@ namespace SLP {
         if (!S.empty()) {
           assert(prev->associatedString.empty() || prev->associatedString == S);
           prev->associatedString = S;
-          partition.push_back(prev);
+          addToPartition(prev);
         }
       }
     }
@@ -420,32 +427,40 @@ namespace SLP {
         if (!S.empty()) {
           assert(prev->associatedString.empty() || prev->associatedString == S);
           prev->associatedString = S;
-          partition.push_back(prev);
+          addToPartition(prev);
         }
       }
     }
     
     void addKeyProduction(Production* production) {
-      if (partition.size() == 0)
-        harvestRightPath(production, parentStack, nullptr);
+      if (partition_.size() == 0)
+        harvestRightPath(production, parentStack_, nullptr);
       else {
-        harvestIntermediateNodes(previousKeyVertex, production);
+        harvestIntermediateNodes(previousKeyVertex_, production);
       }
       
-      partition.push_back(production);
+      addToPartition(production);
       
-      previousParentStack = vector<pair<Direction, NonTerminal*>>(parentStack);
-      previousKeyVertex = production;
+      previousParentStack_ = vector<pair<Direction, NonTerminal*>>(parentStack_);
+      previousKeyVertex_ = production;
+    }
+    
+    void addToPartition(Production* production) {
+      partition_.push_back(production);
+      if (!production->isAddedInPartition) {
+        production->isAddedInPartition = true;
+        blocks_.push_back(production);
+      }
     }
     
     const uint64_t x_;
     const SLP& slp_;
     
-    Production* previousKeyVertex;
-    vector<pair<Direction, NonTerminal*>> previousParentStack;
-    vector<pair<Direction, NonTerminal*>> parentStack;
+    Production* previousKeyVertex_;
+    vector<pair<Direction, NonTerminal*>> previousParentStack_;
+    vector<pair<Direction, NonTerminal*>> parentStack_;
 
-    // vector<Production*> keyVertices;
-    vector<Production*> partition;
+    vector<Production*> partition_;
+    vector<Production*> blocks_;
   };
 }

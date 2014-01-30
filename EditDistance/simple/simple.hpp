@@ -9,21 +9,61 @@ using namespace std;
 
 class Simple {
 public:
-  vector<pair<string, function<uint64_t()>>> run(pair<string, string> input) {
-    a = input.first;
-    b = input.second;
+  Simple(string a, string b) : a_(a), b_(b) { }
+  
+  static vector<pair<string, function<uint64_t()>>> run(pair<string, string> input) {
+    Simple* simple = new Simple(input.first, input.second);
     
-    auto compute = [&]() -> uint64_t {
-      return edit_distance();
+    auto compute = [simple]() -> uint64_t {
+      return simple->edit_distance();
     };
     
-    return { { "computation", compute } };
+    auto cleanup = [simple]() {
+      delete simple;
+      return 0;
+    };
+    
+    return { { "computation", compute }, { "cleanup", cleanup } };
   }
   
+  /**
+   * TODO: Find a way of supplying a scoring function!
+   */
   uint64_t edit_distance() {
-    for (int i = 0; i < 100000000; ++i) continue;
+    if (b_.size() < a_.size()) swap(a_, b_);
+    if (a_.empty()) return b_.size();
+    assert(a_.size() > 0 && b_.size() > 0);
     
-    return 1;
+    auto substitution = [](char a, char b) {
+      return 1 - (a == b);
+    };
+    
+    vector<uint64_t> prev(a_.size() + 1, 0), cur(a_.size() + 1, 0);
+    
+    // Base case
+    for (uint64_t i = 0; i <= a_.size(); i++) {
+      // cout << i << "\t";
+      prev[i] = i;
+    }
+    // cout << endl;
+    
+    for (uint64_t j = 1; j <= b_.size(); j++) {
+      for (uint64_t i = 0; i <= a_.size(); i++) {
+        if (i == 0) {
+          cur[i] = prev[i] + 1;
+        } else {
+          cur[i] = min(prev[i - 1] + substitution(a_[i - 1], b_[j - 1]),
+                       min(prev[i] + 1, cur[i - 1] + 1));
+        }
+        
+        // cout << cur[i] << "\t";
+      }
+      // cout << endl;
+      
+      swap(prev, cur);
+    }
+    
+    return prev[a_.size()];
   }
   
   static string name() {
@@ -31,5 +71,5 @@ public:
   }
   
 private:
-  string a, b;
+  string a_, b_;
 };

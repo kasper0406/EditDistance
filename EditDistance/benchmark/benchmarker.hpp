@@ -7,6 +7,7 @@
 #include <chrono>
 #include <iostream>
 #include <iomanip>
+#include <sstream>
 
 using namespace std;
 using namespace std::chrono;
@@ -45,19 +46,32 @@ namespace Benchmark {
     return measurement;
   }
   
+  /**
+   * NOTICE: Strings are NOT generated uniformly at random!!!
+   */
+  string generate_string(uint64_t length, vector<char> alphabet = { 'a', 'c', 'g', 't' })
+  {
+    stringstream ss;
+    
+    for (uint64_t i = 0; i < length; ++i)
+      ss << alphabet[rand() % alphabet.size()]; // Not fair randomness, but its good enough for this testing!
+    
+    return ss.str();
+  }
+  
   template <class Implementation>
   void run_benchmark(uint16_t trials) {
-    string a = "aaaaaaaa";
-    string b = "aaaaaaaa";
+    string a = generate_string(1000);
+    string b = generate_string(1000);
     
     cout << "#Testing: " << Implementation::name() << endl;
     
-    const auto& stages = Implementation().run({ a, b });
+    const auto& stages = Implementation::run({ a, b });
     vector<pair<vector<Measurement>, Statistics>> measurements(stages.size(), pair<vector<Measurement>, Statistics>());
     
     // Run the actual tests
     for (uint16_t trial = 0; trial < trials; ++trial) {
-      auto run = Implementation().run({ a, b });
+      auto run = Implementation::run({ a, b });
       for (uint16_t stage = 0; stage < stages.size(); ++stage) {
         auto& fct = run[stage].second;
         

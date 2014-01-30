@@ -14,7 +14,7 @@ ENDIF(APPLE)
 set(ROOT_SRCS "main.cpp")
 set(SIMPLE_SRCS "simple/simple.hpp")
 set(COMPRESSION_SRCS "compression/SLP.hpp" "compression/DIST.hpp")
-set(UTILS_SRCS "utils/allocator.hpp")
+set(UTILS_SRCS "utils/allocator.hpp" "utils/matrix.hpp")
 set(BENCHMARK_SRCS "benchmark/benchmarker.hpp")
 
 option(USE_COUNTING_ALLOCATOR "Use allocator counting memory consumption." ON)
