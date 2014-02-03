@@ -16,6 +16,7 @@ set(SIMPLE_SRCS "simple/simple.hpp")
 set(COMPRESSION_SRCS "compression/SLP.hpp" "compression/DIST.hpp" "compression/slpalign.hpp")
 set(UTILS_SRCS "utils/allocator.hpp" "utils/matrix.hpp")
 set(BENCHMARK_SRCS "benchmark/benchmarker.hpp")
+set(TEST_SRCS "test/tests.hpp")
 
 option(USE_COUNTING_ALLOCATOR "Use allocator counting memory consumption." ON)
 if(USE_COUNTING_ALLOCATOR)
@@ -26,9 +27,11 @@ add_executable(EditDistance ${ROOT_SRCS}
                             ${UTILS_SRCS}
                             ${SIMPLE_SRCS}
                             ${COMPRESSION_SRCS}
-                            ${BENCHMARK_SRCS})
+                            ${BENCHMARK_SRCS}
+                            ${TEST_SRCS})
 
 source_group("Simple"      FILES ${SIMPLE_SRCS})
 source_group("Compression" FILES ${COMPRESSION_SRCS})
 source_group("Utils"       FILES ${UTILS_SRCS})
 source_group("Benchmark"   FILES ${BENCHMARK_SRCS})
+source_group("Tests"       FILES ${TEST_SRCS})
