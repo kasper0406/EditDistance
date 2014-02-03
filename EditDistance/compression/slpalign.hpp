@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <memory>
 #include <utility>
+#include <list>
 
 #include "SLP.hpp"
 #include "DIST.hpp"
@@ -17,7 +18,8 @@ namespace Compression {
   template <class SLPCompressor, class DISTRepo>
   class SLPAlign {
   public:
-    SLPAlign(string A, string B, uint64_t x) : x_(x), A_(A), B_(B) {
+    SLPAlign(string A, string B, uint64_t x) : x_(x), A_(A), B_(B)
+    {
       generateSLPs();
       buildDISTRepo();
     }
@@ -83,7 +85,7 @@ namespace Compression {
             I[i] = block_row[i - a_len];
           
           // Computes outputs from block
-          auto O = distRepo.apply(a, b, I);
+          auto O = distRepo->apply(a, b, I);
           /*
            cout << "I: " << "\t";
            for (int64_t i = 0; i < I.size(); ++i)
@@ -132,16 +134,17 @@ namespace Compression {
     }
     
     void buildDISTRepo() {
-      distRepo.build(blocksA_, blocksB_);
+      distRepo = unique_ptr<DISTRepo>(new DISTRepo(*slpA_, *slpB_));
+      distRepo->build(blocksA_, blocksB_);
     }
     
     uint64_t x_;
     
     string A_, B_;
     unique_ptr<SLP::SLP> slpA_, slpB_;
-    vector<SLP::Production*> partitionA_, blocksA_;
-    vector<SLP::Production*> partitionB_, blocksB_;
+    vector<SLP::Production*> partitionA_, partitionB_;
+    vector<SLP::Production*> blocksA_, blocksB_;
     
-    DISTRepo distRepo;
+    unique_ptr<DISTRepo> distRepo;
   };
 }

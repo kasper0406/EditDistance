@@ -74,3 +74,21 @@ ostream& operator<<(ostream& strm, const Matrix<T>& matrix)
   }
   return strm;
 }
+
+template<class T>
+bool operator==(const Matrix<T>& A, const Matrix<T>& B) {
+  if (A.getRows() != B.getRows() || A.getColumns() != B.getColumns()) return false;
+  
+  bool all_equal = true;
+  for (uint64_t row = 0; row < A.getRows(); ++row) {
+    for (uint64_t col = 0; col < B.getColumns(); ++col)
+      all_equal = all_equal && (A(row, col) == B(row, col));
+  }
+  
+  return all_equal;
+}
+
+template<class T>
+bool operator!=(const Matrix<T>& A, const Matrix<T>& B) {
+  return !(A == B);
+}

@@ -61,8 +61,8 @@ namespace Benchmark {
   
   template <class Implementation>
   void run_benchmark(uint16_t trials, const uint64_t x) {
-    string a = generate_string(1000);
-    string b = generate_string(1000);
+    string a = generate_string(100);
+    string b = generate_string(100);
     
     cout << "#Testing: " << Implementation::name() << endl;
     

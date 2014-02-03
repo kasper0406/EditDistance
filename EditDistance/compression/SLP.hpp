@@ -8,11 +8,15 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <memory>
+#include <list>
+#include <tuple>
 
 using namespace std;
 
 namespace Compression {
   namespace SLP {
+    enum ProductionType { KEY, LEFT, RIGHT };
+    
     class Visitor {
     public:
       virtual void visit(class Terminal* terminal) = 0;
@@ -21,7 +25,7 @@ namespace Compression {
     
     class Production {
     public:
-      Production() : associatedString(""), derivedStringLength(0), isAddedInPartition(false), DISTTableIndex(-1), reclaimCount_(0) { }
+      Production() : associatedString(""), derivedStringLength(0), isAddedInPartition(false), DISTTableIndex(-1), TYPE2_next(nullptr), reclaimCount_(0) { }
       
       virtual ~Production() { };
       virtual void accept(Visitor* visitor) = 0;
@@ -35,6 +39,12 @@ namespace Compression {
       
       bool isAddedInPartition;
       int64_t DISTTableIndex; // Index into the dist table, making constant lookup possible
+      
+      ProductionType type;
+      /////////////////////////////////////////
+      // TYPE 2 information
+      Production* TYPE2_next;
+      /////////////////////////////////////////
       
       void incReclaimCount() { reclaimCount_++; }
       bool decReclaimCount() { return --reclaimCount_ == 0; }
@@ -111,7 +121,9 @@ namespace Compression {
     
     class SLP {
     public:
-      SLP(Production* root, uint64_t derivedLength) : root_(root), derivedLength_(derivedLength) { }
+      SLP(Production* root, uint64_t derivedLength, uint64_t production_count)
+        : root_(root), derivedLength_(derivedLength), production_count_(production_count)
+      { }
       
       ~SLP() {
         delete root_;
@@ -138,6 +150,10 @@ namespace Compression {
         return root_;
       }
       
+      uint64_t productions() const {
+        return production_count_;
+      }
+      
       uint64_t derivedLength() const {
         return derivedLength_;
       }
@@ -145,18 +161,22 @@ namespace Compression {
     private:
       Production* root_;
       uint64_t derivedLength_; // Consider computing this value instead
+      uint64_t production_count_;
     };
     
     class SimpleSLPBuilder {
     public:
       static unique_ptr<SLP> build(string input) {
-        return unique_ptr<SLP>(new SLP(SimpleSLPBuilder().buildTree(input), input.size()));
+        SimpleSLPBuilder builder;
+        auto root = builder.buildTree(input);
+        return unique_ptr<SLP>(new SLP(root, input.size(), builder.production_count));
       }
       
     private:
-      SimpleSLPBuilder() : count(0) { }
+      SimpleSLPBuilder() : production_count(0), count(0) { }
       
       Production* buildTree(string input) {
+        production_count++;
         if (input.size() == 1) {
           return new Terminal(input[0]);
         } else {
@@ -168,17 +188,20 @@ namespace Compression {
         }
       }
       
+      uint64_t production_count;
       uint64_t count;
     };
     
     class SimpleCompressionSLPBuilder {
     public:
       static unique_ptr<SLP> build(string input) {
-        return unique_ptr<SLP>(new SLP(SimpleCompressionSLPBuilder().buildTree(input), input.size()));
+        SimpleCompressionSLPBuilder builder;
+        auto root = builder.buildTree(input);
+        return unique_ptr<SLP>(new SLP(root, input.size(), builder.production_count));
       }
       
     private:
-      SimpleCompressionSLPBuilder() : count(0) { }
+      SimpleCompressionSLPBuilder() : production_count(0), count(0) { }
       
       Production* buildTree(string input) {
         // Check if string is already derived by some variable
@@ -187,6 +210,7 @@ namespace Compression {
           return compressed[input];
         } else {
           Production* result;
+          production_count++;
           
           if (input.size() == 1) {
             result = new Terminal(input[0]);
@@ -205,6 +229,7 @@ namespace Compression {
         }
       }
       
+      uint64_t production_count;
       uint64_t count;
       unordered_map<string, Production*> compressed;
     };
@@ -364,9 +389,7 @@ namespace Compression {
     private:
       Partitioner(uint64_t x, const SLP& slp) : x_(x), slp_(slp) { }
       
-      enum Direction { LEFT, RIGHT };
-      
-      void harvestLeftPath(Production* start, const vector<pair<Direction, NonTerminal*>>& stack, const Production* stop) {
+      void harvestLeftPath(Production* start, const vector<pair<ProductionType, NonTerminal*>>& stack, const Production* stop) {
         if (start == stop || stack.size() == 0) return;
         
         auto parentIterator = stack.rbegin();
@@ -374,6 +397,8 @@ namespace Compression {
         Production* prev = start;
         while (cur != stop) {
           string S = "";
+          Production* prev_selected = nullptr;
+          
           while (S.size() < x_ && cur != stop) {
             if (cur->right() != prev) {
               assert(!cur->right()->associatedString.empty());
@@ -382,6 +407,9 @@ namespace Compression {
               stringstream ss;
               ss << S << cur->right()->associatedString;
               S = ss.str();
+              
+              cur->TYPE2_next = prev_selected;
+              prev_selected = cur;
             }
             
             prev = cur;
@@ -393,14 +421,14 @@ namespace Compression {
           }
           
           if (!S.empty()) {
-            assert(prev->associatedString.empty() || prev->associatedString == S);
-            prev->associatedString = S;
-            addToPartition(prev);
+            assert(prev_selected->associatedString.empty() || prev_selected->associatedString == S);
+            prev_selected->associatedString = S;
+            addToPartition(prev_selected, LEFT);
           }
         }
       }
       
-      void harvestRightPath(Production* start, const vector<pair<Direction, NonTerminal*>>& stack, const Production* stop) {
+      void harvestRightPath(Production* start, const vector<pair<ProductionType, NonTerminal*>>& stack, const Production* stop) {
         if (start == stop || stack.size() == 0) return;
         
         auto parentIterator = stack.rbegin();
@@ -408,6 +436,8 @@ namespace Compression {
         Production* prev = start;
         while (cur != stop) {
           string S = "";
+          Production* prev_selected = nullptr;
+          
           while (S.size() < x_ && cur != stop) {
             if (cur->left() != prev) {
               assert(!cur->left()->associatedString.empty());
@@ -416,6 +446,9 @@ namespace Compression {
               stringstream ss;
               ss << cur->left()->associatedString << S;
               S = ss.str();
+              
+              cur->TYPE2_next = prev_selected;
+              prev_selected = cur;
             }
             
             prev = cur;
@@ -427,9 +460,9 @@ namespace Compression {
           }
           
           if (!S.empty()) {
-            assert(prev->associatedString.empty() || prev->associatedString == S);
-            prev->associatedString = S;
-            addToPartition(prev);
+            assert(prev_selected->associatedString.empty() || prev_selected->associatedString == S);
+            prev_selected->associatedString = S;
+            addToPartition(prev_selected, RIGHT);
           }
         }
       }
@@ -441,16 +474,20 @@ namespace Compression {
           harvestIntermediateNodes(previousKeyVertex_, production);
         }
         
-        addToPartition(production);
+        addToPartition(production, KEY);
         
-        previousParentStack_ = vector<pair<Direction, NonTerminal*>>(parentStack_);
+        previousParentStack_ = vector<pair<ProductionType, NonTerminal*>>(parentStack_);
         previousKeyVertex_ = production;
       }
       
-      void addToPartition(Production* production) {
+      void addToPartition(Production* production, ProductionType type) {
         partition_.push_back(production);
         if (!production->isAddedInPartition) {
+          if (type == LEFT)
+            assert(!((NonTerminal*)production)->right()->associatedString.empty());
+          
           production->isAddedInPartition = true;
+          production->type = type;
           blocks_.push_back(production);
         }
       }
@@ -459,8 +496,8 @@ namespace Compression {
       const SLP& slp_;
       
       Production* previousKeyVertex_;
-      vector<pair<Direction, NonTerminal*>> previousParentStack_;
-      vector<pair<Direction, NonTerminal*>> parentStack_;
+      vector<pair<ProductionType, NonTerminal*>> previousParentStack_;
+      vector<pair<ProductionType, NonTerminal*>> parentStack_;
       
       vector<Production*> partition_;
       vector<Production*> blocks_;
