@@ -169,6 +169,36 @@ namespace Compression {
        * Given two productions A, B and input I, return the output of applying the DIST table identified to A, B to I.
        */
       vector<uint64_t> apply(Production* A, Production* B, const vector<uint64_t>& I) {
+        // TODO: Factor this code out into the DIST table itself.
+        assert(A->DISTTableIndex != -1 && B->DISTTableIndex != -1);
+        assert(A->associatedString.size() + B->associatedString.size() + 1 == I.size());
+        
+        /*
+         cout << "A: " << A->associatedString << endl << "B: " << B->associatedString << endl;
+         cout << "Associated DIST:" << endl << repo_[A->DISTTableIndex][B->DISTTableIndex] << endl << endl;
+         */
+        
+        vector<uint64_t> O;
+        O.reserve(I.size());
+        
+        for (uint64_t j = 0; j < I.size(); j++) {
+          uint64_t minimum = numeric_limits<uint64_t>::max();
+          for (uint64_t i = 0; i < I.size(); i++) {
+            /*
+             cout << "out: " << j << endl;
+             cout << "in: " << i << endl;
+             cout << "Input: " << I[i] << endl;
+             cout << "DIST: " << repo_[A->DISTTableIndex][B->DISTTableIndex](i, j) << endl;
+             */
+            
+            assert(repo_(A->DISTTableIndex, B->DISTTableIndex) != nullptr);
+            if (get<2>(*repo_(A->DISTTableIndex, B->DISTTableIndex))(i, j) == numeric_limits<uint64_t>::max()) continue;
+            minimum = min(minimum, I[i] + get<2>(*repo_(A->DISTTableIndex, B->DISTTableIndex))(i, j));
+          }
+          O.push_back(minimum);
+        }
+        
+        return O;
       }
       
       const DISTTable& operator()(Production* a, Production* b) const {

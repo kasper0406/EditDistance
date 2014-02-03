@@ -29,13 +29,14 @@ namespace Test {
         { "Test simple horizontal DIST merge.", test_horizontal_merge<DIST::SimpleMerger> },
         { "Test simple vertical DIST merge.", test_vertical_merge<DIST::SimpleMerger> },
         { "Test construction of DIST tables using simple merging.", test_dist_repository<DIST::SimpleDISTRepository, DIST::MergingDISTRepository<DIST::SimpleMerger>, SLP::SimpleCompressionSLPBuilder> },
-        { "Verify result of sample using simple compression SLP and simple DIST.", test_slp_compression_align<SLP::SimpleCompressionSLPBuilder, DIST::SimpleDISTRepository> }
+        { "Verify result of sample using simple compression SLP and simple DIST.", test_slp_compression_align<SLP::SimpleCompressionSLPBuilder, DIST::SimpleDISTRepository> },
+        { "Verify result of sample using simple compression SLP and simple merging DIST.", test_slp_compression_align<SLP::SimpleCompressionSLPBuilder, DIST::MergingDISTRepository<DIST::SimpleMerger>> }
       };
       
       bool success = true;
       cout << "Running test suite..." << endl;
       for (auto test : tests) {
-        cout << left << setw(colwidth) << get<0>(test);
+        cout << left << setw(colwidth) << get<0>(test) << flush;
         if (get<1>(test)()) {
           cout << "PASSED" << endl;
         } else {
@@ -224,14 +225,19 @@ namespace Test {
     
     template <class SLPBuilder, class DISTRepo>
     static bool test_slp_compression_align() {
-      const string A = Benchmark::generate_string(203);
-      const string B = Benchmark::generate_string(197);
+      for (uint64_t length = 10; length < 100; length = max((uint64_t)((double)length * 1.8), length + 1)) {
+        string A = Benchmark::generate_string(length - 3);
+        string B = Benchmark::generate_string(length + 4);
+        
+        for (uint64_t x = 3; x < min(A.length(), B.length()); x = max((uint64_t)((double)x * 2.3), x + 1)) {
+          SLPAlign<SLPBuilder, DISTRepo> aligner(A, B, x);
+          Simple simple(A, B);
       
-      const uint64_t x = 7;
-      SLPAlign<SLPBuilder, DISTRepo> aligner(A, B, x);
-      Simple simple(A, B);
-      
-      return aligner.edit_distance() == simple.edit_distance();
+          if (aligner.edit_distance() != simple.edit_distance())
+            return false;
+        }
+      }
+      return true;
     }
   };
 }

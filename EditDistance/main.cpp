@@ -34,6 +34,7 @@ int main(int argc, char* argv[])
     const uint16_t trials = 1;
     Benchmark::run_benchmark<Simple>(trials, x);
     Benchmark::run_benchmark<SLPAlign<SLP::SimpleCompressionSLPBuilder, DIST::SimpleDISTRepository>>(trials, x);
+    Benchmark::run_benchmark<SLPAlign<SLP::SimpleCompressionSLPBuilder, DIST::MergingDISTRepository<DIST::SimpleMerger>>>(trials, x);
   }
 
 #ifdef USE_COUNTING_ALLOCATOR

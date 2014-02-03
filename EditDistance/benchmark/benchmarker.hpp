@@ -61,8 +61,8 @@ namespace Benchmark {
   
   template <class Implementation>
   void run_benchmark(uint16_t trials, const uint64_t x) {
-    string a = generate_string(100);
-    string b = generate_string(100);
+    string a = generate_string(250);
+    string b = generate_string(250);
     
     cout << "#Testing: " << Implementation::name() << endl;
     
@@ -128,5 +128,6 @@ namespace Benchmark {
         // << setw(15) << measurements[stage].first[iMedian].instructions
            << endl;
     }
+    cout << endl;
   }
 };
