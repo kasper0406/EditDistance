@@ -172,6 +172,10 @@ namespace Compression {
         return unique_ptr<SLP>(new SLP(root, input.size(), builder.production_count));
       }
       
+      static string name() {
+        return "TrivialSLP";
+      }
+      
     private:
       SimpleSLPBuilder() : production_count(0), count(0) { }
       
@@ -198,6 +202,10 @@ namespace Compression {
         SimpleCompressionSLPBuilder builder;
         auto root = builder.buildTree(input);
         return unique_ptr<SLP>(new SLP(root, input.size(), builder.production_count));
+      }
+      
+      static string name() {
+        return "SimpleCompressionSLP";
       }
       
     private:

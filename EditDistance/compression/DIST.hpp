@@ -123,6 +123,10 @@ namespace Compression {
         return repo_[i][j];
       }
       
+      static string name() {
+        return "SimpleDIST";
+      }
+      
     private:
       vector<vector<DISTTable>> repo_;
     };
@@ -207,6 +211,10 @@ namespace Compression {
         
         assert(i != -1 && j != -1 && i < repo_.getRows() && j < repo_.getColumns() && repo_(i, j) != nullptr);
         return *repo_(i, j);
+      }
+      
+      static string name() {
+        return "MergingDIST(" + Merger::name() + ")";
       }
       
     private:
@@ -482,6 +490,10 @@ namespace Compression {
         }
         
         return result;
+      }
+      
+      static string name() {
+        return "SimpleMerger";
       }
     };
   }

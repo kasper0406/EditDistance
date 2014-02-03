@@ -119,7 +119,7 @@ namespace Compression {
     }
     
     static string name() {
-      return "SLPAlign";
+      return "SLPAlign(" + SLPCompressor::name() + ", " + DISTRepo::name() + ")";
     }
     
   private:
