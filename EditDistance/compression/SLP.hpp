@@ -35,7 +35,7 @@ namespace Compression {
        * Consider refactoring this!
        */
       string associatedString;
-      uint64_t derivedStringLength;
+      int64_t derivedStringLength;
       
       bool isAddedInPartition;
       int64_t DISTTableIndex; // Index into the dist table, making constant lookup possible
@@ -50,7 +50,7 @@ namespace Compression {
       bool decReclaimCount() { return --reclaimCount_ == 0; }
       
     private:
-      uint64_t reclaimCount_;
+      int64_t reclaimCount_;
     };
     
     class Terminal : public Production {
@@ -69,7 +69,7 @@ namespace Compression {
     
     class NonTerminal : public Production {
     public:
-      NonTerminal(uint64_t name, Production* left, Production* right)
+      NonTerminal(int64_t name, Production* left, Production* right)
       : left_(left), right_(right), name_(name)
       {
         left_->incReclaimCount();
@@ -112,16 +112,16 @@ namespace Compression {
       Production* left() const { return left_; }
       Production* right() const { return right_; }
       
-      uint64_t name() const { return name_; }
+      int64_t name() const { return name_; }
       
     private:
       Production *left_, *right_;
-      uint64_t name_;
+      int64_t name_;
     };
     
     class SLP {
     public:
-      SLP(Production* root, uint64_t derivedLength, uint64_t production_count)
+      SLP(Production* root, int64_t derivedLength, int64_t production_count)
         : root_(root), derivedLength_(derivedLength), production_count_(production_count)
       { }
       
@@ -150,18 +150,18 @@ namespace Compression {
         return root_;
       }
       
-      uint64_t productions() const {
+      int64_t productions() const {
         return production_count_;
       }
       
-      uint64_t derivedLength() const {
+      int64_t derivedLength() const {
         return derivedLength_;
       }
       
     private:
       Production* root_;
-      uint64_t derivedLength_; // Consider computing this value instead
-      uint64_t production_count_;
+      int64_t derivedLength_; // Consider computing this value instead
+      int64_t production_count_;
     };
     
     class SimpleSLPBuilder {
@@ -184,7 +184,7 @@ namespace Compression {
         if (input.size() == 1) {
           return new Terminal(input[0]);
         } else {
-          uint64_t len = input.length();
+          int64_t len = input.length();
           
           return new NonTerminal(++count,
                                  buildTree(input.substr(0, (len + 1) / 2)),
@@ -192,8 +192,8 @@ namespace Compression {
         }
       }
       
-      uint64_t production_count;
-      uint64_t count;
+      int64_t production_count;
+      int64_t count;
     };
     
     class SimpleCompressionSLPBuilder {
@@ -223,7 +223,7 @@ namespace Compression {
           if (input.size() == 1) {
             result = new Terminal(input[0]);
           } else {
-            uint64_t len = input.length();
+            int64_t len = input.length();
             
             NonTerminal* nonTerminal = new NonTerminal(++count,
                                                        buildTree(input.substr(0, (len + 1) / 2)),
@@ -237,8 +237,8 @@ namespace Compression {
         }
       }
       
-      uint64_t production_count;
-      uint64_t count;
+      int64_t production_count;
+      int64_t count;
       unordered_map<string, Production*> compressed;
     };
     
@@ -249,7 +249,7 @@ namespace Compression {
       }
       
       void visit(NonTerminal* nonTerminal) {
-        uint64_t node_count = ++count_;
+        int64_t node_count = ++count_;
         ss_ << "\"n" << node_count << "\" [label=\"X" << nonTerminal->name() << "\"];" << endl;
         ss_ << "\"n" << node_count << "\" -- \"n" << node_count + 1 << "\";" << endl;
         nonTerminal->left()->accept(this);
@@ -272,7 +272,7 @@ namespace Compression {
       
       const SLP& slp_;
       stringstream ss_;
-      uint64_t count_;
+      int64_t count_;
     };
     
     class SLPFoldedPrinter : public Visitor {
@@ -344,7 +344,7 @@ namespace Compression {
         nonTerminal->right()->accept(this);
         parentStack_.pop_back();
         
-        const uint64_t leftLen = nonTerminal->left()->derivedStringLength,
+        const int64_t leftLen = nonTerminal->left()->derivedStringLength,
         rightLen = nonTerminal->right()->derivedStringLength;
         nonTerminal->derivedStringLength = leftLen + rightLen;
         if (leftLen < x_ && rightLen < x_) {
@@ -380,7 +380,7 @@ namespace Compression {
       }
       
       // Returns (partition, blocks)
-      static pair<vector<Production*>, vector<Production*>> partition(const SLP& slp, uint64_t x) {
+      static pair<vector<Production*>, vector<Production*>> partition(const SLP& slp, int64_t x) {
         Partitioner partitioner(x, slp);
         
         // Find key vertices
@@ -395,7 +395,7 @@ namespace Compression {
       }
       
     private:
-      Partitioner(uint64_t x, const SLP& slp) : x_(x), slp_(slp) { }
+      Partitioner(int64_t x, const SLP& slp) : x_(x), slp_(slp) { }
       
       void harvestLeftPath(Production* start, const vector<pair<ProductionType, NonTerminal*>>& stack, const Production* stop) {
         if (start == stop || stack.size() == 0) return;
@@ -500,7 +500,7 @@ namespace Compression {
         }
       }
       
-      const uint64_t x_;
+      const int64_t x_;
       const SLP& slp_;
       
       Production* previousKeyVertex_;

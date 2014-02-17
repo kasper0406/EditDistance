@@ -23,7 +23,7 @@ namespace Benchmark {
     }
     
     double time;
-    uint64_t l2_cache_hits, l2_cache_misses,
+    int64_t l2_cache_hits, l2_cache_misses,
              l3_cache_hits, l3_cache_misses,
              instructions;
   };
@@ -49,18 +49,18 @@ namespace Benchmark {
   /**
    * NOTICE: Strings are NOT generated uniformly at random!!!
    */
-  string generate_string(uint64_t length, vector<char> alphabet = { 'a', 'c', 'g', 't' })
+  string generate_string(int64_t length, vector<char> alphabet = { 'a', 'c', 'g', 't' })
   {
     stringstream ss;
     
-    for (uint64_t i = 0; i < length; ++i)
+    for (int64_t i = 0; i < length; ++i)
       ss << alphabet[rand() % alphabet.size()]; // Not fair randomness, but its good enough for this testing!
     
     return ss.str();
   }
   
   template <class Implementation>
-  void run_benchmark(uint16_t trials, const uint64_t x) {
+  void run_benchmark(uint16_t trials, const int64_t x) {
     string a = generate_string(250);
     string b = generate_string(250);
     
@@ -116,6 +116,7 @@ namespace Benchmark {
          << setw(10) << "max" << setw(10) << "mean" << setw(10) << "%RSD"
       // << setw(15) << "mean"
          << endl;
+    double total_median_time = 0;
     for (uint16_t stage = 0; stage < stages.size(); ++stage) {
       cout << setw(15) << stages[stage].first
            << setw(10) << measurements[stage].first[iMin].time
@@ -127,7 +128,11 @@ namespace Benchmark {
            << setw(10) << measurements[stage].second.RSD
         // << setw(15) << measurements[stage].first[iMedian].instructions
            << endl;
+      
+      total_median_time += measurements[stage].first[iMedian].time;
     }
+    cout << setw(15) << "Total" << setw(20) << " " << setw(10) << total_median_time << endl;
+    
     cout << endl;
   }
 };

@@ -6,6 +6,8 @@ using namespace std;
 template<class T>
 class Matrix {
 public:
+  typedef T Type;
+  
   Matrix(size_t n, size_t m, const T& value)
     : n(n), m(m), elements(vector<T>(n * m, value))
   { }
@@ -80,8 +82,8 @@ bool operator==(const Matrix<T>& A, const Matrix<T>& B) {
   if (A.getRows() != B.getRows() || A.getColumns() != B.getColumns()) return false;
   
   bool all_equal = true;
-  for (uint64_t row = 0; row < A.getRows(); ++row) {
-    for (uint64_t col = 0; col < B.getColumns(); ++col)
+  for (int64_t row = 0; row < A.getRows(); ++row) {
+    for (int64_t col = 0; col < B.getColumns(); ++col)
       all_equal = all_equal && (A(row, col) == B(row, col));
   }
   

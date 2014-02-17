@@ -10,6 +10,7 @@
 
 #include "../compression/SLP.hpp"
 #include "../compression/DIST.hpp"
+#include "../compression/maxmultiply.hpp"
 #include "../compression/slpalign.hpp"
 
 #include "../benchmark/benchmarker.hpp"
@@ -21,16 +22,18 @@ namespace Test {
   class TestSuite {
   public:
     static void run_tests() {
-      const uint64_t colwidth = 80;
+      const int64_t colwidth = 80;
       
       vector<pair<string, function<bool()>>> tests = {
         { "Partition generation with trivial SLP.", test_partition_generation<SLP::SimpleSLPBuilder> },
         { "Partition generation with simple compression SLP.", test_partition_generation<SLP::SimpleCompressionSLPBuilder> },
         { "Test simple horizontal DIST merge.", test_horizontal_merge<DIST::SimpleMerger> },
         { "Test simple vertical DIST merge.", test_vertical_merge<DIST::SimpleMerger> },
-        { "Test construction of DIST tables using simple merging.", test_dist_repository<DIST::SimpleDISTRepository, DIST::MergingDISTRepository<DIST::SimpleMerger>, SLP::SimpleCompressionSLPBuilder> },
-        { "Verify result of sample using simple compression SLP and simple DIST.", test_slp_compression_align<SLP::SimpleCompressionSLPBuilder, DIST::SimpleDISTRepository> },
-        { "Verify result of sample using simple compression SLP and simple merging DIST.", test_slp_compression_align<SLP::SimpleCompressionSLPBuilder, DIST::MergingDISTRepository<DIST::SimpleMerger>> }
+        { "Test construction of DIST tables using simple merging.", test_dist_repository<DIST::SimpleDISTRepository<DIST::EditDistanceDISTTable>, DIST::MergingDISTRepository<DIST::EditDistanceDISTTable, DIST::SimpleMerger>, SLP::SimpleCompressionSLPBuilder> },
+        { "Verify result of sample using simple compression SLP and simple DIST.", test_slp_compression_align<EditDistanceAligner<SLP::SimpleCompressionSLPBuilder, DIST::SimpleDISTRepository<DIST::EditDistanceDISTTable>>> },
+        { "Verify result of sample using simple compression SLP and simple merging DIST.", test_slp_compression_align<EditDistanceAligner<SLP::SimpleCompressionSLPBuilder, DIST::MergingDISTRepository<DIST::EditDistanceDISTTable, DIST::SimpleMerger>>> },
+        { "Test blow-up method for computing edit-distance from LCS.", test_blow_up_method },
+        { "Verify result of sample using LCS blow up SLP and permutation DIST", test_slp_compression_align<LCSBlowUpAligner<SLP::SimpleCompressionSLPBuilder, DIST::LCSDISTRepository<DIST::SimpleLCSDISTTable>>> }
       };
       
       bool success = true;
@@ -56,10 +59,10 @@ namespace Test {
   private:
     template <class SLPBuilder>
     static bool test_partition_generation() {
-      for (uint64_t length = 1; length < 1000; length = max((uint64_t)((double)length * 1.2), length + 1)) {
+      for (int64_t length = 1; length < 1000; length = max((int64_t)((double)length * 1.2), length + 1)) {
         string input = Benchmark::generate_string(length, { 'a', 'b', 'c' });
         
-        for (uint64_t x = 1; x < input.size(); x = max((uint64_t)((double)x * 1.2), x + 1)) {
+        for (int64_t x = 1; x < input.size(); x = max((int64_t)((double)x * 1.2), x + 1)) {
           unique_ptr<SLP::SLP> slp = SLPBuilder::build(input);
           
           /*
@@ -98,7 +101,7 @@ namespace Test {
       auto partitionA = SLP::Partitioner::partition(*slpA, A.size());
       auto partitionB = SLP::Partitioner::partition(*slpB, B.size());
       
-      DIST::SimpleDISTRepository distRepoAB(*slpA, *slpB);
+      DIST::SimpleDISTRepository<DIST::EditDistanceDISTTable> distRepoAB(*slpA, *slpB);
       distRepoAB.build(get<1>(partitionA), get<1>(partitionB));
       
       unique_ptr<SLP::SLP> slpA_ = SLP::SimpleCompressionSLPBuilder::build(A);
@@ -106,7 +109,7 @@ namespace Test {
       auto partitionA_ = SLP::Partitioner::partition(*slpA_, A.size());
       auto partitionC = SLP::Partitioner::partition(*slpC, C.size());
       
-      DIST::SimpleDISTRepository distRepoAC(*slpA_, *slpC);
+      DIST::SimpleDISTRepository<DIST::EditDistanceDISTTable> distRepoAC(*slpA_, *slpC);
       distRepoAC.build(get<1>(partitionA_), get<1>(partitionC));
       
       //  cout << get<2>(distRepoAB(slpA->root(), slpB->root())) << endl;
@@ -117,7 +120,7 @@ namespace Test {
       auto partitionA__ = SLP::Partitioner::partition(*slpA__, A.size());
       auto partitionBC = SLP::Partitioner::partition(*slpBC, (B + C).size());
       
-      DIST::SimpleDISTRepository distRepoABC(*slpA__, *slpBC);
+      DIST::SimpleDISTRepository<DIST::EditDistanceDISTTable> distRepoABC(*slpA__, *slpBC);
       distRepoABC.build(get<1>(partitionA__), get<1>(partitionBC));
       
       auto merged = Merger::horizontalMerge(&distRepoAB(slpA->root(), slpB->root()),
@@ -142,7 +145,7 @@ namespace Test {
       auto partitionA = SLP::Partitioner::partition(*slpA, A.size());
       auto partitionB = SLP::Partitioner::partition(*slpB, B.size());
       
-      DIST::SimpleDISTRepository distRepoAB(*slpB, *slpA);
+      DIST::SimpleDISTRepository<DIST::EditDistanceDISTTable> distRepoAB(*slpB, *slpA);
       distRepoAB.build(get<1>(partitionB), get<1>(partitionA));
       
       unique_ptr<SLP::SLP> slpA_ = SLP::SimpleCompressionSLPBuilder::build(A);
@@ -150,7 +153,7 @@ namespace Test {
       auto partitionA_ = SLP::Partitioner::partition(*slpA_, A.size());
       auto partitionC = SLP::Partitioner::partition(*slpC, C.size());
       
-      DIST::SimpleDISTRepository distRepoAC(*slpC, *slpA_);
+      DIST::SimpleDISTRepository<DIST::EditDistanceDISTTable> distRepoAC(*slpC, *slpA_);
       distRepoAC.build(get<1>(partitionC), get<1>(partitionA_));
       
       //  cout << get<2>(distRepoAB(slpB->root(), slpA->root())) << endl;
@@ -161,7 +164,7 @@ namespace Test {
       auto partitionA__ = SLP::Partitioner::partition(*slpA__, A.size());
       auto partitionBC = SLP::Partitioner::partition(*slpBC, (B + C).size());
       
-      DIST::SimpleDISTRepository distRepoABC(*slpBC, *slpA__);
+      DIST::SimpleDISTRepository<DIST::EditDistanceDISTTable> distRepoABC(*slpBC, *slpA__);
       distRepoABC.build(get<1>(partitionBC), get<1>(partitionA__));
       
       //  cout << "Merging: " << endl << get<2>(distRepoAB(slpB->root(), slpA->root())) << endl << " with: " << endl
@@ -181,11 +184,11 @@ namespace Test {
     template <class BaseDIST, class TestDIST, class SLPBuilder = SLP::SimpleCompressionSLPBuilder>
     static bool test_dist_repository()
     {
-      for (uint64_t length = 10; length < 100; length = max((uint64_t)((double)length * 1.8), length + 1)) {
+      for (int64_t length = 10; length < 100; length = max((int64_t)((double)length * 1.8), length + 1)) {
         string A = Benchmark::generate_string(length - 3 , { 'a', 'b', 'c' });
         string B = Benchmark::generate_string(length + 4, { 'a', 'b', 'c' });
         
-        for (uint64_t x = 3; x < min(A.length(), B.length()); x = max((uint64_t)((double)x * 1.3), x + 1)) {
+        for (int64_t x = 3; x < min(A.length(), B.length()); x = max((int64_t)((double)x * 1.3), x + 1)) {
           unique_ptr<SLP::SLP> slpA = SLPBuilder::build(A);
           unique_ptr<SLP::SLP> slpB = SLPBuilder::build(B);
           auto partitionA = SLP::Partitioner::partition(*slpA, x);
@@ -202,8 +205,8 @@ namespace Test {
           BaseDIST distRepo_(*slpA_, *slpB_);
           distRepo_.build(get<1>(partitionA_), get<1>(partitionB_));
           
-          for (uint64_t i = 0; i < get<1>(partitionA).size(); ++i) {
-            for (uint64_t j = 0; j < get<1>(partitionB).size(); ++j) {
+          for (int64_t i = 0; i < get<1>(partitionA).size(); ++i) {
+            for (int64_t j = 0; j < get<1>(partitionB).size(); ++j) {
               auto a = get<1>(partitionA)[i];
               auto a_ = get<1>(partitionA_)[i];
               auto b = get<1>(partitionB)[j];
@@ -223,20 +226,54 @@ namespace Test {
       return true;
     }
     
-    template <class SLPBuilder, class DISTRepo>
+    template <class Aligner>
     static bool test_slp_compression_align() {
-      for (uint64_t length = 10; length < 100; length = max((uint64_t)((double)length * 1.8), length + 1)) {
+      for (int64_t length = 10; length < 100; length = max((int64_t)((double)length * 1.8), length + 1)) {
         string A = Benchmark::generate_string(length - 3);
         string B = Benchmark::generate_string(length + 4);
         
-        for (uint64_t x = 3; x < min(A.length(), B.length()); x = max((uint64_t)((double)x * 2.3), x + 1)) {
-          SLPAlign<SLPBuilder, DISTRepo> aligner(A, B, x);
-          Simple simple(A, B);
+        for (int64_t x = 3; x < min(A.length(), B.length()); x = max((int64_t)((double)x * 2.3), x + 1)) {
+          Aligner aligner(A, B, x);
+          Simple::EditDistance simple(A, B);
       
-          if (aligner.edit_distance() != simple.edit_distance())
+          if (aligner.edit_distance() != simple.calculate())
             return false;
         }
       }
+      return true;
+    }
+    
+    static bool test_blow_up_method() {
+      for (int64_t length = 10; length < 1000; length = max((int64_t)((double)length * 1.2), length + 1)) {
+        const string A = Benchmark::generate_string(length - 3);
+        const string B = Benchmark::generate_string(length + 4);
+        
+        // Compute the actual edit distance
+        Simple::EditDistance editDist(A, B);
+        const int64_t edit_distance = editDist.calculate();
+        
+        // Blow up
+        string A_blown(2 * A.length(), '$');
+        for (int64_t i = 0; i < A.length(); ++i) {
+          // A_blown[2 * i] = '$';
+          A_blown[2 * i + 1] = A[i];
+        }
+        
+        string B_blown(2 * B.length(), '$');
+        for (int64_t j = 0;j < B.length(); ++j) {
+          // B_blown[2 * h] = '$';
+          B_blown[2 * j + 1] = B[j];
+        }
+        
+        // Compute LCS and normalize
+        Simple::LCS LCS(A_blown, B_blown);
+        const int64_t lcs = LCS.calculate();
+        const int64_t edit_distance_ = (int64_t)(A.length() + B.length()) - lcs;
+        
+        if (edit_distance != edit_distance_)
+          return false;
+      }
+      
       return true;
     }
   };
