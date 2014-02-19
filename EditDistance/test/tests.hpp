@@ -25,15 +25,21 @@ namespace Test {
       const int64_t colwidth = 80;
       
       vector<pair<string, function<bool()>>> tests = {
+        { "Test merging permutation LCS DIST builder.", test_dist_repository<DIST::LCSDISTRepository<DIST::SimpleLCSDISTTable>, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>> },
+        
         { "Partition generation with trivial SLP.", test_partition_generation<SLP::SimpleSLPBuilder> },
         { "Partition generation with simple compression SLP.", test_partition_generation<SLP::SimpleCompressionSLPBuilder> },
-        { "Test simple horizontal DIST merge.", test_horizontal_merge<DIST::SimpleMerger> },
-        { "Test simple vertical DIST merge.", test_vertical_merge<DIST::SimpleMerger> },
+        { "Test simple horizontal DIST merge.", test_horizontal_merge<DIST::SimpleDISTRepository<DIST::EditDistanceDISTTable>, DIST::SimpleMerger> },
+        { "Test simple vertical DIST merge.", test_vertical_merge<DIST::SimpleDISTRepository<DIST::EditDistanceDISTTable>, DIST::SimpleMerger> },
         { "Test construction of DIST tables using simple merging.", test_dist_repository<DIST::SimpleDISTRepository<DIST::EditDistanceDISTTable>, DIST::MergingDISTRepository<DIST::EditDistanceDISTTable, DIST::SimpleMerger>, SLP::SimpleCompressionSLPBuilder> },
         { "Verify result of sample using simple compression SLP and simple DIST.", test_slp_compression_align<EditDistanceAligner<SLP::SimpleCompressionSLPBuilder, DIST::SimpleDISTRepository<DIST::EditDistanceDISTTable>>> },
         { "Verify result of sample using simple compression SLP and simple merging DIST.", test_slp_compression_align<EditDistanceAligner<SLP::SimpleCompressionSLPBuilder, DIST::MergingDISTRepository<DIST::EditDistanceDISTTable, DIST::SimpleMerger>>> },
         { "Test blow-up method for computing edit-distance from LCS.", test_blow_up_method },
-        { "Verify result of sample using LCS blow up SLP and permutation DIST", test_slp_compression_align<LCSBlowUpAligner<SLP::SimpleCompressionSLPBuilder, DIST::LCSDISTRepository<DIST::SimpleLCSDISTTable>>> }
+        { "Test LCS vertical simple DIST merge.", test_vertical_merge<DIST::LCSDISTRepository<DIST::SimpleLCSDISTTable>, DIST::SimpleLCSDISTMerger> },
+        { "Test LCS horizontal simple DIST merge.", test_horizontal_merge<DIST::LCSDISTRepository<DIST::SimpleLCSDISTTable>, DIST::SimpleLCSDISTMerger> },
+        { "Test construction of DIST tables using simple merging LCS DIST", test_dist_repository<DIST::LCSDISTRepository<DIST::SimpleLCSDISTTable>, DIST::MergingDISTRepository<DIST::SimpleLCSDISTTable, DIST::SimpleLCSDISTMerger>> },
+        { "Verify result of sample using LCS blow up SLP and simple DIST.", test_slp_compression_align<LCSBlowUpAligner<SLP::SimpleCompressionSLPBuilder, DIST::LCSDISTRepository<DIST::SimpleLCSDISTTable>>> },
+        { "Verify result of sample using LCS blow up SLP and simple merging DIST.", test_slp_compression_align<LCSBlowUpAligner<SLP::SimpleCompressionSLPBuilder, DIST::MergingDISTRepository<DIST::SimpleLCSDISTTable, DIST::SimpleLCSDISTMerger>>> }
       };
       
       bool success = true;
@@ -89,96 +95,128 @@ namespace Test {
       return true;
     }
     
-    template <class Merger>
+    template <class DISTRepo, class Merger>
     static bool test_horizontal_merge()
     {
+       /*
+      const string A = "abbaccabcbbcbabcbacbccacbabcbacacccacbbbbaabaac";
+      const string B = "aacabbacbbcc";
+      const string C = "cabc";
+       */
+      
+      const uint64_t N = 8;
+      
+      for (int64_t i = 1; i < N; ++i) {
+        for (int64_t j = 1; j < N; ++j) {
+          for (int64_t k = 1; k < N; ++k) {
+            const string A = Benchmark::generate_string(i);
+            const string B = Benchmark::generate_string(j);
+            const string C = Benchmark::generate_string(k);
+            
+            unique_ptr<SLP::SLP> slpA = SLP::SimpleCompressionSLPBuilder::build(A);
+            unique_ptr<SLP::SLP> slpB = SLP::SimpleCompressionSLPBuilder::build(B);
+            auto partitionA = SLP::Partitioner::partition(*slpA, A.size());
+            auto partitionB = SLP::Partitioner::partition(*slpB, B.size());
+            
+            DISTRepo distRepoAB(*slpA, *slpB);
+            distRepoAB.build(get<1>(partitionA), get<1>(partitionB));
+            
+            unique_ptr<SLP::SLP> slpA_ = SLP::SimpleCompressionSLPBuilder::build(A);
+            unique_ptr<SLP::SLP> slpC = SLP::SimpleCompressionSLPBuilder::build(C);
+            auto partitionA_ = SLP::Partitioner::partition(*slpA_, A.size());
+            auto partitionC = SLP::Partitioner::partition(*slpC, C.size());
+            
+            DISTRepo distRepoAC(*slpA_, *slpC);
+            distRepoAC.build(get<1>(partitionA_), get<1>(partitionC));
+            
+            //  cout << get<2>(distRepoAB(slpA->root(), slpB->root())) << endl;
+            //  cout << get<2>(distRepoAC(slpA_->root(), slpC->root())) << endl;
+            
+            unique_ptr<SLP::SLP> slpA__ = SLP::SimpleCompressionSLPBuilder::build(A);
+            unique_ptr<SLP::SLP> slpBC = SLP::SimpleCompressionSLPBuilder::build(B + C);
+            auto partitionA__ = SLP::Partitioner::partition(*slpA__, A.size());
+            auto partitionBC = SLP::Partitioner::partition(*slpBC, (B + C).size());
+            
+            DISTRepo distRepoABC(*slpA__, *slpBC);
+            distRepoABC.build(get<1>(partitionA__), get<1>(partitionBC));
+            
+            auto merged = Merger::horizontalMerge(&distRepoAB(slpA->root(), slpB->root()),
+                                                  &distRepoAC(slpA_->root(), slpC->root()));
+      
+            if (distRepoABC(slpA__->root(), slpBC->root()) != *merged)
+              return false;
+          }
+        }
+      }
+      
+      return true;
+    }
+    
+    template <class DISTRepo, class Merger>
+    static bool test_vertical_merge()
+    {
+      /*
       const string A = "aacabbacbbcccabc";
       const string B = "abbaccabcbbcbabcbacb";
       const string C = "ccacbabcbacacccacbbbbaabaac";
+       */
       
-      unique_ptr<SLP::SLP> slpA = SLP::SimpleCompressionSLPBuilder::build(A);
-      unique_ptr<SLP::SLP> slpB = SLP::SimpleCompressionSLPBuilder::build(B);
-      auto partitionA = SLP::Partitioner::partition(*slpA, A.size());
-      auto partitionB = SLP::Partitioner::partition(*slpB, B.size());
+      const uint64_t N = 8;
       
-      DIST::SimpleDISTRepository<DIST::EditDistanceDISTTable> distRepoAB(*slpA, *slpB);
-      distRepoAB.build(get<1>(partitionA), get<1>(partitionB));
+      for (int64_t i = 1; i < N; ++i) {
+        for (int64_t j = 1; j < N; ++j) {
+          for (int64_t k = 1; k < N; ++k) {
+            const string A = Benchmark::generate_string(i);
+            const string B = Benchmark::generate_string(j);
+            const string C = Benchmark::generate_string(k);
+            
+            unique_ptr<SLP::SLP> slpA = SLP::SimpleCompressionSLPBuilder::build(A);
+            unique_ptr<SLP::SLP> slpB = SLP::SimpleCompressionSLPBuilder::build(B);
+            auto partitionA = SLP::Partitioner::partition(*slpA, A.size());
+            auto partitionB = SLP::Partitioner::partition(*slpB, B.size());
+            
+            DISTRepo distRepoAB(*slpB, *slpA);
+            distRepoAB.build(get<1>(partitionB), get<1>(partitionA));
+            
+            unique_ptr<SLP::SLP> slpA_ = SLP::SimpleCompressionSLPBuilder::build(A);
+            unique_ptr<SLP::SLP> slpC = SLP::SimpleCompressionSLPBuilder::build(C);
+            auto partitionA_ = SLP::Partitioner::partition(*slpA_, A.size());
+            auto partitionC = SLP::Partitioner::partition(*slpC, C.size());
+            
+            DISTRepo distRepoAC(*slpC, *slpA_);
+            distRepoAC.build(get<1>(partitionC), get<1>(partitionA_));
+            
+            //  cout << get<2>(distRepoAB(slpB->root(), slpA->root())) << endl;
+            //  cout << get<2>(distRepoAC(slpC->root(), slpA_->root())) << endl;
+            
+            unique_ptr<SLP::SLP> slpA__ = SLP::SimpleCompressionSLPBuilder::build(A);
+            unique_ptr<SLP::SLP> slpBC = SLP::SimpleCompressionSLPBuilder::build(B + C);
+            auto partitionA__ = SLP::Partitioner::partition(*slpA__, A.size());
+            auto partitionBC = SLP::Partitioner::partition(*slpBC, (B + C).size());
+            
+            DISTRepo distRepoABC(*slpBC, *slpA__);
+            distRepoABC.build(get<1>(partitionBC), get<1>(partitionA__));
+            
+            //  cout << "Merging: " << endl << get<2>(distRepoAB(slpB->root(), slpA->root())) << endl << " with: " << endl
+            //       << get<2>(distRepoAC(slpC->root(), slpA_->root())) << endl;
+            
+            auto merged = Merger::verticalMerge(&distRepoAB(slpB->root(), slpA->root()),
+                                                &distRepoAC(slpC->root(), slpA_->root()));
+            
+            /*
+            cout << "Should be: " << endl << distRepoABC(slpBC->root(), slpA__->root()).matrix() << endl;
+            cout << "Merged: " << endl << merged->matrix() << endl;
+             */
+            
+            //  cout << "Merged: " << endl << get<2>(*merged) << endl;
+            
+            if (distRepoABC(slpBC->root(), slpA__->root()) != *merged)
+              return false;
+          }
+        }
+      }
       
-      unique_ptr<SLP::SLP> slpA_ = SLP::SimpleCompressionSLPBuilder::build(A);
-      unique_ptr<SLP::SLP> slpC = SLP::SimpleCompressionSLPBuilder::build(C);
-      auto partitionA_ = SLP::Partitioner::partition(*slpA_, A.size());
-      auto partitionC = SLP::Partitioner::partition(*slpC, C.size());
-      
-      DIST::SimpleDISTRepository<DIST::EditDistanceDISTTable> distRepoAC(*slpA_, *slpC);
-      distRepoAC.build(get<1>(partitionA_), get<1>(partitionC));
-      
-      //  cout << get<2>(distRepoAB(slpA->root(), slpB->root())) << endl;
-      //  cout << get<2>(distRepoAC(slpA_->root(), slpC->root())) << endl;
-      
-      unique_ptr<SLP::SLP> slpA__ = SLP::SimpleCompressionSLPBuilder::build(A);
-      unique_ptr<SLP::SLP> slpBC = SLP::SimpleCompressionSLPBuilder::build(B + C);
-      auto partitionA__ = SLP::Partitioner::partition(*slpA__, A.size());
-      auto partitionBC = SLP::Partitioner::partition(*slpBC, (B + C).size());
-      
-      DIST::SimpleDISTRepository<DIST::EditDistanceDISTTable> distRepoABC(*slpA__, *slpBC);
-      distRepoABC.build(get<1>(partitionA__), get<1>(partitionBC));
-      
-      auto merged = Merger::horizontalMerge(&distRepoAB(slpA->root(), slpB->root()),
-                                            &distRepoAC(slpA_->root(), slpC->root()));
-      
-      return distRepoABC(slpA__->root(), slpBC->root()) == *merged;
-    }
-    
-    template <class Merger>
-    static bool test_vertical_merge()
-    {
-      //  const string A = "aacabbacbbcccabc";
-      //  const string B = "abbaccabcbbcbabcbacb";
-      //  const string C = "ccacbabcbacacccacbbbbaabaac";
-      
-      const string A = "ab";
-      const string B = "a";
-      const string C = "b";
-      
-      unique_ptr<SLP::SLP> slpA = SLP::SimpleCompressionSLPBuilder::build(A);
-      unique_ptr<SLP::SLP> slpB = SLP::SimpleCompressionSLPBuilder::build(B);
-      auto partitionA = SLP::Partitioner::partition(*slpA, A.size());
-      auto partitionB = SLP::Partitioner::partition(*slpB, B.size());
-      
-      DIST::SimpleDISTRepository<DIST::EditDistanceDISTTable> distRepoAB(*slpB, *slpA);
-      distRepoAB.build(get<1>(partitionB), get<1>(partitionA));
-      
-      unique_ptr<SLP::SLP> slpA_ = SLP::SimpleCompressionSLPBuilder::build(A);
-      unique_ptr<SLP::SLP> slpC = SLP::SimpleCompressionSLPBuilder::build(C);
-      auto partitionA_ = SLP::Partitioner::partition(*slpA_, A.size());
-      auto partitionC = SLP::Partitioner::partition(*slpC, C.size());
-      
-      DIST::SimpleDISTRepository<DIST::EditDistanceDISTTable> distRepoAC(*slpC, *slpA_);
-      distRepoAC.build(get<1>(partitionC), get<1>(partitionA_));
-      
-      //  cout << get<2>(distRepoAB(slpB->root(), slpA->root())) << endl;
-      //  cout << get<2>(distRepoAC(slpC->root(), slpA_->root())) << endl;
-      
-      unique_ptr<SLP::SLP> slpA__ = SLP::SimpleCompressionSLPBuilder::build(A);
-      unique_ptr<SLP::SLP> slpBC = SLP::SimpleCompressionSLPBuilder::build(B + C);
-      auto partitionA__ = SLP::Partitioner::partition(*slpA__, A.size());
-      auto partitionBC = SLP::Partitioner::partition(*slpBC, (B + C).size());
-      
-      DIST::SimpleDISTRepository<DIST::EditDistanceDISTTable> distRepoABC(*slpBC, *slpA__);
-      distRepoABC.build(get<1>(partitionBC), get<1>(partitionA__));
-      
-      //  cout << "Merging: " << endl << get<2>(distRepoAB(slpB->root(), slpA->root())) << endl << " with: " << endl
-      //       << get<2>(distRepoAC(slpC->root(), slpA_->root())) << endl;
-      
-      auto merged = Merger::verticalMerge(&distRepoAB(slpB->root(), slpA->root()),
-                                          &distRepoAC(slpC->root(), slpA_->root()));
-      
-      //  cout << "Should be: " << endl << get<2>(distRepoABC(slpBC->root(), slpA__->root())) << endl;
-      //  cout << "Merged: " << endl << get<2>(*merged) << endl;
-      
-      //  cout << "Merged: " << endl << get<2>(*merged) << endl;
-      
-      return distRepoABC(slpBC->root(), slpA__->root()) == *merged;
+      return true;
     }
     
     template <class BaseDIST, class TestDIST, class SLPBuilder = SLP::SimpleCompressionSLPBuilder>
@@ -213,9 +251,6 @@ namespace Test {
               auto b_ = get<1>(partitionB_)[j];
               
               if (distRepo(a, b) != distRepo_(a_, b_)) {
-//                cout << get<2>(distRepo(a, b)) << endl;
-//                cout << get<2>(distRepo_(a_, b_)) << endl;
-                
                 return false;
               }
             }

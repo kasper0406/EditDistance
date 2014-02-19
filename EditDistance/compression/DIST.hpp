@@ -11,9 +11,9 @@
 
 namespace Compression {
   namespace DIST {
-    typedef SLP::SLP StraightLineProgram;
+    typedef ::Compression::SLP::SLP StraightLineProgram;
     using namespace std;
-    using namespace SLP;
+    using namespace ::Compression::SLP;
     
     class EditDistanceDISTTable {
     public:
@@ -26,13 +26,13 @@ namespace Compression {
       const Matrix<int64_t>& matrix() const { return matrix_; }
       Matrix<int64_t>& matrix() { return matrix_; }
       
-      static EditDistanceDISTTable* BaseCase(bool is_equal) {
+      static unique_ptr<EditDistanceDISTTable> BaseCase(bool is_equal) {
         const int64_t inf = numeric_limits<int64_t>::max();
-        return new EditDistanceDISTTable(1, 1, Matrix<int64_t>(3, 3, {
+        return unique_ptr<EditDistanceDISTTable>(new EditDistanceDISTTable(1, 1, Matrix<int64_t>(3, 3, {
           { 0, 1, inf },
           { 1, (1 - is_equal), 1 },
           { inf, 1, 0 }
-        }));
+        })));
       }
       
       bool operator==(const EditDistanceDISTTable& other) const {
@@ -80,12 +80,12 @@ namespace Compression {
       const Matrix<int64_t>& matrix() const { return matrix_; }
       Matrix<int64_t>& matrix() { return matrix_; }
       
-      static SimpleLCSDISTTable* BaseCase(bool is_equal) {
-        return new SimpleLCSDISTTable(1, 1, Matrix<int64_t>(3, 3, {
+      static unique_ptr<SimpleLCSDISTTable> BaseCase(bool is_equal) {
+        return unique_ptr<SimpleLCSDISTTable>(new SimpleLCSDISTTable(1, 1, Matrix<int64_t>(3, 3, {
           { 1, 1, 1 },
           { 0, is_equal, 1 },
           { -1, 0, 1 }
-        }));
+        })));
       }
       
       bool operator==(const SimpleLCSDISTTable& other) const {
@@ -157,6 +157,114 @@ namespace Compression {
       Matrix<int64_t> matrix_;
     };
     
+    class PermutationDISTTable {
+    public:
+      PermutationDISTTable(int64_t rows, int64_t cols, vector<int64_t> row_specification)
+        : rows_(rows), cols_(cols),
+          row_map_(vector<int64_t>(row_specification.size(), 0)),
+          column_map_(vector<int64_t>(row_specification.size(), 0))
+      {
+        for (int64_t i = 0; i < row_specification.size(); ++i) {
+          row_map_[i] = row_specification[i];
+          column_map_[row_specification[i]] = i;
+        }
+      }
+      
+      int64_t rows() const { return rows_; }
+      int64_t cols() const { return cols_; }
+      
+      int64_t getCol(int64_t row) const {
+        return row_map_[row];
+      }
+      
+      int64_t getRow(int64_t col) const {
+        return column_map_[col];
+      }
+      
+      Matrix<int64_t> unfoldH() const {
+        auto inverse_transform = [](const Matrix<int64_t>& A, int64_t rows) {
+          Matrix<int64_t> result(A.getRows(), A.getColumns(), 0);
+          for (int64_t i = 0; i < A.getRows(); ++i) {
+            for (int64_t j = 0; j < A.getColumns(); ++j) {
+              result(i, j) = j - (i - rows) - A(i, j);
+            }
+          }
+          return result;
+        };
+        
+        Matrix<int64_t> sigmaed(size() + 1, size() + 1, 0);
+        for (int64_t i_ = 0; i_ <= size(); ++i_) {
+          for (int64_t j_ = 0; j_ <= size(); ++j_) {
+            
+            int64_t sum = 0;
+            for (int64_t i = i_; i < size(); ++i) {
+              sum += (row_map_[i] < j_);
+            }
+            
+            sigmaed(i_, j_) = sum;
+          }
+        }
+        
+        return inverse_transform(sigmaed, rows());
+      }
+      
+      Matrix<int64_t> unfold() const {
+        Matrix<int64_t> unfolded(size(), size(), 0);
+        for (int64_t i = 0; i < size(); ++i)
+          unfolded(i, row_map_[i]) = 1;
+        return unfolded;
+      }
+      
+      int64_t size() const {
+        return row_map_.size();
+      }
+      
+      unique_ptr<PermutationDISTTable> swapStrings() const {
+        vector<int64_t> transformed_rowspec(size(), 0);
+        for (int64_t row = 0; row < size(); ++row)
+          transformed_rowspec[rows() + cols() - row - 1] = rows() + cols() - getCol(row) - 1;
+        return unique_ptr<PermutationDISTTable>(new PermutationDISTTable(cols(), rows(), transformed_rowspec));
+      }
+      
+      bool operator==(const PermutationDISTTable& other) const {
+        return row_map_ == other.row_map_ && rows_ == other.rows_ && cols_ == other.cols_;
+      }
+      
+      bool operator!=(const PermutationDISTTable& other) const {
+        return !((*this) == other);
+      }
+      
+      static unique_ptr<PermutationDISTTable> BaseCase(bool is_equal) {
+        if (is_equal)
+          return unique_ptr<PermutationDISTTable>(new PermutationDISTTable(1, 1, { 0, 1 }));
+        else
+          return unique_ptr<PermutationDISTTable>(new PermutationDISTTable(1, 1, { 1, 0 }));
+      }
+      
+      static unique_ptr<PermutationDISTTable> concat(const PermutationDISTTable& A, const PermutationDISTTable& B) {
+        vector<int64_t> concatted_row_map;
+        concatted_row_map.reserve(A.size() + B.size());
+        for (int64_t i = 0; i < A.size(); ++i)
+          concatted_row_map.push_back(A.row_map_[i]);
+        for (int64_t i = 0; i < B.size(); ++i)
+          concatted_row_map.push_back(B.row_map_[i] + A.size());
+        
+        return unique_ptr<PermutationDISTTable>(new PermutationDISTTable(A.rows() + B.rows(), A.cols() + B.cols(), concatted_row_map));
+      }
+      
+    private:
+      int64_t rows_, cols_;
+      vector<int64_t> row_map_, column_map_;
+    };
+    
+    bool operator==(const PermutationDISTTable& permDIST, const SimpleLCSDISTTable& simpleDIST) {
+      return permDIST.rows() == simpleDIST.rows() && permDIST.cols() == simpleDIST.cols() && permDIST.unfoldH() == simpleDIST.matrix();
+    }
+    
+    bool operator!=(const PermutationDISTTable& permDIST, const SimpleLCSDISTTable& simpleDIST) {
+      return !(permDIST == simpleDIST);
+    }
+    
     template <class DISTTable>
     class SimpleDISTRepository {
     public:
@@ -202,8 +310,8 @@ namespace Compression {
                  cout << b_start << " -> " << b_stop << ": " << b->associatedString.substr(b_start, b_stop - b_start) << endl;
                  */
                 
-                Simple::EditDistance calculator(a->associatedString.substr(a_start, a_stop - a_start),
-                                                b->associatedString.substr(b_start, b_stop - b_start));
+                ::Simple::EditDistance calculator(a->associatedString.substr(a_start, a_stop - a_start),
+                                                  b->associatedString.substr(b_start, b_stop - b_start));
                 // cout << "Res: " << calculator.edit_distance() << endl;
                 matrix(in, out) = calculator.calculate();
               }
@@ -292,7 +400,7 @@ namespace Compression {
                 } else {
                   const uint64_t iStart = in;
                   const uint64_t iStop = out + m;
-                  Simple::LCS lcs_calculator(a->associatedString, b_padded.substr(iStart, iStop - iStart));
+                  ::Simple::LCS lcs_calculator(a->associatedString, b_padded.substr(iStart, iStop - iStart));
                   matrix(in, out) = lcs_calculator.calculate();
                 }
               }
@@ -672,6 +780,246 @@ namespace Compression {
       
       static string name() {
         return "SimpleMerger";
+      }
+    };
+    
+    class SimpleLCSDISTMerger {
+    public:
+      static shared_ptr<SimpleLCSDISTTable> horizontalMerge(const SimpleLCSDISTTable* left,
+                                                            const SimpleLCSDISTTable* right)
+      {
+        auto transform = [](const SimpleLCSDISTTable* original) {
+          Matrix<int64_t> transformed(original->matrix().getRows(), original->matrix().getRows(), 9);
+          
+          const int64_t m = original->rows();
+          const int64_t n = original->cols();
+          
+          for (int64_t i = 0; i <= m; ++i) {
+            for (int64_t i_ = i; i_ <= m; ++i_) {
+              transformed(i + n, i_) = original->matrix()(m - i, m + n - i_) - m - i + i_;
+            }
+          }
+          for (int64_t l = 1; l <= n; ++l) {
+            for (int64_t i_ = 0; i_ <= m; ++i_) {
+              assert(transformed(n - l, i_) == 9);
+              transformed(n - l, i_) = original->matrix()(m + l, m + n - i_) - m + i_ + l;
+            }
+          }
+          for (int64_t i = 0; i <= m; ++i) {
+            for (int64_t l_ = 0; l_ < n; ++l_) {
+              assert(transformed(i + n, m + n - l_) == 9);
+              transformed(i + n, m + n - l_) = original->matrix()(m - i, l_) + n - l_ - i;
+            }
+          }
+          for (int64_t l = 1; l <= n; ++l) {
+            for (int64_t l_ = 0; l_ < n; ++l_) {
+              assert(transformed(n - l, m + n - l_) == 9);
+              transformed(n - l, m + n - l_) = original->matrix()(m + l, l_) + n + l - l_;
+            }
+          }
+          for (int64_t i = n + 1; i <= m + n; ++i) {
+            for (int64_t j = 0; j < i - n; ++j) {
+              transformed(i, j) = j - i + n;
+            }
+          }
+          
+          return unique_ptr<SimpleLCSDISTTable>(new SimpleLCSDISTTable(n, m, move(transformed)));
+        };
+        
+        auto merged = verticalMerge(transform(left).get(), transform(right).get());
+        return shared_ptr<SimpleLCSDISTTable>(transform(merged.get()));
+      }
+      
+      static shared_ptr<SimpleLCSDISTTable> verticalMerge(const SimpleLCSDISTTable* top,
+                                                          const SimpleLCSDISTTable* bottom)
+      {
+        assert(top->cols() == bottom->cols());
+        
+        auto transform = [](const SimpleLCSDISTTable* table) {
+          const int64_t x = table->matrix().getRows();
+          Matrix<int64_t> result(x, x, 0);
+          for (int64_t i = 0; i < x; ++i) {
+            for (int64_t j = 0; j < x; ++j) {
+              result(i, j) = j - (i - table->rows()) - table->matrix()(i, j);
+            }
+          }
+          
+          return result;
+        };
+        
+        auto inverse_transform = [](const Matrix<int64_t>& A, int64_t rows) {
+          Matrix<int64_t> result(A.getRows(), A.getColumns(), 0);
+          for (int64_t i = 0; i < A.getRows(); ++i) {
+            for (int64_t j = 0; j < A.getColumns(); ++j) {
+              result(i, j) = j - (i - rows) - A(i, j);
+            }
+          }
+          return result;
+        };
+        
+        auto box = [](const Matrix<int64_t>& A) {
+          Matrix<int64_t> result(A.getRows() - 1, A.getColumns() - 1, 0);
+          for (int64_t i = 0; i < A.getRows() - 1; ++i) {
+            for (int64_t j = 0; j < A.getColumns() - 1; ++j) {
+              result(i, j) = A(i + 1, j) - A(i, j) - A(i + 1, j + 1) + A(i, j + 1);
+            }
+          }
+          
+          return result;
+        };
+        
+        auto sigma = [](const Matrix<int64_t>& A) {
+          Matrix<int64_t> result(A.getRows() + 1, A.getColumns() + 1, 0);
+          for (int64_t i_ = 0; i_ < result.getRows(); ++i_) {
+            for (int64_t j_ = 0; j_ < result.getColumns(); ++j_) {
+              
+              int64_t sum = 0;
+              for (int64_t i = i_; i < A.getRows(); ++i) {
+                for (int64_t j = 0; j < j_; ++j) {
+                  sum += A(i, j);
+                }
+              }
+              
+              result(i_, j_) = sum;
+            }
+          }
+          return result;
+        };
+        
+        auto top_perm = box(transform(top));
+        auto bottom_perm = box(transform(bottom));
+        
+        assert(top->rows() + top->cols() + 1 == top->matrix().getRows());
+        
+        const int64_t padded_size = top->rows() + bottom->rows() + top->cols();
+        Matrix<int64_t> padded_top_perm(padded_size, padded_size, 0),
+                        padded_bottom_perm(padded_size, padded_size, 0);
+        
+        const int64_t h_ = bottom->rows();
+        
+        for (int64_t i = 0; i < padded_size; ++i) {
+          for (int64_t j = 0; j < padded_size; ++j) {
+            // Padded top
+            if (i < h_ && j < h_) {
+              // TODO: Consider if this is correct! This is simply the identity matrix right now!
+              const int64_t N = h_;
+              const int64_t h = bottom->rows() % N;
+              // const int64_t h = top->rows() % N;
+              // padded_top_perm(i, j) = (j - i == h || j - i == h - N);
+              padded_top_perm(i, j) = (j == i);
+            } else if (i >= h_ && j >= h_) {
+              padded_top_perm(i, j) = top_perm(i - h_, j - h_);
+            }
+            
+            // Padded bottom
+            if (i < bottom_perm.getRows() && j < bottom_perm.getColumns()) {
+              padded_bottom_perm(i, j) = bottom_perm(i, j);
+            } else if (i >= bottom_perm.getRows() && j >= bottom_perm.getColumns()) {
+              // TODO: Consider if this is correct! This is simply the identity matrix right now!
+              const int64_t N = padded_size - bottom_perm.getRows();
+              // const int64_t h = bottom->rows() % N;
+              const int64_t h = top->rows() % N;
+              // cout << "h: " << h << endl;
+              // padded_bottom_perm(i, j) = (j - i == h || j - i == h - N);
+              padded_bottom_perm(i, j) = (j == i);
+            }
+          }
+        }
+        
+        // cout << "Top:" << endl << padded_top_perm << endl << "Bottom:" << endl << padded_bottom_perm << endl;
+        
+        auto multiplied = MaxMultiply::Simple<Matrix<int64_t>>::minmultiply(sigma(padded_top_perm), sigma(padded_bottom_perm),
+                                                                            0, padded_size + 1, 0, padded_size + 1,
+                                                                            0, padded_size + 1, 0, padded_size + 1);
+        
+        const int64_t rows = bottom->rows() + top->rows();
+        const int64_t cols = bottom->cols();
+        auto result = shared_ptr<SimpleLCSDISTTable>(new SimpleLCSDISTTable(rows, cols, inverse_transform(multiplied, rows)));
+        
+        // cout << "Multiplied: " << endl << box(transform(result.get())) << endl;
+        
+        return result;
+      }
+      
+      static string name() {
+        return "SimpleLCSDISTMerger";
+      }
+    };
+    
+    class PermutationLCSMerger {
+    public:
+      static shared_ptr<PermutationDISTTable> horizontalMerge(const PermutationDISTTable* left,
+                                                              const PermutationDISTTable* right)
+      {
+        auto merged = verticalMerge(left->swapStrings().get(), right->swapStrings().get());
+        return shared_ptr<PermutationDISTTable>(merged->swapStrings());
+      }
+      
+      static shared_ptr<PermutationDISTTable> verticalMerge(const PermutationDISTTable* top,
+                                                            const PermutationDISTTable* bottom)
+      {
+        auto identity = [](int64_t size) {
+          vector<int64_t> id; id.reserve(size);
+          for (int64_t i = 0; i < size; ++i)
+            id.push_back(i);
+          
+          return PermutationDISTTable(0, 0, id);
+        };
+        
+        auto padded_top = PermutationDISTTable::concat(identity(bottom->rows()), *top);
+        auto padded_bottom = PermutationDISTTable::concat(*bottom, identity(top->rows()));
+        
+        return shared_ptr<PermutationDISTTable>(minmultiply(padded_top.get(), padded_bottom.get()));
+      }
+      
+    private:
+      static unique_ptr<PermutationDISTTable> minmultiply(const PermutationDISTTable* A,
+                                                          const PermutationDISTTable* B)
+      {
+        auto sigma = [](const Matrix<int64_t>& A) {
+          Matrix<int64_t> result(A.getRows() + 1, A.getColumns() + 1, 0);
+          for (int64_t i_ = 0; i_ < result.getRows(); ++i_) {
+            for (int64_t j_ = 0; j_ < result.getColumns(); ++j_) {
+              
+              int64_t sum = 0;
+              for (int64_t i = i_; i < A.getRows(); ++i) {
+                for (int64_t j = 0; j < j_; ++j) {
+                  sum += A(i, j);
+                }
+              }
+              
+              result(i_, j_) = sum;
+            }
+          }
+          return result;
+        };
+        
+        auto box = [](const Matrix<int64_t>& A) {
+          Matrix<int64_t> result(A.getRows() - 1, A.getColumns() - 1, 0);
+          for (int64_t i = 0; i < A.getRows() - 1; ++i) {
+            for (int64_t j = 0; j < A.getColumns() - 1; ++j) {
+              result(i, j) = A(i + 1, j) - A(i, j) - A(i + 1, j + 1) + A(i, j + 1);
+            }
+          }
+          
+          return result;
+        };
+        
+        auto result = box(MaxMultiply::Simple<Matrix<int64_t>>::minmultiply(sigma(A->unfold()), sigma(B->unfold()),
+                                                                            0, A->size() + 1, 0, A->size() + 1,
+                                                                            0, B->size() + 1, 0, B->size() + 1));
+        
+        vector<int64_t> compact_result(result.getRows(), 0);
+        for (int64_t i = 0; i < result.getRows(); ++i) {
+          for (int64_t j = 0; j < result.getColumns(); ++j) {
+            if (result(i, j) == 1) {
+              compact_result[i] = j;
+              break;
+            }
+          }
+        }
+        
+        return unique_ptr<PermutationDISTTable>(new PermutationDISTTable(A->rows() + B->rows(), A->cols(), compact_result));
       }
     };
   }
