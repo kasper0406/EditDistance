@@ -25,8 +25,6 @@ namespace Test {
       const int64_t colwidth = 80;
       
       vector<pair<string, function<bool()>>> tests = {
-        { "Test merging permutation LCS DIST builder.", test_dist_repository<DIST::LCSDISTRepository<DIST::SimpleLCSDISTTable>, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>> },
-        
         { "Partition generation with trivial SLP.", test_partition_generation<SLP::SimpleSLPBuilder> },
         { "Partition generation with simple compression SLP.", test_partition_generation<SLP::SimpleCompressionSLPBuilder> },
         { "Test simple horizontal DIST merge.", test_horizontal_merge<DIST::SimpleDISTRepository<DIST::EditDistanceDISTTable>, DIST::SimpleMerger> },
@@ -39,7 +37,8 @@ namespace Test {
         { "Test LCS horizontal simple DIST merge.", test_horizontal_merge<DIST::LCSDISTRepository<DIST::SimpleLCSDISTTable>, DIST::SimpleLCSDISTMerger> },
         { "Test construction of DIST tables using simple merging LCS DIST", test_dist_repository<DIST::LCSDISTRepository<DIST::SimpleLCSDISTTable>, DIST::MergingDISTRepository<DIST::SimpleLCSDISTTable, DIST::SimpleLCSDISTMerger>> },
         { "Verify result of sample using LCS blow up SLP and simple DIST.", test_slp_compression_align<LCSBlowUpAligner<SLP::SimpleCompressionSLPBuilder, DIST::LCSDISTRepository<DIST::SimpleLCSDISTTable>>> },
-        { "Verify result of sample using LCS blow up SLP and simple merging DIST.", test_slp_compression_align<LCSBlowUpAligner<SLP::SimpleCompressionSLPBuilder, DIST::MergingDISTRepository<DIST::SimpleLCSDISTTable, DIST::SimpleLCSDISTMerger>>> }
+        { "Verify result of sample using LCS blow up SLP and simple merging DIST.", test_slp_compression_align<LCSBlowUpAligner<SLP::SimpleCompressionSLPBuilder, DIST::MergingDISTRepository<DIST::SimpleLCSDISTTable, DIST::SimpleLCSDISTMerger>>> },
+        { "Test merging permutation LCS DIST builder.", test_dist_repository<DIST::LCSDISTRepository<DIST::SimpleLCSDISTTable>, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>> }
       };
       
       bool success = true;
@@ -226,7 +225,7 @@ namespace Test {
         string A = Benchmark::generate_string(length - 3 , { 'a', 'b', 'c' });
         string B = Benchmark::generate_string(length + 4, { 'a', 'b', 'c' });
         
-        for (int64_t x = 3; x < min(A.length(), B.length()); x = max((int64_t)((double)x * 1.3), x + 1)) {
+        for (int64_t x = 3; x < min(A.length(), B.length()); x = max((int64_t)((double)x * 4), x + 1)) {
           unique_ptr<SLP::SLP> slpA = SLPBuilder::build(A);
           unique_ptr<SLP::SLP> slpB = SLPBuilder::build(B);
           auto partitionA = SLP::Partitioner::partition(*slpA, x);
@@ -270,9 +269,12 @@ namespace Test {
         for (int64_t x = 3; x < min(A.length(), B.length()); x = max((int64_t)((double)x * 2.3), x + 1)) {
           Aligner aligner(A, B, x);
           Simple::EditDistance simple(A, B);
-      
-          if (aligner.edit_distance() != simple.calculate())
+          
+          const auto found = aligner.edit_distance();
+          const auto should_be = simple.calculate();
+          if (found != should_be) {
             return false;
+          }
         }
       }
       return true;

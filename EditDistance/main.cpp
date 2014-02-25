@@ -1,3 +1,5 @@
+// #define NDEBUG
+
 #include <iostream>
 #include <vector>
 #include <memory>
@@ -26,18 +28,24 @@ using namespace std;
 using namespace Compression;
 
 int main(int argc, char* argv[])
-{  
+{
+#ifndef NDEBUG
+  cout << "Running in DEBUG MODE!" << endl << endl;
+#else
+  cout << "Running in RELEASE MODE!" << endl << endl;
+#endif
+  
+  // TODO: Write test for blow up slp
   Test::TestSuite::run_tests();
   
-  // cout << DIST::PermutationDISTTable::BaseCase(true)->unfoldH() << endl;
-  
-  return 0;
-  
   {
-    const int64_t x = 20;
+    const int64_t x = 150;
     const uint16_t trials = 1;
     
-    Benchmark::run_benchmark<Compression::LCSBlowUpAligner<SLP::SimpleCompressionSLPBuilder, DIST::MergingDISTRepository<DIST::SimpleLCSDISTTable, DIST::SimpleLCSDISTMerger>>>(trials, x);
+    Benchmark::run_benchmark<Compression::LCSBlowUpAligner<SLP::SimpleCompressionSLPBuilder, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>>>(trials, x);
+    Benchmark::run_benchmark<Simple::EditDistance>(trials, x);
+    
+    // Benchmark::run_benchmark<Compression::LCSBlowUpAligner<SLP::SimpleCompressionSLPBuilder, DIST::MergingDISTRepository<DIST::SimpleLCSDISTTable, DIST::SimpleLCSDISTMerger>>>(trials, x);
     
     /*
     Benchmark::run_benchmark<Simple::EditDistance>(trials, x);

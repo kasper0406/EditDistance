@@ -6,6 +6,7 @@
 #include <memory>
 
 #include "../utils/matrix.hpp"
+#include "../utils/math.hpp"
 #include "SLP.hpp"
 #include "maxmultiply.hpp"
 
@@ -14,6 +15,7 @@ namespace Compression {
     typedef ::Compression::SLP::SLP StraightLineProgram;
     using namespace std;
     using namespace ::Compression::SLP;
+    using namespace ::Utils::Math;
     
     class EditDistanceDISTTable {
     public:
@@ -165,6 +167,7 @@ namespace Compression {
           column_map_(vector<int64_t>(row_specification.size(), 0))
       {
         for (int64_t i = 0; i < row_specification.size(); ++i) {
+          assert(row_specification[i] < row_specification.size() && row_specification[i] >= 0);
           row_map_[i] = row_specification[i];
           column_map_[row_specification[i]] = i;
         }
@@ -173,12 +176,19 @@ namespace Compression {
       int64_t rows() const { return rows_; }
       int64_t cols() const { return cols_; }
       
+      void setRows(int64_t rows) { rows_ = rows; }
+      void setCols(int64_t cols) { cols_ = cols; }
+      
       int64_t getCol(int64_t row) const {
         return row_map_[row];
       }
       
       int64_t getRow(int64_t col) const {
         return column_map_[col];
+      }
+      
+      bool operator()(int64_t i, int64_t j) const {
+        return getCol(i) == j;
       }
       
       Matrix<int64_t> unfoldH() const {
@@ -220,10 +230,31 @@ namespace Compression {
       }
       
       unique_ptr<PermutationDISTTable> swapStrings() const {
+        assert(rows() + cols() == size());
+        
         vector<int64_t> transformed_rowspec(size(), 0);
-        for (int64_t row = 0; row < size(); ++row)
+        for (int64_t row = 0; row < size(); ++row) {
+          assert(rows() + cols() - row - 1 >= 0 && rows() + cols() - row - 1 < size());
           transformed_rowspec[rows() + cols() - row - 1] = rows() + cols() - getCol(row) - 1;
+        }
         return unique_ptr<PermutationDISTTable>(new PermutationDISTTable(cols(), rows(), transformed_rowspec));
+      }
+      
+      vector<int64_t> apply(const vector<int64_t>& I) const {
+        vector<int64_t> O; O.reserve(I.size());
+        
+        const int64_t x = I.size();
+        const int64_t m = rows_;
+        const int64_t n = cols_;
+        
+        // Find maximum path for all different paths between inputs and outputs.
+        {
+          for (int64_t j = 0; j < x; ++j) {
+            O.push_back(0);
+          }
+        }
+        
+        return O;
       }
       
       bool operator==(const PermutationDISTTable& other) const {
@@ -250,6 +281,10 @@ namespace Compression {
           concatted_row_map.push_back(B.row_map_[i] + A.size());
         
         return unique_ptr<PermutationDISTTable>(new PermutationDISTTable(A.rows() + B.rows(), A.cols() + B.cols(), concatted_row_map));
+      }
+      
+      static string name() {
+        return "PermutationDISTTable";
       }
       
     private:
@@ -902,8 +937,8 @@ namespace Compression {
             // Padded top
             if (i < h_ && j < h_) {
               // TODO: Consider if this is correct! This is simply the identity matrix right now!
-              const int64_t N = h_;
-              const int64_t h = bottom->rows() % N;
+              // const int64_t N = h_;
+              // const int64_t h = bottom->rows() % N;
               // const int64_t h = top->rows() % N;
               // padded_top_perm(i, j) = (j - i == h || j - i == h - N);
               padded_top_perm(i, j) = (j == i);
@@ -916,9 +951,9 @@ namespace Compression {
               padded_bottom_perm(i, j) = bottom_perm(i, j);
             } else if (i >= bottom_perm.getRows() && j >= bottom_perm.getColumns()) {
               // TODO: Consider if this is correct! This is simply the identity matrix right now!
-              const int64_t N = padded_size - bottom_perm.getRows();
+              // const int64_t N = padded_size - bottom_perm.getRows();
               // const int64_t h = bottom->rows() % N;
-              const int64_t h = top->rows() % N;
+              // const int64_t h = top->rows() % N;
               // cout << "h: " << h << endl;
               // padded_bottom_perm(i, j) = (j - i == h || j - i == h - N);
               padded_bottom_perm(i, j) = (j == i);
@@ -958,68 +993,355 @@ namespace Compression {
       static shared_ptr<PermutationDISTTable> verticalMerge(const PermutationDISTTable* top,
                                                             const PermutationDISTTable* bottom)
       {
-        auto identity = [](int64_t size) {
+        auto identity = [](int64_t size) -> unique_ptr<PermutationDISTTable> {
           vector<int64_t> id; id.reserve(size);
           for (int64_t i = 0; i < size; ++i)
             id.push_back(i);
           
-          return PermutationDISTTable(0, 0, id);
+          return unique_ptr<PermutationDISTTable>(new PermutationDISTTable(0, 0, id));
         };
         
-        auto padded_top = PermutationDISTTable::concat(identity(bottom->rows()), *top);
-        auto padded_bottom = PermutationDISTTable::concat(*bottom, identity(top->rows()));
+        auto padded_top = PermutationDISTTable::concat(*identity(bottom->rows()), *top);
+        auto padded_bottom = PermutationDISTTable::concat(*bottom, *identity(top->rows()));
         
         return shared_ptr<PermutationDISTTable>(minmultiply(padded_top.get(), padded_bottom.get()));
+      }
+      
+      static string name() {
+        return "PermutationLCSMerger";
       }
       
     private:
       static unique_ptr<PermutationDISTTable> minmultiply(const PermutationDISTTable* A,
                                                           const PermutationDISTTable* B)
       {
-        auto sigma = [](const Matrix<int64_t>& A) {
-          Matrix<int64_t> result(A.getRows() + 1, A.getColumns() + 1, 0);
-          for (int64_t i_ = 0; i_ < result.getRows(); ++i_) {
-            for (int64_t j_ = 0; j_ < result.getColumns(); ++j_) {
-              
-              int64_t sum = 0;
-              for (int64_t i = i_; i < A.getRows(); ++i) {
-                for (int64_t j = 0; j < j_; ++j) {
-                  sum += A(i, j);
+        constexpr int8_t base_case_switch_size = 1;
+        assert(A->size() == B->size());
+        
+        vector<int64_t> id;
+        for (int64_t i = 0; i < A->size(); ++i)
+          id.push_back(i);
+        
+        auto base_case = [A,B](vector<int64_t> A_row_indices, vector<int64_t> A_col_indices,
+                               vector<int64_t> B_row_indices, vector<int64_t> B_col_indices)
+                    -> unique_ptr<PermutationDISTTable>
+        {
+          return unique_ptr<PermutationDISTTable>(new PermutationDISTTable(0, 0, { 0 }));
+        };
+        
+        function<unique_ptr<PermutationDISTTable>(vector<int64_t>,vector<int64_t>,vector<int64_t>,vector<int64_t>)> compute;
+        compute = [&compute,&base_case,A,B](vector<int64_t> A_row_indices, vector<int64_t> A_col_indices,
+                                            vector<int64_t> B_row_indices, vector<int64_t> B_col_indices)
+                    -> unique_ptr<PermutationDISTTable>
+        {
+          assert(A_row_indices.size() == B_row_indices.size() &&
+                 B_row_indices.size() == A_col_indices.size() &&
+                 A_col_indices.size() == B_col_indices.size());
+          const int64_t n = A_row_indices.size();
+
+          // TODO: Consider larger base case
+          if (n <= base_case_switch_size) {
+            return move(base_case(A_row_indices, A_col_indices, B_row_indices, B_col_indices));
+          } else {
+            // Generate subproblems and remap indices
+            const int64_t lo_subproblem_size = ceil_div<int64_t>(n, 2);
+            const int64_t hi_subproblem_size = n - lo_subproblem_size;
+            
+            vector<int64_t> A_col_lo_indices(A_col_indices.begin(), A_col_indices.begin() + lo_subproblem_size);
+            vector<int64_t> A_col_hi_indices(A_col_indices.begin() + lo_subproblem_size, A_col_indices.end());
+            assert(A_col_hi_indices.size() == hi_subproblem_size);
+            
+            vector<int64_t> B_row_lo_indices(B_row_indices.begin(), B_row_indices.begin() + lo_subproblem_size);
+            vector<int64_t> B_row_hi_indices(B_row_indices.begin() + lo_subproblem_size, B_row_indices.end());
+            assert(B_row_hi_indices.size() == hi_subproblem_size);
+            
+            vector<int64_t> A_row_lo_large_to_small(n, -1), A_row_hi_large_to_small(n, -1);
+            vector<int64_t> A_row_lo_small_to_large, A_row_hi_small_to_large;
+            vector<int64_t> A_row_lo_indices, A_row_hi_indices;
+            A_row_lo_indices.reserve(lo_subproblem_size); A_row_hi_indices.reserve(hi_subproblem_size);
+            A_row_lo_small_to_large.reserve(lo_subproblem_size); A_row_hi_small_to_large.reserve(hi_subproblem_size);
+            for (int64_t i = 0; i < n; ++i) {
+              if (A->getCol(A_row_indices[i]) < A_col_hi_indices[0]) {
+                A_row_lo_large_to_small[i] = A_row_lo_indices.size();
+                A_row_lo_small_to_large.push_back(i);
+                A_row_lo_indices.push_back(A_row_indices[i]);
+              } else {
+                A_row_hi_large_to_small[i] = A_row_hi_indices.size();
+                A_row_hi_small_to_large.push_back(i);
+                A_row_hi_indices.push_back(A_row_indices[i]);
+              }
+            }
+            assert(A_row_lo_indices.size() == lo_subproblem_size && A_row_hi_indices.size() == hi_subproblem_size);
+            
+            vector<int64_t> B_col_lo_large_to_small(n, -1), B_col_hi_large_to_small(n, -1);
+            vector<int64_t> B_col_lo_small_to_large, B_col_hi_small_to_large;
+            vector<int64_t> B_col_lo_indices, B_col_hi_indices;
+            B_col_lo_indices.reserve(lo_subproblem_size); B_col_hi_indices.reserve(hi_subproblem_size);
+            B_col_lo_small_to_large.reserve(lo_subproblem_size); B_col_hi_small_to_large.reserve(hi_subproblem_size);
+            for (int64_t j = 0; j < n; ++j) {
+              if (B->getRow(B_col_indices[j]) < B_row_hi_indices[0]) {
+                B_col_lo_large_to_small[j] = B_col_lo_indices.size();
+                B_col_lo_small_to_large.push_back(j);
+                B_col_lo_indices.push_back(B_col_indices[j]);
+              } else {
+                B_col_hi_large_to_small[j] = B_col_hi_indices.size();
+                B_col_hi_small_to_large.push_back(j);
+                B_col_hi_indices.push_back(B_col_indices[j]);
+              }
+            }
+            assert(B_col_lo_indices.size() == lo_subproblem_size && B_col_hi_indices.size() == hi_subproblem_size);
+            
+            // Recursively solve subproblems
+            const auto P_C_lo = compute(A_row_lo_indices, A_col_lo_indices, B_row_lo_indices, B_col_lo_indices);
+            const auto P_C_hi = compute(A_row_hi_indices, A_col_hi_indices, B_row_hi_indices, B_col_hi_indices);
+            
+            // Invert index remap
+            auto query_row_P_C_hi = [&](int64_t i) -> int64_t {
+              if (A_row_hi_large_to_small[i] == -1) return -1;
+              return B_col_hi_small_to_large[P_C_hi->getCol(A_row_hi_large_to_small[i])];
+            };
+            
+            auto query_col_P_C_hi = [&](int64_t k) -> int64_t {
+              if (B_col_hi_large_to_small[k] == -1) return -1;
+              return A_row_hi_small_to_large[P_C_hi->getRow(B_col_hi_large_to_small[k])];
+            };
+            
+            auto query_row_P_C_lo = [&](int64_t i) -> int64_t {
+              if (A_row_lo_large_to_small[i] == -1) return -1;
+              return B_col_lo_small_to_large[P_C_lo->getCol(A_row_lo_large_to_small[i])];
+            };
+            
+            auto query_col_P_C_lo = [&](int64_t k) -> int64_t {
+              if (B_col_lo_large_to_small[k] == -1) return -1;
+              return A_row_lo_small_to_large[P_C_lo->getRow(B_col_lo_large_to_small[k])];
+            };
+
+#ifndef NDEBUG
+            auto query_P_C_lo = [&](int64_t i, int64_t j) -> bool {
+              if (A_row_lo_large_to_small[i] == -1 || B_col_lo_large_to_small[j] == -1) return false;
+              return (*P_C_lo)(A_row_lo_large_to_small[i], B_col_lo_large_to_small[j]);
+            };
+            
+            auto query_P_C_hi = [&](int64_t i, int64_t j) -> bool {
+              if (A_row_hi_large_to_small[i] == -1 || B_col_hi_large_to_small[j] == -1) return false;
+              return (*P_C_hi)(A_row_hi_large_to_small[i], B_col_hi_large_to_small[j]);
+            };
+            
+            // Delta function (slow version)
+            auto slow_delta = [&](int64_t i, int64_t k) -> int64_t {
+              assert(i >= 0 && i <= n && k >= 0 && k <= n);
+              int64_t result = 0;
+              for (int64_t i_ = 0; i_ < i; ++i_) {
+                for (int64_t k_ = 0; k_ < k; ++k_) {
+                  result += query_P_C_hi(i_, k_);
+                }
+              }
+              for (int64_t i_ = i; i_ < n; ++i_) {
+                for (int64_t k_ = k; k_ < n; ++k_) {
+                  result -= query_P_C_lo(i_, k_);
                 }
               }
               
-              result(i_, j_) = sum;
+              return result;
+            };
+#endif
+      
+            /*
+            cout << endl << endl << "Lo:" << endl;
+            for (int64_t i = 0; i < n; ++i) {
+              for (int64_t k = 0; k < n; ++k)
+                cout << query_P_C_lo(i, k) << " ";
+              cout << endl;
             }
+            
+            cout << "Hi:" << endl;
+            for (int64_t i = 0; i < n; ++i) {
+              for (int64_t k = 0; k < n; ++k)
+                cout << query_P_C_hi(i, k) << " ";
+              cout << endl;
+            }
+            
+            cout << "Delta:" << endl;
+            for (int64_t i = 0; i <= n; ++i) {
+              for (int64_t k = 0; k <= n; ++k) {
+                cout << slow_delta(i, k) << " ";
+              }
+              cout << endl;
+            }
+             */
+            
+            auto query_delta_up = [&](int64_t old_result, int64_t old_row, int64_t old_col) -> int64_t {
+              int64_t delta = 0;
+              if (old_row > 0) {
+                const auto hi_row_query = query_row_P_C_hi(old_row - 1);
+                if (hi_row_query != -1 && hi_row_query < old_col)
+                  delta--;
+                
+                const auto lo_row_query = query_row_P_C_lo(old_row - 1);
+                if (lo_row_query != -1 && lo_row_query >= old_col)
+                  delta--;
+              }
+              return old_result + delta;
+            };
+            
+            auto query_delta_right = [&](int64_t old_result, int64_t old_row, int64_t old_col) -> int64_t {
+              int64_t delta = 0;
+              if (old_col < n) {
+                const auto hi_col_query = query_col_P_C_hi(old_col);
+                if (hi_col_query != -1 && hi_col_query < old_row)
+                  delta++;
+                
+                const auto lo_col_query = query_col_P_C_lo(old_col);
+                if (lo_col_query != -1 && lo_col_query >= old_row)
+                  delta++;
+              }
+              
+              return old_result + delta;
+            };
+            
+            // Compute seperating paths for negative and positive values in delta matrix
+            const int64_t K = n + 1;
+            struct R {
+              int64_t r_high, r_low;
+            };
+            vector<R> r_(2 * K + 1, R());
+            auto r = [&r_, K] (int64_t i) -> R& {
+              assert(i + K >= 0 && i + K < 2 * K + 1);
+              return r_[i + K];
+            };
+            
+            // Base case
+            r(-K).r_low = n;
+            r(-K).r_high = n;
+            
+            // Inductive case
+            int64_t high_witness_value = 0, low_witness_value = 0;
+            for (int64_t d = -K; d < K; ++d) {
+              /*
+               * High path
+               */
+              // cout << "High pos: (" << double(r(d).r_high - d) / 2 << ", " << double(r(d).r_high + d) / 2 << ")" << endl;
+              if (r(d).r_high - d - 1 < 0) { // We are at the top -> go right
+                r(d + 1).r_high = r(d).r_high + 1;
+              } else {
+                // cout << "Witness pos: (" << double(r(d).r_high - d - 1) / 2 << ", " << double(r(d).r_high + d + 1) / 2 << ")" << endl;
+                assert(high_witness_value == slow_delta((r(d).r_high - d - 1) / 2, (r(d).r_high + d + 1) / 2));
+                
+                if (high_witness_value < 0) { // Go right
+                  r(d + 1).r_high = r(d).r_high + 1;
+                  high_witness_value = query_delta_right(high_witness_value, (r(d).r_high - d - 1) / 2, (r(d).r_high + d + 1) / 2);
+                } else { // Go up
+                  r(d + 1).r_high = r(d).r_high - 1;
+                  high_witness_value = query_delta_up(high_witness_value, (r(d).r_high - d - 1) / 2, (r(d).r_high + d + 1) / 2);
+                }
+              }
+              
+              /*
+               * Low path
+               */
+              // cout << "Low pos: (" << double(r(d).r_low - d) / 2 << ", " << double(r(d).r_low + d) / 2 << ")" << endl;
+              if (r(d).r_low + d + 1 >= 2 * K) { // We are at the right -> go up
+                r(d + 1).r_low = r(d).r_low - 1;
+              } else {
+                // cout << "Witness pos: (" << double(r(d).r_low - d - 1) / 2 << ", " << double(r(d).r_low + d + 1) / 2 << ")" << endl;
+                assert(low_witness_value == slow_delta((r(d).r_low - d - 1) / 2, (r(d).r_low + d + 1) / 2));
+                
+                if (low_witness_value > 0) { // Go up
+                  r(d + 1).r_low = r(d).r_low - 1;
+                  low_witness_value = query_delta_up(low_witness_value, (r(d).r_low - d - 1) / 2, (r(d).r_low + d + 1) / 2);
+                } else { // Go right
+                  r(d + 1).r_low = r(d).r_low + 1;
+                  low_witness_value = query_delta_right(low_witness_value, (r(d).r_low - d - 1) / 2, (r(d).r_low + d + 1) / 2);
+                }
+              }
+            }
+            // cout << "High pos: (" << double(r(K).r_high - K) / 2 << ", " << double(r(K).r_high + K) / 2 << ")" << endl;
+            assert(double(r(K).r_high - K) / 2 == -0.5 && double(r(K).r_high + K) / 2 == K - 0.5);
+            // cout << "Low pos: (" << double(r(K).r_low - K) / 2 << ", " << double(r(K).r_low + K) / 2 << ")" << endl;
+            assert(double(r(K).r_low - K) / 2 == -0.5 && double(r(K).r_low + K) / 2 == K - 0.5);
+            
+#ifndef NDEBUG
+            for (int64_t i = 0; i < K; ++i) {
+              for (int64_t k = 0; k < K; ++k) {
+                {
+                  if (slow_delta(i, k) >= 0)
+                    assert(i + k > r(k - i).r_high);
+                  
+                  if (i + k > r(k - i).r_high)
+                    assert(slow_delta(i, k) >= 0);
+                }
+                
+                {
+                  if (slow_delta(i, k) <= 0)
+                    assert(i + k < r(k - i).r_low);
+                  
+                  if (i + k < r(k - i).r_low)
+                    assert(slow_delta(i, k) <= 0);
+                }
+                
+                {
+                  if (slow_delta(i, k) < 0 && slow_delta(i + 1, k + 1) > 0) {
+                    assert(r(k - i).r_low == r(k - i).r_high && r(k - i).r_high == i + k + 1);
+                  }
+                  
+                  if (r(k - i).r_low == r(k - i).r_high && r(k - i).r_high == i + k + 1) {
+                    assert(slow_delta(i, k) < 0 && slow_delta(i + 1, k + 1) > 0);
+                  }
+                }
+              }
+            }
+#endif
+            
+            // Combine solution
+            vector<int64_t> combined_row_description(n, -1);
+            
+            for (int64_t row = 0; row < lo_subproblem_size; ++row) {
+              const int64_t i = A_row_lo_small_to_large[row];
+              const int64_t k = B_col_lo_small_to_large[P_C_lo->getCol(row)];
+              
+              if (i + k + 2 < r(k - i).r_low)
+                combined_row_description[i] = k;
+            }
+            
+            for (int64_t row = 0; row < hi_subproblem_size; ++row) {
+              const int64_t i = A_row_hi_small_to_large[row];
+              const int64_t k = B_col_hi_small_to_large[P_C_hi->getCol(row)];
+              
+              if (i + k > r(k - i).r_high)
+                combined_row_description[i] = k;
+            }
+            
+            for (int64_t d = -n; d < n; ++d) {
+              if (r(d).r_high == r(d).r_low) {
+                const int64_t i = (r(d).r_high - d - 1) / 2;
+                const int64_t k = (r(d).r_high + d - 1) / 2;
+                assert(r(d).r_high == i + k + 1);
+                
+                combined_row_description[i] = k;
+              }
+            }
+            
+#ifndef NDEBUG
+            for (int64_t i = 0; i < n; ++i) {
+              for (int64_t k = 0; k < n; ++k) {
+                if (slow_delta(i, k) < 0 && slow_delta(i + 1, k + 1) > 0) {
+                  assert(combined_row_description[i] == k);
+                }
+              }
+            }
+#endif
+            
+            return unique_ptr<PermutationDISTTable>(new PermutationDISTTable(0, 0, combined_row_description));
           }
-          return result;
         };
         
-        auto box = [](const Matrix<int64_t>& A) {
-          Matrix<int64_t> result(A.getRows() - 1, A.getColumns() - 1, 0);
-          for (int64_t i = 0; i < A.getRows() - 1; ++i) {
-            for (int64_t j = 0; j < A.getColumns() - 1; ++j) {
-              result(i, j) = A(i + 1, j) - A(i, j) - A(i + 1, j + 1) + A(i, j + 1);
-            }
-          }
-          
-          return result;
-        };
-        
-        auto result = box(MaxMultiply::Simple<Matrix<int64_t>>::minmultiply(sigma(A->unfold()), sigma(B->unfold()),
-                                                                            0, A->size() + 1, 0, A->size() + 1,
-                                                                            0, B->size() + 1, 0, B->size() + 1));
-        
-        vector<int64_t> compact_result(result.getRows(), 0);
-        for (int64_t i = 0; i < result.getRows(); ++i) {
-          for (int64_t j = 0; j < result.getColumns(); ++j) {
-            if (result(i, j) == 1) {
-              compact_result[i] = j;
-              break;
-            }
-          }
-        }
-        
-        return unique_ptr<PermutationDISTTable>(new PermutationDISTTable(A->rows() + B->rows(), A->cols(), compact_result));
+        vector<int64_t> all_indices; all_indices.reserve(A->size());
+        for (int64_t i = 0; i < A->size(); ++i)
+          all_indices.push_back(i);
+        auto result = compute(all_indices, all_indices, all_indices, all_indices);
+        result->setRows(A->rows() + B->rows());
+        result->setCols(A->cols());
+        return result;
       }
     };
   }
