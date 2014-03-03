@@ -166,10 +166,8 @@ namespace Compression {
       this->slpB_ = move(SLPCompressor::build(this->B_));
       
       auto findX = [this] (SLP::SLP* slp) {
-        const int64_t f = slp->derivedLength() / slp->productions();
+        const int64_t f = max((int64_t)2, slp->derivedLength() / slp->productions());
         const int64_t x = max(f / (int64_t)sqrt(log2(f)), min((int64_t)5, slp->derivedLength()));
-        
-        cout << "x: " << (int64_t)(x * this->xfactor_) << endl;
         
         return min((int64_t)(x * this->xfactor_), slp->derivedLength());
       };
@@ -273,10 +271,8 @@ namespace Compression {
       SLP::BlowUpSLPTransformer::blowUpSLP(this->slpB_.get());
       
       auto findX = [this] (SLP::SLP* slp) {
-        const int64_t f = slp->derivedLength() / slp->productions();
+        const int64_t f = max((int64_t)2, slp->derivedLength() / slp->productions());
         const int64_t x = max(f / (int64_t)sqrt(log2(f)), min((int64_t)5, slp->derivedLength()));
-        
-        cout << "x: " << (int64_t)(x * this->xfactor_) << endl;
         
         return min((int64_t)(x * this->xfactor_), slp->derivedLength());
       };

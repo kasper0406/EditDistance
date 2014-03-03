@@ -59,10 +59,18 @@ namespace Benchmark {
     return ss.str();
   }
   
+  string easy_compressible_string(int64_t length, vector<char> alphabet = { 'a', 'c', 'g', 't' }) {
+    stringstream ss;
+    for (int64_t i = 0; i < length; ++i)
+      ss << alphabet[i % alphabet.size()];
+    
+    return ss.str();
+  }
+  
   template <class Implementation>
   void run_benchmark(uint16_t trials, const double xfactor) {
-    string a = generate_string(10000, { 'a', 'b' });
-    string b = generate_string(10000, { 'a', 'b' });
+    string a = generate_string(100000, { 'a' });
+    string b = generate_string(100000, { 'a' });
     
     cout << "#Testing: " << Implementation::name() << endl;
     

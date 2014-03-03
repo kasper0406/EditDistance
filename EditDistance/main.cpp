@@ -1,4 +1,4 @@
-#define NDEBUG TRUE
+#define NDEBUG
 
 #include <iostream>
 #include <vector>
@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
 #endif
   
   // TODO: Write test for blow up slp
-  // Test::TestSuite::run_tests();
+  Test::TestSuite::run_tests();
   
   {
     const double xfactor = 2;

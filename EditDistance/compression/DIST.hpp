@@ -332,7 +332,7 @@ namespace Compression {
           for (int64_t i = x - 2; i >= 0; --i) {
             const int64_t value = v[i] - i;
             if (value > candidates.back().value) {
-              (--candidates.rend())->value -= value;
+              candidates.back().value -= value;
               candidates.push_back(MaxInfo(value, i));
               iterators[i] = --(candidates.rbegin().base());
             } else {
@@ -401,24 +401,26 @@ namespace Compression {
                 }
               }
             }
-         
-//             auto print_t = [&](int64_t j) {
-//             cout << "t(" << j << "):";
-//             for (int64_t i = 0; i < P_sigma.getRows(); ++i) {
-//             if (j == -1)
-//             cout << "\t" << v[i] - i;
-//             else
-//             cout << "\t" << v[i] - i - P_sigma(i, j);
-//             }
-//             cout << endl << endl;
-//             };
-//             
-//            print_t(j);
-//            cout << "Candidates: " << endl;
-//            for (auto iter = candidates.rbegin(); iter != candidates.rend(); ++iter) {
-//              cout << "Value: " << iter->value << ", Pos: " << iter->pos << endl;
-//            }
-         
+            
+            /*
+             auto print_t = [&](int64_t j) {
+             cout << "t(" << j << "):";
+             for (int64_t i = 0; i < P_sigma.getRows(); ++i) {
+             if (j == -1)
+             cout << "\t" << v[i] - i;
+             else
+             cout << "\t" << v[i] - i - P_sigma(i, j);
+             }
+             cout << endl << endl;
+             };
+             
+            print_t(j);
+            cout << "Candidates: " << endl;
+            for (auto iter = candidates.rbegin(); iter != candidates.rend(); ++iter) {
+              cout << "Value: " << iter->value << ", Pos: " << iter->pos << endl;
+            }
+             */
+            
             // Max is in end of candidate list
             MaxInfo answer(candidates.back().value + j + dist->rows(), candidates.back().pos);
             result.push_back(answer);

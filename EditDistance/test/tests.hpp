@@ -273,8 +273,8 @@ namespace Test {
         string A = Benchmark::generate_string(length - 3);
         string B = Benchmark::generate_string(length + 4);
         
-        for (int64_t x = 3; x < min(A.length(), B.length()); x = max((int64_t)((double)x * 2.3), x + 1)) {
-          Aligner aligner(A, B, x);
+        for (double xfactor = 2; xfactor < 3; ++xfactor) {
+          Aligner aligner(A, B, xfactor);
           Simple::EditDistance simple(A, B);
           
           const auto found = aligner.edit_distance();
