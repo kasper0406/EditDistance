@@ -60,9 +60,9 @@ namespace Benchmark {
   }
   
   template <class Implementation>
-  void run_benchmark(uint16_t trials, const int64_t x) {
-    string a = generate_string(10000, { 'a' });
-    string b = generate_string(10000, { 'a' });
+  void run_benchmark(uint16_t trials, const double xfactor) {
+    string a = generate_string(10000, { 'a', 'b' });
+    string b = generate_string(10000, { 'a', 'b' });
     
     cout << "#Testing: " << Implementation::name() << endl;
     
@@ -74,7 +74,7 @@ namespace Benchmark {
     
     // Run the actual tests
     for (uint16_t trial = 0; trial < trials; ++trial) {
-      auto run = Implementation::run({ a, b, x });
+      auto run = Implementation::run({ a, b, xfactor });
       for (uint16_t stage = 0; stage < run.size(); ++stage) {
         auto& fct = run[stage].second;
         

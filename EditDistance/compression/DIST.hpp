@@ -3,10 +3,12 @@
 #include <vector>
 #include <tuple>
 #include <list>
+#include <iterator>
 #include <memory>
 
 #include "../utils/matrix.hpp"
 #include "../utils/math.hpp"
+#include "../utils/unionfind.hpp"
 #include "SLP.hpp"
 #include "maxmultiply.hpp"
 
@@ -247,10 +249,25 @@ namespace Compression {
         const int64_t m = rows_;
         const int64_t n = cols_;
         
-        // Find maximum path for all different paths between inputs and outputs.
         {
+          vector<int64_t> input = I;
+          for (int64_t i = 0; i < m; ++i)
+            input[i] += i - m;
+          
+          auto multiplied = maxmultiply(input, this);
+          
           for (int64_t j = 0; j < x; ++j) {
-            O.push_back(0);
+            const int64_t i = multiplied[j].pos;
+            
+            if (i < m && j < n) {
+              O.push_back(multiplied[j].value);
+            } else if (i >= m && j < n) {
+              O.push_back(multiplied[j].value);
+            } else if (i < m && j >= n) {
+              O.push_back(multiplied[j].value + n - j);
+            } else if (i >= m && j >= n) {
+              O.push_back(multiplied[j].value + n - j);
+            }
           }
         }
         
@@ -290,6 +307,145 @@ namespace Compression {
     private:
       int64_t rows_, cols_;
       vector<int64_t> row_map_, column_map_;
+      
+      struct MaxInfo {
+        MaxInfo(int64_t value, int64_t pos) : value(value), pos(pos) { }
+        int64_t value, pos;
+        
+        bool operator==(const MaxInfo& other) const {
+          return value == other.value && pos == other.pos;
+        }
+      };
+      
+      static vector<MaxInfo> maxmultiply(vector<int64_t> v, const PermutationDISTTable* dist) {
+        assert(v.size() == dist->size() + 1);
+        const int64_t x = v.size();
+        
+        vector<MaxInfo> result; result.reserve(x);
+        {
+          list<MaxInfo> candidates;
+          vector<list<MaxInfo>::iterator> iterators(x, candidates.end());
+          Utils::IntervalUnionFind interval(x);
+          
+          candidates.push_back(MaxInfo(v[x - 1] - (x - 1), x - 1));
+          iterators[x - 1] = --(candidates.rbegin().base());
+          for (int64_t i = x - 2; i >= 0; --i) {
+            const int64_t value = v[i] - i;
+            if (value > candidates.back().value) {
+              (--candidates.rend())->value -= value;
+              candidates.push_back(MaxInfo(value, i));
+              iterators[i] = --(candidates.rbegin().base());
+            } else {
+              interval.Union(i, i + 1);
+            }
+          }
+          
+          auto locate = [&candidates] (int64_t k) {
+            for (auto iter = candidates.rbegin(); iter != candidates.rend(); ++iter) {
+              if (iter->pos > k) {
+                if (iter == candidates.rbegin())
+                  return candidates.end();
+                
+                return iter.base();
+              }
+            }
+            return candidates.end();
+          };
+          
+          // Base case
+          // Max is in end of candidate list
+          MaxInfo answer(candidates.back().value + dist->rows(), candidates.back().pos);
+          result.push_back(answer);
+          
+          for (int64_t j = 1; j < x; ++j) {
+            const int64_t k = dist->getRow(j - 1);
+            const auto pos = interval.Find(k);
+
+            // Find the rightmost element with pos <= k
+            list<MaxInfo>::iterator t;
+            if (pos == k) {
+              t = iterators[pos];
+            } else {
+              assert(pos > k);
+              if (candidates.size() == 0) {
+                t = candidates.end();
+              } else if (candidates.begin()->pos <= k) {
+                t = candidates.begin(); // Start of candidate list
+              } else if (iterators[pos] == --candidates.end()) {
+                t = candidates.end(); // We are at the beginning of candidate list
+              } else {
+                t = iterators[pos]; ++t;
+                assert(t->pos <= k);
+              }
+            }
+            assert(t == locate(k));
+            
+            if (t != candidates.end()) {
+              list<MaxInfo>::iterator t_next = t; --t_next;
+              
+              candidates.back().value--;
+              if (t_next != candidates.end()) {
+                t_next->value++;
+                if (t_next->value == 0) {
+                  // Union intervals
+                  iterators[t->pos] = candidates.end();
+                  interval.Union(t->pos, t->pos + 1);
+                  
+                  if (t == --candidates.end()) {
+                    (++candidates.rbegin())->value += candidates.back().value;
+                    candidates.pop_back();
+                  } else {
+                    t_next->value = t->value;
+                    candidates.erase(t);
+                  }
+                }
+              }
+            }
+         
+//             auto print_t = [&](int64_t j) {
+//             cout << "t(" << j << "):";
+//             for (int64_t i = 0; i < P_sigma.getRows(); ++i) {
+//             if (j == -1)
+//             cout << "\t" << v[i] - i;
+//             else
+//             cout << "\t" << v[i] - i - P_sigma(i, j);
+//             }
+//             cout << endl << endl;
+//             };
+//             
+//            print_t(j);
+//            cout << "Candidates: " << endl;
+//            for (auto iter = candidates.rbegin(); iter != candidates.rend(); ++iter) {
+//              cout << "Value: " << iter->value << ", Pos: " << iter->pos << endl;
+//            }
+         
+            // Max is in end of candidate list
+            MaxInfo answer(candidates.back().value + j + dist->rows(), candidates.back().pos);
+            result.push_back(answer);
+          }
+        }
+        
+#ifndef NDEBUG
+        {
+          const auto& H = dist->unfoldH();
+          for (int64_t j = 0; j < x; ++j) {
+            MaxInfo maximum(numeric_limits<int64_t>::min(), -1);
+            for (int64_t i = 0; i < x; ++i) {
+              const int64_t candidate = v[i] + H(i, j);
+              if (maximum.value < candidate) {
+                maximum.value = candidate;
+                maximum.pos = i;
+              }
+            }
+            
+            assert(result[j].value == maximum.value);
+            assert(v[result[j].pos] + H(result[j].pos, j) == maximum.value);
+          }
+        }
+#endif
+        
+        return result;
+      }
     };
     
     bool operator==(const PermutationDISTTable& permDIST, const SimpleLCSDISTTable& simpleDIST) {

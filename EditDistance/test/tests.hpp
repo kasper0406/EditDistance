@@ -15,6 +15,8 @@
 
 #include "../benchmark/benchmarker.hpp"
 
+#include "../utils/unionfind.hpp"
+
 namespace Test {
   using namespace std;
   using namespace Compression;
@@ -25,6 +27,11 @@ namespace Test {
       const int64_t colwidth = 80;
       
       vector<pair<string, function<bool()>>> tests = {
+        { "Testing union find", test_union_find },
+        { "Testing interval union find", test_interval_union_find },
+        
+        { "Verify result of sample using LCS blow up SLP and simple merging DIST.", test_slp_compression_align<LCSBlowUpAligner<SLP::SimpleCompressionSLPBuilder, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>>> },
+        
         { "Partition generation with trivial SLP.", test_partition_generation<SLP::SimpleSLPBuilder> },
         { "Partition generation with simple compression SLP.", test_partition_generation<SLP::SimpleCompressionSLPBuilder> },
         { "Test simple horizontal DIST merge.", test_horizontal_merge<DIST::SimpleDISTRepository<DIST::EditDistanceDISTTable>, DIST::SimpleMerger> },
@@ -36,7 +43,7 @@ namespace Test {
         { "Test LCS vertical simple DIST merge.", test_vertical_merge<DIST::LCSDISTRepository<DIST::SimpleLCSDISTTable>, DIST::SimpleLCSDISTMerger> },
         { "Test LCS horizontal simple DIST merge.", test_horizontal_merge<DIST::LCSDISTRepository<DIST::SimpleLCSDISTTable>, DIST::SimpleLCSDISTMerger> },
         { "Test construction of DIST tables using simple merging LCS DIST", test_dist_repository<DIST::LCSDISTRepository<DIST::SimpleLCSDISTTable>, DIST::MergingDISTRepository<DIST::SimpleLCSDISTTable, DIST::SimpleLCSDISTMerger>> },
-        { "Verify result of sample using LCS blow up SLP and simple DIST.", test_slp_compression_align<LCSBlowUpAligner<SLP::SimpleCompressionSLPBuilder, DIST::LCSDISTRepository<DIST::SimpleLCSDISTTable>>> },
+        { "Verify result of sample using LCS blow up SLP and simple DIST.", test_slp_compression_align<LCSBlowUpAligner<SLP::SimpleCompressionSLPBuilder, DIST::LCSDISTRepository<DIST::SimpleLCSDISTTable>>> },        
         { "Verify result of sample using LCS blow up SLP and simple merging DIST.", test_slp_compression_align<LCSBlowUpAligner<SLP::SimpleCompressionSLPBuilder, DIST::MergingDISTRepository<DIST::SimpleLCSDISTTable, DIST::SimpleLCSDISTMerger>>> },
         { "Test merging permutation LCS DIST builder.", test_dist_repository<DIST::LCSDISTRepository<DIST::SimpleLCSDISTTable>, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>> }
       };
@@ -309,6 +316,61 @@ namespace Test {
         
         if (edit_distance != edit_distance_)
           return false;
+      }
+      
+      return true;
+    }
+    
+    static bool test_union_find() {
+      typedef Utils::UnionFind<int64_t> UF;
+      typedef UF::Element Element;
+      
+      vector<unique_ptr<Element>> elements;
+      for (int64_t i = 1; i <= 10; ++i)
+        elements.push_back(unique_ptr<Element>(new Element(i)));
+      
+      auto get = [&elements](int64_t index) -> Element* {
+        return elements[index].get();
+      };
+      
+      if (UF::Find(get(0)) != get(0))
+        return false;
+      
+      UF::Union(get(0), get(1));
+      UF::Union(get(2), get(3));
+      UF::Union(get(0), get(3));
+      
+      if (UF::Find(get(2)) != UF::Find(get(0)))
+        return false;
+      
+      if (UF::Find(get(9)) == UF::Find(get(0)))
+        return false;
+        
+      return true;
+    }
+    
+    static bool test_interval_union_find() {
+      const int64_t N = 10000;
+      Utils::IntervalUnionFind iuf(N);
+      for (uint64_t i = 0; i < N; ++i) {
+        if (iuf.Find(i) != i)
+          return false;
+      }
+      
+      for (uint64_t depth = 1; depth < log2(N); ++depth) {
+        for (uint64_t i = 0; i < N - pow(2, depth - 1); i += pow(2, depth)) {
+          assert(i + pow(2, depth - 1) < N);
+          iuf.Union(i, i + pow(2, depth - 1));
+        }
+        
+        for (uint64_t i = 0; i < N - pow(2, depth - 1); i += pow(2, depth)) {
+          for (uint64_t j = 0; j < pow(2, depth) && i + j < N; ++j) {
+            if (iuf.Find(i + j) != min((uint64_t)(i + pow(2, depth) - 1), (uint64_t)(N - 1))) {
+              iuf.print();
+              return false;
+            }
+          }
+        }
       }
       
       return true;

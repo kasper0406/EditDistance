@@ -18,7 +18,7 @@ namespace Compression {
   template <class Factory, class SLPCompressor, class DISTRepo>
   class Aligner {
   public:
-    Aligner(string A, string B, int64_t x) : x_(x), A_(A), B_(B)
+    Aligner(string A, string B, double xfactor) : xfactor_(xfactor), A_(A), B_(B)
     { }
     
     virtual ~Aligner() { };
@@ -65,7 +65,7 @@ namespace Compression {
       distRepo->build(blocksA_, blocksB_);
     }
     
-    int64_t x_;
+    double xfactor_;
     
     string A_, B_;
     unique_ptr<SLP::SLP> slpA_, slpB_;
@@ -78,7 +78,7 @@ namespace Compression {
   template <class SLPCompressor, class DISTRepo>
   class EditDistanceAligner : public Aligner<EditDistanceAligner<SLPCompressor, DISTRepo>, SLPCompressor, DISTRepo> {
   public:
-    EditDistanceAligner(string A, string B, int64_t x) : Aligner<EditDistanceAligner, SLPCompressor, DISTRepo>(A, B, x)
+    EditDistanceAligner(string A, string B, double xfactor) : Aligner<EditDistanceAligner, SLPCompressor, DISTRepo>(A, B, xfactor)
     {
       this->generateSLPs();
       this->buildDISTRepo();
@@ -152,9 +152,9 @@ namespace Compression {
       return "SLPAlign(" + SLPCompressor::name() + ", " + DISTRepo::name() + ")";
     }
     
-    static Aligner<EditDistanceAligner, SLPCompressor, DISTRepo>* getInstance(tuple<string, string, int64_t> input) {
+    static Aligner<EditDistanceAligner, SLPCompressor, DISTRepo>* getInstance(tuple<string, string, double> input) {
       auto instance = new EditDistanceAligner<SLPCompressor, DISTRepo>();
-      tie(instance->A_, instance->B_, instance->x_) = input;
+      tie(instance->A_, instance->B_, instance->xfactor_) = input;
       return instance;
     }
     
@@ -163,17 +163,26 @@ namespace Compression {
     
     void generateSLPs() {
       this->slpA_ = move(SLPCompressor::build(this->A_));
-      tie(this->partitionA_, this->blocksA_) = SLP::Partitioner::partition(*this->slpA_, this->x_);
-      
       this->slpB_ = move(SLPCompressor::build(this->B_));
-      tie(this->partitionB_, this->blocksB_) = SLP::Partitioner::partition(*this->slpB_, this->x_);
+      
+      auto findX = [this] (SLP::SLP* slp) {
+        const int64_t f = slp->derivedLength() / slp->productions();
+        const int64_t x = max(f / (int64_t)sqrt(log2(f)), min((int64_t)5, slp->derivedLength()));
+        
+        cout << "x: " << (int64_t)(x * this->xfactor_) << endl;
+        
+        return min((int64_t)(x * this->xfactor_), slp->derivedLength());
+      };
+      
+      tie(this->partitionA_, this->blocksA_) = SLP::Partitioner::partition(*this->slpA_, findX(this->slpA_.get()));
+      tie(this->partitionB_, this->blocksB_) = SLP::Partitioner::partition(*this->slpB_, findX(this->slpB_.get()));
     }
   };
   
   template <class SLPCompressor, class DISTRepo>
   class LCSBlowUpAligner : public Aligner<LCSBlowUpAligner<SLPCompressor, DISTRepo>, SLPCompressor, DISTRepo> {
   public:
-    LCSBlowUpAligner(string A, string B, int64_t x) : Aligner<LCSBlowUpAligner, SLPCompressor, DISTRepo>(A, B, x)
+    LCSBlowUpAligner(string A, string B, double xfactor) : Aligner<LCSBlowUpAligner, SLPCompressor, DISTRepo>(A, B, xfactor)
     {
       this->generateSLPs();
       this->buildDISTRepo();
@@ -245,11 +254,11 @@ namespace Compression {
       return "LCSBlowUpAligner(" + SLPCompressor::name() + ", " + DISTRepo::name() + ")";
     }
     
-    static Aligner<LCSBlowUpAligner, SLPCompressor, DISTRepo>* getInstance(tuple<string, string, int64_t> input) {
+    static Aligner<LCSBlowUpAligner, SLPCompressor, DISTRepo>* getInstance(tuple<string, string, double> input) {
       auto instance = new LCSBlowUpAligner<SLPCompressor, DISTRepo>();
       instance->A_ = get<0>(input);
       instance->B_ = get<1>(input);
-      instance->x_ = get<2>(input);
+      instance->xfactor_ = get<2>(input);
       return instance;
     }
     
@@ -259,11 +268,21 @@ namespace Compression {
     void generateSLPs() {
       this->slpA_ = move(SLPCompressor::build(this->A_));
       SLP::BlowUpSLPTransformer::blowUpSLP(this->slpA_.get());
-      tie(this->partitionA_, this->blocksA_) = SLP::Partitioner::partition(*this->slpA_, this->x_);
       
       this->slpB_ = move(SLPCompressor::build(this->B_));
       SLP::BlowUpSLPTransformer::blowUpSLP(this->slpB_.get());
-      tie(this->partitionB_, this->blocksB_) = SLP::Partitioner::partition(*this->slpB_, this->x_);
+      
+      auto findX = [this] (SLP::SLP* slp) {
+        const int64_t f = slp->derivedLength() / slp->productions();
+        const int64_t x = max(f / (int64_t)sqrt(log2(f)), min((int64_t)5, slp->derivedLength()));
+        
+        cout << "x: " << (int64_t)(x * this->xfactor_) << endl;
+        
+        return min((int64_t)(x * this->xfactor_), slp->derivedLength());
+      };
+      
+      tie(this->partitionA_, this->blocksA_) = SLP::Partitioner::partition(*this->slpA_, findX(this->slpA_.get()));
+      tie(this->partitionB_, this->blocksB_) = SLP::Partitioner::partition(*this->slpB_, findX(this->slpB_.get()));
     }
   };
 }
