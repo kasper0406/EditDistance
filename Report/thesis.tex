@@ -6,6 +6,7 @@
 \usepackage{latexsym}
 \usepackage{amssymb}
 \usepackage{amsmath}
+\usepackage{amsthm}
 \usepackage{epsfig}
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
@@ -13,12 +14,25 @@
 \usepackage{color}
 \usepackage{datetime}
 \usepackage{epstopdf} 
+\usepackage{cleveref}
+\usepackage{geometry}
+\usepackage{tikz}
 
 \renewcommand*\ttdefault{txtt}
 
 \newcommand{\todo}[1]{{\color[rgb]{.5,0,0}\textbf{$\blacktriangleright$#1$\blacktriangleleft$}}}
+\newcommand{\DIST}{\operatorname{DIST}}
+
+\newcommand{\substr}[3]{#1\langle #2, #3 \rangle}
+\newcommand{\str}[3]{#1[#2, #3]}
+\newcommand*{\circled}[1]{\tikz[baseline=(char.base)]{
+                          \node[shape=circle,draw,inner sep=2pt] (char) {#1};}}
 
 \newcites{A,B}{Primary Bibliography,Secondary Bibliography}
+
+\newtheorem{mydef}{Definition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{claim}{Claim}
 
 % see http://imf.au.dk/system/latex/bog/
 
@@ -33,7 +47,7 @@
 {\huge\sf Kasper Nielsen, 20091182}\\[2ex]
 \noindent\rule{\linewidth}{1mm}\\[4ex]
 \noindent{\Large\sf Master's Thesis, Computer Science\\[1ex] 
-\monthname\ \the\year  \\[1ex] Advisor: Christian Nørgaard Storm Pedersen\\[15ex]}\\[\fill]}
+\monthname\ \the\year  \\[1ex] Advisor: Christian NÃ¸rgaard Storm Pedersen\\[15ex]}\\[\fill]}
 \epsfig{file=logo.eps}\clearpage
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -157,12 +171,275 @@ Since the number of productions is bounded by $O(n^2)$, the time for constructin
 
 \subsubsection{Filling out the dynamical programming table}
 The dynamical programming table is filled from top to bottom, left to right. This is done by keeping two columns of the table in memory (could be reduced to a little more than one column), and then $O(x)$ of a row. This specifies the inputs $I$ to the dist table, and the output can then be computed by
-\[
-  O[j] = \min_i \{ I[i] + DIST[i, j] \},
-\]
-since the DIST table stores the shortest path from input $i$ to output $j$. Evaluating the above formula directly for every input takes $O(x^2)$ time, which is too much. However using the succinct representation of the DIST tables, \todo{cite} described how it can be evaluated in time $O(x\log{x})$.
+\begin{equation}
+  \label{eqn:dist-application}
+  O[j] = \min_i \{ I[i] + \DIST[i, j] \},
+\end{equation}
+since the DIST table stores the shortest path from input $i$ to output $j$. Evaluating the above formula directly for every input takes $O(x^2)$ time, which is too much.
 
-Alternatively if a simple representation of the DIST tables is used, then it can be evaluated in time $O(x)$ using the SMAWK algorithm (however, this would increase the time needed for constructing the dist tables).
+If an explicit representation of the DIST tables is used, then this can be evaluated in time $O(x)$ using the SMAWK algorithm (however, this would increase the time needed for constructing the DIST tables).
+
+\subsubsection{Blow-up method}
+In order to improve the theoretical running time of the algorithm, a succinct representation of the DIST tables will be employed. It turns out, that it is much easier to make a succinct encoding of the DIST tables for the related problem Longest Common Subsequence (LCS).
+
+The LCS problem can be seen as the edit distance, but where substitutions are not allowed. The approach taken by \todo{cite} is to use whats known as the blow-up technique, where extra special characters are inserted in the input strings, in order to mimic the edit distance metric. This can be done by transforming every symbol $a \in \Sigma$ in the strings to $a\$$, where $\$ \not\in \Sigma$. \todo{Describe/prove why this works.}
+
+This approach results in the strings becoming a factor of $2$ longer. For a simple $O(n^2)$ implementation of the LCS algorithm, this would result in a factor of $2^2 = 4$ slow down. However, for LCS working on compressed strings, the penalty might not be as severe, since the blown up strings compresses well if the original strings compresses well. This follows from, and also gives an algorithm for performing the blow-up, since every terminal in the SLP can be replaced by a non-terminal producing the original terminal and a new terminal producing the $\$$ symbol. Assuming that the SLP contains $T$  terminals before the blow-up, a total of $T + 1$ new productions are added to the SLP.
+
+\subsubsection{Representation of DIST table}
+Given two strings $A$ and $B$, a succinct representation of the LCS DIST tables should be constructed. By definition of the $\DIST$ tables it is known that \todo{Upper and lower triangle not well-defined for $\DIST$! Fix this.}
+\[
+  \DIST_{A,B}[i, j] = \left\{
+    \begin{array}{ll}
+      lcs(\substr{A}{m - i}{m}, \substr{B}{0}{j})             & \text{if } i < m, j < n \\
+      lcs(A, \substr{B}{i - m}{j})                            & \text{if } i \geq m, j < n \\
+      lcs(\substr{A}{m - i}{m - (j - n)}, B)                  & \text{if } i < m, j \geq n \\
+      lcs(\substr{A}{0}{m - (j - n)}, \substr{B}{i - m}{n})   & \text{if } i \geq m, j \geq n
+    \end{array}
+  \right. ,
+\]
+that is, the $\DIST$ can be summarized as the LCS between all prefix-suffix pairs of the two strings $A$ and $B$. A different way of describing the LCS between these prefix-suffix pairs, is by the following definition.
+\begin{mydef}
+  \label{def:H-table}
+  Let $\str{A}{0}{m}$ and $\str{B}{0}{n}$ be strings, then
+  \[
+    H_{A,B}(i, j) = lcs(A, \substr{?^mB?^m}{i}{j + m})
+  \]
+  for $i,j \in \{ 0, \dots, m + n \}$ where $? \not\in \Sigma$ denotes a wildcard character matching all other symbols.
+\end{mydef}
+The precise correspondence between the $H$-table of \cref{def:H-table} and the $\DIST$ tables, is given by the following lemma.
+\begin{lemma}
+  \label{lemma:dist-H-relation}
+  \[
+  DIST[i, j] = H(i, j) + \left\{
+    \begin{array}{ll}
+      i - m             & \text{if } i < m, j < n \\
+      0                 & \text{if } i \geq m, j < n \\
+      (i - m) + (n - j) & \text{if } i < m, j \geq n \\
+      n - j             & \text{if } i \geq m, j \geq n
+    \end{array}
+  \right.
+  \]
+  \begin{proof}
+    The lemma follows almost directly by the definition of the DIST, $H$-table and $lcs$ function, by splitting the claim up into the four different cases of the statement.
+    \begin{description}
+      \item[\circled{1}] For $i \in \{0, \dots, m\}, j \in \{0, \dots, n\}$,
+       \begin{align*}
+         H(i, j) &= lcs(A, \substr{?^mB?^m}{i}{j + m}) = lcs(A, ?^{m - i}(\substr{B}{0}{j})) \\
+                 &= (m - i) + lcs(\substr{A}{m - i}{m}, \substr{B}{0}{j}) = \DIST[i, j] + m - i
+       \end{align*}
+
+      \item[\circled{2}] For $i \in \{m, \dots, m + n\}, j \in \{0, \dots, n\}$,
+        \[
+          H(i, j) = lcs(A, \substr{?^mB?^m}{i}{j + m}) = lcs(A, \substr{B}{i - m}{j}) = \DIST[i, j]
+        \]
+
+      \item[\circled{3}] For $i \in \{0, \dots, m\}, j \in \{n, \dots, n + m\}$,
+        \begin{align*}
+          H(i, j) &= lcs(A, \substr{?^mB?^m}{i}{j + m}) = lcs(A, ?^{m - i}B?^{j - n}) \\
+                  &= (m - i) + (j - n) + lcs(\substr{A}{m - i}{m - (j - n)}, B) \\
+                  & = (m - i) + (j - n) + \DIST[i, j]
+        \end{align*}
+
+      \item[\circled{4}] For $i \in \{m, \dots, m + n\}, j \in \{n, \dots, n + m\}$,
+        \begin{align*}
+          H(i, j) &= lcs(A, \substr{?^mB?^m}{i}{j + m}) = lcs(A, \substr{B}{i - m}{n}?^{j - n}) \\
+                  &= (j - n) + lcs(\substr{A}{0}{m - (j - n)}, \substr{B}{i - m}{n}) = (j - n) + \DIST[i, j]
+        \end{align*}
+    \end{description}
+  \end{proof}
+\end{lemma}
+An important property of the $H$-table is that it is simple unit-monge \todo{Cite (and prove?)} \todo{Introduce all the matrix terminologies}.
+This means, that $H_{A,B}(i, j) = j - (i - m) - P^{\Sigma}(i, j)$ for some permutation matrix $P$ of size $m + n - 1$. Therefore, the permutation matrix $P$, which can be represented in linear space, encodes the $H$-table, and thereby also the $\DIST$-table.
+
+What remains is to ensure that the merge and apply operations operations on the $\DIST$ table can be computed efficiently using only the permutation matrix representation.
+
+\subsubsection{Merging of $\DIST$ tables}
+The following definition will come in handy:
+\begin{mydef}
+  Let $P_{A'}$ and $P_{A''}$ be permutation matrices describing the $\DIST$ tables for the strings $\str{A'}{0}{m'}$ and $\str{A''}{0}{m''}$ respectively. Then, we define
+  \[
+    IC'_{P_{A'}} = \begin{pmatrix}
+      I^{m'' \times m''} & 0 \\
+      0 & P_{A'}
+    \end{pmatrix}, \quad
+    IC''_{P_{A''}} = \begin{pmatrix}
+      P_{A''} & 0 \\
+      0 & I^{m' \times m'}
+    \end{pmatrix}.
+  \]
+  Notice that both of these new matrices are also permutation matrices, and that they can be efficiently computed by a single scan of the original matrices.
+
+  The following convenient fact that will be useful later, follows directly from the definition of the $\Sigma$-operator:
+  \[
+    {IC'_{P_{A'}}}^{\varsigma} = \begin{pmatrix}
+      (I^{m'' \times m''})^{\varsigma} & 0 \\
+      0 & P_{A'}^{\varsigma}
+    \end{pmatrix}, \quad
+    {IC''_{P_{A''}}}^{\varsigma} = \begin{pmatrix}
+      P_{A''}^{\varsigma} & 0 \\
+      0 & (I^{m' \times m'})^{\varsigma}
+    \end{pmatrix},
+  \]
+  where $\varsigma$ denotes the $\Sigma$ operator, but where the last row and the first column are removed.
+\end{mydef}
+
+\paragraph{Vertical merge}
+Now it will be explained how a vertical merge between $A'$ and $A''$ can be found only giving the succinct representation of the DIST tables $\DIST_{A',B}$ and $\DIST_{A'',B}$. From a straight forward analysis of the LCS graph described by the $\DIST$ tables, it is found that:
+\begin{claim}
+  \label{claim:dist-vertical-merge}
+  \item[\circled{1}]: For $i \leq m'', j \leq n + m''$:
+    \[
+      \DIST_{A'A'',B}[i, j] = \DIST_{A'',B}[i, j]
+    \]
+  \item[\circled{2}]: For $i \geq m'', j \geq n + m''$:
+    \[
+      \DIST_{A'A'',B}[i, j] = \DIST_{A',B}[i - m'', j - m''].
+    \]
+  \item[\circled{3}]: For $i \geq m'', j \leq n + m'$:
+    \[
+      \DIST[i, j] = \max_{k \in \{0, \dots, n\} } \left\{ \DIST_{A',B}[i - m'', k] + \DIST_{A'',B}[m'' + k, j] \right\}
+    \]
+  \begin{proof}
+    Straight forward from the meaning of the $\DIST$ tables in term of the dynamic programming table by the simple LCS algorithm. \todo{Insert illustrative figure?}
+  \end{proof}
+\end{claim}
+%
+For case \circled{3}, the result from \cref{claim:dist-vertical-merge} can be further expanded to find
+\begin{align*}
+  \DIST[i, j] &= \max_{k \in \{0, \dots, n\} } \left\{ \DIST_{A',B}[i - m'', k] + \DIST_{A'',B}[m'' + k, j] \right\} \\
+              &= \max_k \left\{
+                    H_{A',B}(i - m'', k) + \left\{
+                      \begin{array}{ll}
+                        i - m & \text{if } i - m'' < m' \\
+                        0     & \text{o/w}
+                      \end{array} \right.
+                    + H_{A'',B}(m'' + k, j) + \left\{
+                      \begin{array}{ll}
+                        n - j & \text{if } j \geq n \\
+                        0     & \text{o/w}
+                      \end{array} \right.
+                 \right\}
+              &= \max_k \left\{ H_{A',B}(i - m'', k) + H_{A'',B}(m'' + k, j) \right\}
+                  + \begin{cases}
+                      (i - m) + (n - j)   & \text{if } i < m, j \geq n \\
+                      i - m               & \text{if } i < m, j < n \\
+                      n - j               & \text{if } i \geq m, j \geq n \\
+                      0                   & \text{if } i \geq m, j < n
+                    \end{cases}.
+\end{align*}
+Therefore \cref{lemma:dist-H-relation} now implies that $H_{A'A'',B}(i, j) = \max_k \left\{ H_{A',B}(i - m'', k) + H_{A'',B}(m'' + k, j) \right\}$. This expression can further be written out, to find
+\begin{align*}
+  H_{A'A'',B}(i, j) &= \max_k \left\{ H_{A',B}(i - m'', k) + H_{A'',B}(m'' + k, j) \right\} \\
+                    &= \max_k \left\{ k - (i - m'' - m') - P_{A'}^{\Sigma}(i - m'', k) + j - (k + m'' - m'') - P_{A''}^{\Sigma}(k + m'', j) \right\} \\
+                    &= j - (i - m) + \max_k \left\{ -\left( P_{A'}^{\Sigma}(i - m'', k) + P_{A''}^{\Sigma}(k + m'', j) \right)  \right\} \\
+                    &= j - (i - m) - \min_k \left\{ P_{A'}^{\Sigma}(i - m'', k) + P_{A''}^{\Sigma}(k + m'', j) \right\}.
+\end{align*}
+Now \cref{def:H-table} gives that
+\begin{align*}
+  P_{A'A''}^{\Sigma}(i - m'', j) &= \min_k \left\{ P_{A'}^{\Sigma}(i - m'', k) + P_{A''}^{\Sigma}(k + m'', j) \right\} \\
+                                 &= \min_k \{ {IC'_{P_{A'}}}^{\Sigma}(i, k) + {IC''_{P_{A''}}}^{\Sigma}(k, j) \},
+\end{align*}
+which reduces this case to min-multiplying two simple unit-Monge matrices, which can be solved in time $O(n \log{n})$ by \todo{cite}.
+
+For case \circled{1} where $i \leq m'', j \leq n + m''$, the definition of the $\DIST$ table yields
+\begin{align*}
+  \DIST_{A'A'',B}[i, j] &= H_{A'A'',B}(i, j) + \left\{
+    \begin{array}{ll}
+      i - m             & \text{if } j < n \\
+      (i - m) + (n - j) & \text{if } j \geq n
+    \end{array}
+  \right. \\
+  &= (i - m) + j - (i - m) - P_{A'A'',B}^\Sigma(i, j) + \left\{
+    \begin{array}{ll}
+      0             & \text{if } j < n \\
+      (n - j)       & \text{if } j \geq n
+    \end{array}
+  \right. \\
+  &= j - P_{A'A'',B}(i, j) + \left\{
+    \begin{array}{ll}
+      0             & \text{if } j < n \\
+      n - j         & \text{if } j \geq n
+    \end{array}
+  \right.
+\end{align*}
+By a similar analysis of the statement given by \cref{claim:dist-vertical-merge}, it is found that:
+\begin{align*}
+  \DIST_{A'A'',B}[i, j] &= \DIST_{A'',B}[i, j] = H_{A'',B}(i, j) + \left\{
+    \begin{array}{ll}
+      i - m''             & \text{if } j < n \\
+      (i - m'') + (n - j) & \text{if } j \geq n
+    \end{array}
+  \right. \\
+  &= \dots = j - P_{A'',B}^{\Sigma}(i, j) + \left\{
+    \begin{array}{ll}
+      0             & \text{if } j \geq n \\
+      n - j         & \text{if } j < n
+    \end{array}
+  \right.
+\end{align*}
+Subtracting the two expressions yields $P_{A'',B}^{\Sigma}(i, j) = P_{A'A'',B}^{\Sigma}(i, j)$. It can be noticed that this is conforms nicely with the computation carried out in case \circled{1}. Writing from the computation from case \circled{1},
+\begin{align*}
+  \circled{*} &= \min_{k \in \{0,\dots,n+m\}} \{ {IC'_{P_{A'}}}^{\Sigma}(i, k) + {IC''_{P_{A''}}}^{\Sigma}(k, j) \} \\
+  &= \min\left\{
+       \min_{k \in \{0,\dots,i\}}{P_{A'',B}^{\Sigma}(k, j)},
+       \min_{k \in \{i + 1, n + m\}}\left\{ k - i + \left\{ % A row <= m'' in IC' is like: 0 ... 0 1 2 3 4 ...
+        \begin{array}{ll}
+          P_{A'',B}^{\Sigma}(k, j) & \text{if } k \leq n + m'' \\
+          0                        & \text{if } k > n + m''
+        \end{array}
+       \right. \right\}
+     \right\}.
+\end{align*}
+%
+\begin{claim}
+  \label{claim:bounding-sigma}
+  The following bound is valid $\forall k \in \mathbb{N}: i + k \leq n + m''$:
+  \[
+    P_{A''}^{\Sigma}(i, j) \leq k + P_{A''}^{\Sigma}(i + k, j)
+  \]
+  \begin{proof}
+    Follows almost directly from decreasing unit monotonicity of the $\Sigma$-operator used on permutation matrices in both coordinates (only the $i$ coordinate monotonicity used here).
+  \end{proof}
+\end{claim}
+Using \cref{claim:bounding-sigma} at the boundary condition $i + k = n + m''$, it is found that $P_{A''}^{\Sigma}(i, j) \leq n + m'' - i + P_{A''}^{\Sigma}(n + m'', j) = n + m'' - i$. Hence, by first using decreasing unit monotonicity of the $\Sigma$-operator and \cref{claim:bounding-sigma} followed by the claim at the boundary condition, it is found that:
+\[
+  \circled{*} = \min\{ P_{A''}^{\Sigma}(i, j), \min_{k \in \{n+m'', \dots, n+m\}} \{ k - i \} \}
+              = P_{A''}^{\Sigma}(i, j)
+\]
+Hence, the min-product computed in case \circled{3} also gives the correct result for case \circled{1}.
+
+\todo{Describe case \circled{2}.}
+
+\paragraph{Horizontal merge}
+The horizontal merge will be carried out by means of a vertical merge. In order to do this, it should be efficient to compute $\DIST_{B,A}$ from $\DIST_{A,B}$. It turns out that this indeed easy \todo{describe how}.
+
+\subsubsection{Application of $\DIST$ tables}
+When filling out a block in the grid with input $I$, the output is given by
+\begin{align*}
+  O[j] &= \max_i \left\{ I[i] + \DIST[i, j] \right\} \\
+    &= \max_i \left\{ I[i] + H(i, j) + \left\{
+      \begin{array}{ll}
+        i - m             & \text{if } i < m, j < n \\
+        0                 & \text{if } i \geq m, j < n \\
+        (i - m) + (n - j) & \text{if } i < m, j \geq n \\
+        n - j             & \text{if } i \geq m, j \geq n
+      \end{array}
+    \right. \right\} \\
+    &= \max_i\left\{ \left( I[i] + \left\{
+      \begin{array}{ll}
+        i - m     & \text{if } i < m \\
+        0         & \text{o/w.}
+      \end{array}
+    \right. \right) + H(i, j) \right\} + \left\{
+      \begin{array}{ll}
+        n - j     & \text{if } j \geq n \\
+        0         & \text{o/w.}
+      \end{array}
+    \right. .
+\end{align*}
+Hence, the output can be evaluated by max-multiplying the $H$ table with a slight perturbation of the input array, followed by a subtraction for every resulting output. \todo{cite} gave a linear time algorithm for max-multiplying an arbitrary vector with a simple unit-Monge matrix \todo{Describe algorithm?}. This gives a linear time algorithm for applying the $\DIST$ table.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

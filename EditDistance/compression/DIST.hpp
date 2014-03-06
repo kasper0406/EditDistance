@@ -257,16 +257,10 @@ namespace Compression {
           auto multiplied = maxmultiply(input, this);
           
           for (int64_t j = 0; j < x; ++j) {
-            const int64_t i = multiplied[j].pos;
-            
-            if (i < m && j < n) {
-              O.push_back(multiplied[j].value);
-            } else if (i >= m && j < n) {
-              O.push_back(multiplied[j].value);
-            } else if (i < m && j >= n) {
+            if (j >= n) {
               O.push_back(multiplied[j].value + n - j);
-            } else if (i >= m && j >= n) {
-              O.push_back(multiplied[j].value + n - j);
+            } else {
+              O.push_back(multiplied[j].value);
             }
           }
         }
