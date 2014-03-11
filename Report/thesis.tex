@@ -1,6 +1,6 @@
 \documentclass[twoside,11pt,openright]{report}
 
-\usepackage[latin1]{inputenc}
+\usepackage[utf8]{inputenc}
 \usepackage[american]{babel}
 \usepackage{a4}
 \usepackage{latexsym}
@@ -307,19 +307,21 @@ Now it will be explained how a vertical merge between $A'$ and $A''$ can be foun
 %
 For case \circled{3}, the result from \cref{claim:dist-vertical-merge} can be further expanded to find
 \begin{align*}
-  \DIST[i, j] &= \max_{k \in \{0, \dots, n\} } \left\{ \DIST_{A',B}[i - m'', k] + \DIST_{A'',B}[m'' + k, j] \right\} \\
-              &= \max_k \left\{
-                    H_{A',B}(i - m'', k) + \left\{
-                      \begin{array}{ll}
-                        i - m & \text{if } i - m'' < m' \\
-                        0     & \text{o/w}
-                      \end{array} \right.
-                    + H_{A'',B}(m'' + k, j) + \left\{
-                      \begin{array}{ll}
-                        n - j & \text{if } j \geq n \\
-                        0     & \text{o/w}
-                      \end{array} \right.
-                 \right\}
+  \DIST_{A'A'',B}[i, j] &= \max_{k \in \{0, \dots, n\} } \left\{ \DIST_{A',B}[i - m'', k] + \DIST_{A'',B}[m'' + k, j] \right\} \\
+              &=  \begin{aligned}
+                    \max_k \left\{
+                      H_{A',B}(i - m'', k) + \left\{
+                        \begin{array}{ll}
+                          i - m & \text{if } i - m'' < m' \\
+                          0     & \text{o/w}
+                        \end{array} \right. \right. \\
+                      \left. +\,\,H_{A'',B}(m'' + k, j) + \left\{
+                        \begin{array}{ll}
+                          n - j & \text{if } j \geq n \\
+                          0     & \text{o/w}
+                        \end{array} \right.
+                    \right\}
+                 \end{aligned}\\
               &= \max_k \left\{ H_{A',B}(i - m'', k) + H_{A'',B}(m'' + k, j) \right\}
                   + \begin{cases}
                       (i - m) + (n - j)   & \text{if } i < m, j \geq n \\
@@ -378,7 +380,7 @@ By a similar analysis of the statement given by \cref{claim:dist-vertical-merge}
     \end{array}
   \right.
 \end{align*}
-Subtracting the two expressions yields $P_{A'',B}^{\Sigma}(i, j) = P_{A'A'',B}^{\Sigma}(i, j)$. It can be noticed that this is conforms nicely with the computation carried out in case \circled{1}. Writing from the computation from case \circled{1},
+Subtracting the two expressions yields $P_{A'',B}^{\Sigma}(i, j) = P_{A'A'',B}^{\Sigma}(i, j)$. It can be noticed that this conforms nicely with the computation carried out in case \circled{1}. Writing from the computation from case \circled{1},
 \begin{align*}
   \circled{*} &= \min_{k \in \{0,\dots,n+m\}} \{ {IC'_{P_{A'}}}^{\Sigma}(i, k) + {IC''_{P_{A''}}}^{\Sigma}(k, j) \} \\
   &= \min\left\{
@@ -409,10 +411,174 @@ Using \cref{claim:bounding-sigma} at the boundary condition $i + k = n + m''$, i
 \]
 Hence, the min-product computed in case \circled{3} also gives the correct result for case \circled{1}.
 
-\todo{Describe case \circled{2}.}
+Case \circled{2} follows by almost the same arguments as case \circled{1}. First \cref{lemma:dist-H-relation} and the definition of the $H$-table is used on \cref{claim:dist-vertical-merge} yielding
+\begin{align*}
+  \DIST_{A'A'',B}[i, j] &= \DIST_{A',B}[i - m'', j - m''] \\
+    &= H_{A',B}(i - m'', j - m'') +
+      \begin{cases}
+        (i - m'' - m') + (n - (j - m'')) & \text{if } i - m'' < m' \\
+        n - (j - m'')                    & \text{if } i - m'' \geq m'
+      \end{cases} \\
+    &= n + m'' - j + H_{A',B}(i - m'', j - m'') +
+      \begin{cases}
+        i - m   & \text{if } i < m \\
+        0       & \text{o/w}
+      \end{cases} \\
+    &= n - (i - m) - P_{A',B}^{\Sigma}(i - m'', j - m'') +
+      \begin{cases}
+        i - m   & \text{if } i < m \\
+        0       & \text{o/w}
+      \end{cases}
+\end{align*}
+Similarly writing out directly from the definition, it is found that
+\begin{align*}
+  \DIST_{A'A'',B}[i, j] &= H_{A'A'',B}(i, j) +
+    \begin{cases}
+      (i - m) + (n - j) & \text{if } i < m \\
+      n - j             & \text{if } i \geq m
+    \end{cases} \\
+  &= n - (i - m) - P_{A'A'',B}^{\Sigma}(i, j) +
+    \begin{cases}
+      i - m & \text{if } i < m \\
+      0     & \text{if } i \geq m
+    \end{cases}
+\end{align*}
+This implies that $P_{A'A'',B}^{\Sigma}(i, j) = P_{A',B}^{\Sigma}(i - m'', j - m'')$. As will be seen, this is also what is computed by the min-multiplication in case \circled{3}. Writing out the result of the min-multiplication, it is found that
+\begin{align*}
+  \circled{*} &= \min_{k\in \{ 0, \dots, n + m \}} { {IC'_{P_{A'}}}^{\Sigma}(i, k) + {IC''_{P_{A''}}}^{\Sigma}(k, j) } \\
+              &=  \begin{aligned} \min
+                    &\left\{
+                      \min_{k \in \{0, \dots, m''\}} { P_{A'}^{\Sigma}(k, n + m'') + I^{\Sigma}(0, j - (n + m'')) }, \right. \\
+                    &\left.
+                      \min_{k \in \{m', \dots, n + m''\}} {P_{A'}^{\Sigma}(i - m'', k - m'') + I^{\Sigma}(0, j - (n + m''))}, \right. \\
+                    &\left.
+                      \min_{k \in \{ n + m'', \dots, n + m \}} {P_{A'}^{\Sigma}(i - m'', k - m'') + I^{\Sigma}(k - (n + m''), j - (n + m''))}
+                    \right\}
+                  \end{aligned}
+\end{align*}
+Notice that the second case always dominates the first, hence the second case can safely be removed from the minimization. Furthermore, the third case can be spitted to obtain
+\begin{align*}
+  \circled{*} &=  \begin{aligned} \min
+                    &\left\{
+                      n + m'' + j - n - m'',
+                      \min_{k \in \{n + m'', j\}} {j - k + P_{A'}^{\Sigma}(i - m'', k - m'')}, \right.
+                    \left.
+                      \min_{k \in \{j, \dots, n + m\}} {P_{A'}^{\Sigma}(i - m'', k - m'')}
+                    \right\}
+                  \end{aligned} \\
+              &= \begin{aligned} \min
+                    &\left\{
+                      j,\quad
+                      \min_{k \in \{j, \dots, n + m\}} {j - k + P_{A'}^{\Sigma}(i - m'', k - m'')},\quad
+                      P_{A'}^{\Sigma}(i - m'', j - m'')
+                    \right\}
+                  \end{aligned}
+\end{align*}
+\begin{claim}
+  \label{claim:bounding-sigma-col}
+  The following bound is valid $\forall a \in \mathbb{N}: j - a \geq 0$:
+  \[
+    P_{A'}^{\Sigma}(i - m'', j) \leq a + P_{A'}^{\Sigma}(i - m'', j - a)
+  \]
+  \begin{proof}
+    Follows from unit monotonicity of the $\Sigma$-operator on permutation matrices.
+  \end{proof}
+\end{claim}
+By applying \cref{claim:bounding-sigma-col} with $a = j - k$, it is found that
+\[
+  P_{A'}^{\Sigma}(i - m'', j - m'') \leq (j - k) + P_{A'}^{\Sigma}(i - m'', j - m'' - (j - k)) = (j - k) + P_{A'}^{\Sigma}(i - m'', k - m'').
+\]
+This eliminates the middle case of the minimization in $\circled{*}$. Moreover, \cref{claim:bounding-sigma-col} is used to find that
+\[
+  P_{A'}^{\Sigma}(i - m'', j - m'') \leq (j - m'') + P_{A'}^{\Sigma}(i - m'', 0) = j - m'' \leq j,
+\]
+which directly gives that $\circled{*} = P_{A'}^{\Sigma}(i - m'', j - m'')$. Therefore the min-multiplication can also be used to solve case \circled{2}. Therefore two $\DIST$ tables can be merged vertically by a single min-multiplication taking $O(x \log{x})$ time.
 
 \paragraph{Horizontal merge}
-The horizontal merge will be carried out by means of a vertical merge. In order to do this, it should be efficient to compute $\DIST_{B,A}$ from $\DIST_{A,B}$. It turns out that this indeed easy \todo{describe how}.
+The horizontal merge will be carried out by means of a vertical merge. In order to do this, it should be efficient to compute $\DIST_{B,A}$ from $\DIST_{A,B}$. It turns out that this indeed easy. In order to see this, first notice that
+\begin{claim}
+  \label{claim:H_string_switch_relation}
+  For all $i, j \in \{0, \dots, n + m\}$ the following identity holds
+  \[
+    H_{A,B}(i, j) = (m - i) - (n - j) + H_{B,A}(n + m - i, n + m - j)
+  \]
+  \begin{proof}
+    The proof is a case analysis of \cref{def:H-table}.
+    \begin{description}
+      \item[\circled{1}]: For $i \in \{0, \dots, m\}, j \in \{0, \dots, n\}$
+        \begin{align*}
+          H_{A,B}(i, j) &= (m - i) + lcs(\substr{A}{m - i}{m}, \substr{B}{0}{j}) \\
+            &= (m - i) + lcs(\substr{B}{0}{j}, \substr{A}{m - i}{m}) \\
+            &= (m - i) - (n - j) + lcs(B, \substr{m - i}{m} ?^{n - j}) \\
+            &= (m - i) - (n - j) + lcs(B, \substr{?^nA^n}{n + m - i}{m + n + n - j}) \\
+            &= (m - i) - (n - j) + H_{B,A}(n + m - i, n + m - j)
+        \end{align*}
+
+      \item[\circled{2}]: For $i \in \{m, \dots, m+n\}, j \in \{0, \dots, n\}$
+        \begin{align*}
+          H_{A,B}(i, j) &= lcs(A, \substr{B}{i - m}{j}) = lcs(\substr{B}{i - m}{j}, A) \\
+            &= lcs(B, \substr{?^n A ?^n}{n - (i - m)}{n + m + (n - j)}) - (i - m) - (n - j) \\
+            &= (m - i) - (n - j) + H_{B,A}(m + n - i, m + n - j)
+        \end{align*}
+
+      \item[\circled{3}]: For $i \in \{0, \dots, m\}, j \in \{n, \dots, n+m\}$
+        \begin{align*}
+          H_{A,B}(i, j) &= (m - i) - (n - j) + lcs(\substr{A}{m - i}{m - (j - n)}, B) \\
+            &= (m - i) - (n - j) + lcs(B, \substr{?^n A ?^n}{m + n - i}{m + n - (j - n)}) \\
+            &= (m - i) - (n - j) + H_{B,A}(m + n - i, m + n - j)
+        \end{align*}
+
+      \item[\circled{4}]: For $i \in \{m, \dots, m+n\}, j \in \{n, \dots, n+m\}$
+        \begin{align*}
+          H_{A,B}(i, j) &= (j - n+ lcs(\substr{A}{0}{m - (j - n)}, \substr{B}{i - m}{n})) \\
+            &= (j - n) + lcs(\substr{B}{i - m}{n}, \substr{A}{0}{m + n - j}) \\
+            &= (j - n) + lcs(B, \substr{?^n A ?^n}{n - (i - m)}{n + m + n - j}) - (i - m) \\
+            &= (m - i) - (n - j) + H_{B,A}(n + m - i, m + n - j)
+        \end{align*}
+    \end{description}
+  \end{proof}
+\end{claim}
+%
+\begin{claim}
+  \label{claim:sum_top_described_as_sum_bottom}
+  For all $i, j \in \{0, \dots, n + m\}$ it is the case that
+  \[
+    \sum_{\hat{i} \in \{i, \dots, n + m\}\atop \hat{j} \in \{ 0, \dots, j \}} P_{B,A}(m + n - \hat{i}, m + n - \hat{j})
+      = j - i + P_{B,A}^{\Sigma}(m + n - i, m + n - j)
+  \]
+  \begin{proof}
+    Since $P_{B,A}$ is a permutation matrix, it contains exactly one $1$ in every row/column. Therefore the sum over the top-right area, can be found by taking the sum over the entire matrix and subtract the left and bottom part, and then add the double counted overlap \todo{See figure ...}. This gives that
+    \begin{align*}
+      &\sum_{\hat{i} \in \{i, \dots, n + m\}\atop \hat{j} \in \{ 0, \dots, j \}} P_{B,A}(m + n - \hat{i}, m + n - \hat{j}) \\
+      = &(n + m) - (m + n - j) + ((m + n) - (m + n - i) + P_{B,A}^{\Sigma}(m + n - i, m + n - j)) \\
+      = &j - i + P_{B,A}^{\Sigma}(m + n - i, m + n - j).
+    \end{align*}
+  \end{proof}
+\end{claim}
+
+\begin{lemma}
+  \label{lemma:swap_strings}
+  Assuming $P_{A,B}$ is the permutation matrix encoding $\DIST_{A,B}$, the $\DIST$-table $\DIST_{B,A}$ is encoded by the permutation matrix $P_{B,A}$ where,
+  \[
+    P_{B,A}(m + n - i, m + n - j) = P_{A,B}(i, j).
+  \]
+  Notice that the transformed permutation matrix $P_{B,A}$ can easily be computed in linear time by a sweep over its rows.
+  \begin{proof}
+    It is needed to show that the $H$-table corresponding to the permutation matrix $P_{B,A}$ conforms to \cref{claim:H_string_switch_relation}.
+    \begin{align*}
+      H_{A,B}(i, j) &= j - (i - m) - P_{A,B}(i, j) \\
+        &= j - (i - m) - \sum_{\hat{i} \in \{i,\dots,n+m\}\atop \hat{j} \in \{0, \dots, j\}} P_{A,B}(\hat{i}, \hat{j}) \\
+        &= j - (i - m) - \sum_{\hat{i} \in \{i, \dots, n + m\}\atop \hat{j} \in \{ 0, \dots, j \}} P_{B,A}(m + n - \hat{i}, m + n - \hat{j}) \\
+        &\overset{\text{\cref{claim:sum_top_described_as_sum_bottom}}}{=} j - (i - m) - (j - i + P_{B,A}^{\Sigma}(m + n - i, m + n - j)) \\
+        &= m - P_{B,A}^{\Sigma}(m + n - i, m + n - j) \\
+        &= m - \left( (n + m - j) - ((n + m - i) - n) - H_{B,A}(n + m - i, n + m - j) \right) \\
+        &= (m - i) - (n - j) + H_{B,A}(n + m - i, n + m - j)
+    \end{align*}
+    This matches the statement of \cref{claim:H_string_switch_relation}, which completes the proof.
+  \end{proof}
+\end{lemma}
+%
+Follow \cref{lemma:swap_strings} a horizontal merge can be carried out by first swapping the strings, then performing a vertical merge, and then swapping the strings of the merged $\DIST$ table again. Since swapping the strings runs in time $O(x)$, the total time of a horizontal merge is bounded by the time of the vertical merging. Hence, the total time of either of the merge routines is bounded by $O(x\log{x})$.
 
 \subsubsection{Application of $\DIST$ tables}
 When filling out a block in the grid with input $I$, the output is given by
@@ -438,7 +604,7 @@ When filling out a block in the grid with input $I$, the output is given by
       \end{array}
     \right. .
 \end{align*}
-Hence, the output can be evaluated by max-multiplying the $H$ table with a slight perturbation of the input array, followed by a subtraction for every resulting output. \todo{cite} gave a linear time algorithm for max-multiplying an arbitrary vector with a simple unit-Monge matrix \todo{Describe algorithm?}. This gives a linear time algorithm for applying the $\DIST$ table.
+Hence, the output can be evaluated by max-multiplying the $H$ table with a slight perturbation of the input array, followed by an addition for every resulting output. \todo{cite} gave a linear time algorithm for max-multiplying an arbitrary vector with a simple unit-Monge matrix \todo{Describe algorithm?}. This gives a linear time algorithm for applying the $\DIST$ table.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
