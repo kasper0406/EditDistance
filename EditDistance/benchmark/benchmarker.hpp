@@ -67,11 +67,35 @@ namespace Benchmark {
     return ss.str();
   }
   
+  string fib_string(uint64_t n) {
+    vector<string> mem(n + 1, "");
+    
+    function<string(uint64_t)> fib;
+    fib = [&fib,&mem](uint64_t n) -> string {
+      if (!mem[n].empty())
+        return mem[n];
+      
+      if (n == 0) return "a";
+      else if (n == 1) return "ab";
+      else {
+        string res = fib(n - 1) + fib(n - 2);
+        mem[n] = res;
+        return res;
+      }
+    };
+    return fib(n);
+  };
+  
   template <class Implementation>
   void run_benchmark(uint16_t trials, const double xfactor) {
-    string a = generate_string(100000, { 'a' });
-    string b = generate_string(100000, { 'a' });
+    /*
+    string a = generate_string(1000, { 'a' });
+    string b = generate_string(1000, { 'a' });
+     */
     
+    string a = fib_string(23);
+    string b = fib_string(23);
+  
     cout << "#Testing: " << Implementation::name() << endl;
     
     const auto& stages = Implementation::run({ "a", "b", 1 });
