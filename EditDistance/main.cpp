@@ -8,6 +8,8 @@
 #include <array>
 #include <memory>
 
+#include <sdsl/suffix_trees.hpp>
+
 #include "utils/allocator.hpp"
 #ifdef USE_COUNTING_ALLOCATOR
   template <class T> using StlAllocator = GenericStlAllocator<T, CountingAllocator>;
@@ -26,6 +28,7 @@
 
 using namespace std;
 using namespace Compression;
+using namespace sdsl;
 
 int main(int argc, char* argv[])
 {
@@ -35,8 +38,17 @@ int main(int argc, char* argv[])
   cout << "Running in RELEASE MODE!" << endl << endl;
 #endif
   
+  function<string(uint64_t)> fib;
+  fib = [&fib](uint64_t n) -> string {
+    if (n == 0) return "a";
+    else if (n == 1) return "ab";
+    else return fib(n - 1) + fib(n - 2);
+  };
+  
   // TODO: Write test for blow up slp
   Test::TestSuite::run_tests();
+  
+  return 0;
   
   {
     const double xfactor = 2;

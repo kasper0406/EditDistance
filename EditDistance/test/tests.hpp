@@ -30,7 +30,12 @@ namespace Test {
         { "Testing union find", test_union_find },
         { "Testing interval union find", test_interval_union_find },
         
-        { "Verify result of sample using LCS blow up SLP and simple merging DIST.", test_slp_compression_align<LCSBlowUpAligner<SLP::SimpleCompressionSLPBuilder, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>>> },
+        { "Partition generation with LZ SLP.", test_partition_generation<SLP::LZSLPBuilder> },
+        { "Test LZ SLP builder", test_slp_builder<SLP::LZSLPBuilder> },
+        
+        { "Verify result of sample using LCS blow up SLP and merging DIST.", test_slp_compression_align<LCSBlowUpAligner<SLP::SimpleCompressionSLPBuilder, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>>> },
+        
+        { "Verify result of sample using LCS blow up LZ-SLP and merging DIST.", test_slp_compression_align<LCSBlowUpAligner<SLP::LZSLPBuilder, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>>> },
         
         { "Partition generation with trivial SLP.", test_partition_generation<SLP::SimpleSLPBuilder> },
         { "Partition generation with simple compression SLP.", test_partition_generation<SLP::SimpleCompressionSLPBuilder> },
@@ -70,11 +75,25 @@ namespace Test {
     
   private:
     template <class SLPBuilder>
+    static bool test_slp_builder() {
+      for (int64_t length = 10; length < 1000; length = max((int64_t)((double)length * 1.2), length + 1)) {
+        string input = Benchmark::generate_string(length);
+        auto tree = SLP::LZSLPBuilder::build(input);
+        
+        assert(tree->derivedLength() == input.length());
+        if (SLP::StringDeriver::getDerivedString(tree->root()) != input)
+          return false;
+      }
+      
+      return true;
+    }
+    
+    template <class SLPBuilder>
     static bool test_partition_generation() {
-      for (int64_t length = 1; length < 1000; length = max((int64_t)((double)length * 1.2), length + 1)) {
+      for (int64_t length = 10; length < 1000; length = max((int64_t)((double)length * 1.4), length + 1)) {
         string input = Benchmark::generate_string(length, { 'a', 'b', 'c' });
         
-        for (int64_t x = 1; x < input.size(); x = max((int64_t)((double)x * 1.2), x + 1)) {
+        for (int64_t x = 5; x < input.size(); x = max((int64_t)((double)x * 4), x + 1)) {
           unique_ptr<SLP::SLP> slp = SLPBuilder::build(input);
           
           /*
@@ -93,6 +112,9 @@ namespace Test {
           
           // cout << length << "\t" << x << "\t" << partitionString.str() << endl;
           if (partitionString.str() != input) {
+            cout << "Was: " << partitionString.str() << endl;
+            cout << "Should be: " << input << endl;
+            
             return false;
           }
         }

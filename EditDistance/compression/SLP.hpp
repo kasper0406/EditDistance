@@ -11,10 +11,13 @@
 #include <list>
 #include <tuple>
 
-using namespace std;
+#include <sdsl/suffix_trees.hpp>
 
 namespace Compression {
   namespace SLP {
+    using namespace std;
+    using namespace sdsl;
+    
     enum ProductionType { KEY, LEFT, RIGHT };
     
     class Visitor {
@@ -25,7 +28,11 @@ namespace Compression {
     
     class Production {
     public:
-      Production() : associatedString(""), derivedStringLength(0), isAddedInPartition(false), DISTTableIndex(-1), TYPE2_next(nullptr), reclaimCount_(0) { }
+      Production() : Production(0) { }
+      
+      Production(int64_t height) : Production(0, 1) { }
+      
+      Production(int64_t height, int64_t lzlen) : associatedString(""), derivedStringLength(0), isAddedInPartition(false), DISTTableIndex(-1), TYPE2_next(nullptr), lzbuilder_length(lzlen), reclaimCount_(0), height_(height) { }
       
       virtual ~Production() { };
       virtual void accept(Visitor* visitor) = 0;
@@ -48,9 +55,24 @@ namespace Compression {
       
       void incReclaimCount() { reclaimCount_++; }
       bool decReclaimCount() { return --reclaimCount_ <= 0; }
+      int64_t reclaimCount() const { return reclaimCount_; }
+      
+      int64_t height() const {
+        return height_;
+      }
+      
+      void setHeight(int64_t height) {
+        height_ = height;
+      }
+      
+      virtual int8_t balance() const = 0;
+      
+      int64_t lzbuilder_length;
       
     private:
       int64_t reclaimCount_;
+      
+      int64_t height_;
     };
     
     class Terminal : public Production {
@@ -63,6 +85,10 @@ namespace Compression {
       
       char symbol() const { return symbol_; }
       
+      int8_t balance() const {
+        return 0;
+      }
+      
     private:
       char symbol_;
     };
@@ -70,7 +96,11 @@ namespace Compression {
     class NonTerminal : public Production {
     public:
       NonTerminal(int64_t name, Production* left, Production* right)
-      : left_(left), right_(right), name_(name)
+        : NonTerminal(name, left, right, max(left->height(), right->height()) + 1, left->lzbuilder_length + right->lzbuilder_length)
+      { }
+      
+      NonTerminal(int64_t name, Production* left, Production* right, int64_t height, int64_t lzlen)
+        : Production(height, lzlen), left_(left), right_(right), name_(name)
       {
         left_->incReclaimCount();
         right_->incReclaimCount();
@@ -118,6 +148,8 @@ namespace Compression {
         
         production->incReclaimCount();
         left_ = production;
+        
+        update_height();
       }
       
       void setRight(Production* production) {
@@ -126,9 +158,21 @@ namespace Compression {
         
         production->incReclaimCount();
         right_ = production;
+        
+        update_height();
       }
       
       int64_t name() const { return name_; }
+      void setName(int64_t name) { name_ = name; }
+      
+      int8_t balance() const {
+        return left_->height() - right_->height();
+      }
+      
+      void update_height() {
+        this->setHeight(max(left_->height(), right_->height()) + 1);
+        this->lzbuilder_length = left_->lzbuilder_length + right_->lzbuilder_length;
+      }
       
     private:
       Production *left_, *right_;
@@ -142,7 +186,8 @@ namespace Compression {
       { }
       
       ~SLP() {
-        delete root_;
+        if (root_ != nullptr)
+          delete root_;
       }
       
       SLP(SLP&& other) {
@@ -189,10 +234,96 @@ namespace Compression {
         derivedLength_ = length;
       }
       
+      int64_t height() const {
+        return root_->height();
+      }
+      
     private:
       Production* root_;
       int64_t derivedLength_; // Consider computing this value instead
       int64_t production_count_;
+    };
+    
+    class SLPUnfoldedPrinter : public Visitor {
+    public:
+      void visit(Terminal* terminal) {
+        ss_ << "\"n" << ++count_ << "\" [label=\"" << terminal->symbol() << "\",shape=\"plaintext\"];" << endl;
+      }
+      
+      void visit(NonTerminal* nonTerminal) {
+        int64_t node_count = ++count_;
+        ss_ << "\"n" << node_count << "\" [label=\"X" << nonTerminal->name() << "\"];" << endl;
+        ss_ << "\"n" << node_count << "\" -- \"n" << node_count + 1 << "\";" << endl;
+        nonTerminal->left()->accept(this);
+        ss_ << "\"n" << node_count << "\" -- \"n" << count_ + 1 << "\";" << endl;
+        nonTerminal->right()->accept(this);
+      }
+      
+      static string toDot(const SLP& slp) {
+        SLPUnfoldedPrinter printer(slp);
+        
+        printer.ss_ << "graph G {" << endl;
+        printer.ss_ << "graph [ordering=\"out\"];" << endl;
+        printer.slp_.root()->accept(&printer);
+        printer.ss_ << "}" << endl;
+        
+        return printer.ss_.str();
+      }
+      
+    private:
+      SLPUnfoldedPrinter(const SLP& slp) : slp_(slp), count_(0) { }
+      
+      const SLP& slp_;
+      stringstream ss_;
+      int64_t count_;
+    };
+    
+    class SLPFoldedPrinter : public Visitor {
+    public:
+      void visit(Terminal* terminal) {
+        if (seen.count(terminal) > 0) return;
+        seen.insert(terminal);
+        
+        ss_ << "\"n" << terminal << "\" [label=\"" << terminal->symbol() << "\",shape=\"plaintext\"];" << endl;
+      }
+      
+      void visit(NonTerminal* nonTerminal) {
+        if (seen.count(nonTerminal) > 0) return;
+        seen.insert(nonTerminal);
+        
+        ss_ << "\"n" << nonTerminal << "\" [label=\"X" << nonTerminal->name() << ", height=" << nonTerminal->height() << ", rc=" << nonTerminal->reclaimCount() << ", lzlen=" << nonTerminal->lzbuilder_length << "\"];" << endl;
+        ss_ << "\"n" << nonTerminal << "\" -- \"n" << nonTerminal->left() << "\";" << endl;
+        nonTerminal->left()->accept(this);
+        ss_ << "\"n" << nonTerminal << "\" -- \"n" << nonTerminal->right() << "\";" << endl;
+        nonTerminal->right()->accept(this);
+      }
+      
+      static string toDot(const SLP& slp) {
+        SLPFoldedPrinter printer;
+        
+        printer.ss_ << "graph G {" << endl;
+        printer.ss_ << "graph [ordering=\"out\"];" << endl;
+        slp.root()->accept(&printer);
+        printer.ss_ << "}" << endl;
+        
+        return printer.ss_.str();
+      }
+      
+      static string toDot(Production* root) {
+        SLPFoldedPrinter printer;
+        
+        printer.ss_ << "graph G {" << endl;
+        root->accept(&printer);
+        printer.ss_ << "}" << endl;
+        
+        return printer.ss_.str();
+      }
+      
+    private:
+      SLPFoldedPrinter() { }
+      
+      stringstream ss_;
+      unordered_set<Production*> seen;
     };
     
     class SimpleSLPBuilder {
@@ -273,6 +404,386 @@ namespace Compression {
       unordered_map<string, Production*> compressed;
     };
     
+    class StringDeriver : private Visitor {
+    public:
+      static string getDerivedString(Production* production) {
+        StringDeriver deriver;
+        production->accept(&deriver);
+        return deriver.ss.str();
+      }
+      
+    private:
+      void visit(Terminal* t) {
+        ss << t->symbol();
+      }
+      
+      void visit(NonTerminal* nt) {
+        nt->left()->accept(this);
+        nt->right()->accept(this);
+      }
+      
+      stringstream ss;
+    };
+    
+    class LZSLPBuilder {
+    public:
+      static unique_ptr<SLP> build(string input) {
+        Production* root = nullptr;
+        
+        // cout << "Factors:" << endl;
+        
+        int64_t processed = 0;
+        auto factors = lz_factorize(input);
+        for (auto factor : factors) {
+          // cout << input.substr(get<0>(factor), get<1>(factor) - get<0>(factor) + 1) << endl;
+          
+          if (get<0>(factor) == processed) {
+            assert(get<1>(factor) == get<0>(factor));
+            Terminal* term = new Terminal(input[get<0>(factor)]);
+            if (root != nullptr) {
+              root = concat(root, term);
+            } else {
+              root = term;
+            }
+          } else {
+            auto productions = NodeHarvester::productions(root, get<0>(factor), get<1>(factor));
+            root = concat(root, concat(productions));
+          }
+          
+          processed += get<1>(factor) - get<0>(factor) + 1;
+        }
+        
+        int64_t num_productions = CounterAndNamer::run(root);
+        assert(input == StringDeriver::getDerivedString(root));
+        
+        return unique_ptr<SLP>(new SLP(root, input.size(), num_productions));
+      }
+      
+      static string name() {
+        return "LZSLPBuilder";
+      }
+      
+    private:
+      static NonTerminal* concat(Production* A, Production* B) {
+//        cout << "A height: " << A->height() << endl;
+//        cout << "B height: " << B->height() << endl;
+        
+        Production *root, *low_tree;
+        bool A_is_root = A->height() >= B->height();
+        if (A_is_root) {
+          root = A;
+          low_tree = B;
+        } else {
+          root = B;
+          low_tree = A;
+        }
+        
+        vector<NonTerminal*> parents;
+        Production *v = root;
+        while (v->height() > low_tree->height() + 1) {
+          auto v_nonterm = static_cast<NonTerminal*>(v);
+          
+          assert(v->reclaimCount() >= 1 || root == v);
+          if (root != v) {
+            assert(!parents.empty());
+            
+            // Other guys are pointing to this ancestor. We must not alter the subtree!
+            // Solution: Create a new node.
+            NonTerminal* v_ = new NonTerminal(0, v_nonterm->left(), v_nonterm->right());
+            if (A_is_root) {
+              parents.back()->setRight(v_);
+            } else {
+              parents.back()->setLeft(v_);
+            }
+            
+            v = v_nonterm = v_;
+          } else {
+            root = v = v_nonterm = new NonTerminal(0, v_nonterm->left(), v_nonterm->right());
+          }
+          
+          // Static cast is safe, since terminals will alway have height 0.
+          parents.push_back(v_nonterm);
+          if (A_is_root) {
+            v = v_nonterm->right();
+          } else {
+            v = v_nonterm->left();
+          }
+        }
+        
+        if (!parents.empty()) {
+          NonTerminal* v_;
+          if (A_is_root) {
+            v_ = new NonTerminal(0, v, low_tree);
+            parents.back()->setRight(v_);
+          } else {
+            v_ = new NonTerminal(0, low_tree, v);
+            parents.back()->setLeft(v_);
+          }
+          assert(v_->balance() >= -1 && v_->balance() <= 1);
+          
+          // Update the height of parent path and do rotations if required
+          for (auto iter = parents.rbegin(); iter != parents.rend(); ++iter) {
+            auto ancestor = *iter;
+            ancestor->update_height();
+            
+            // Check if ancestor is balanced.
+//            cout << "Balance: " << int64_t(ancestor->balance()) << endl;
+            assert(ancestor->balance() >= -2 && ancestor->balance() <= 2);
+            if (ancestor->balance() == -2) {
+              assert(A_is_root);
+//              cout << "Rebalance required: Right too high." << endl;
+              
+              auto A = *iter;
+              auto B = A->left();
+              auto D = static_cast<NonTerminal*>(A->right()); // Cast alright, since height >= 2
+              auto C = D->left();
+              auto E = D->right();
+              
+              NonTerminal* A_;
+              if (E->height() > C->height()) {
+                // Rotation 1
+                auto D_ = new NonTerminal(0, B, C);
+                A_ = new NonTerminal(0, D_, E);
+              } else {
+                // Rotation 2
+                auto F = static_cast<NonTerminal*>(C)->left();
+                auto G = static_cast<NonTerminal*>(C)->right();
+                
+                auto C_ = new NonTerminal(0, B, F);
+                auto D_ = new NonTerminal(0, G, E);
+                A_ = new NonTerminal(0, C_, D_);
+              }
+              
+              auto next_ancestor_iter = next(iter);
+              if (next_ancestor_iter == parents.rend()) {
+                return A_;
+              } else {
+                auto next_ancestor = *next_ancestor_iter;
+                assert(next_ancestor->right() == A);
+                next_ancestor->setRight(A_);
+              }
+            } else if (ancestor->balance() == 2) {
+              assert(!A_is_root);
+//              cout << "Rebalance required: Left too high." << endl;
+              
+              auto A = *iter;
+              auto B = static_cast<NonTerminal*>(A->left()); // Cast alright, due to balance
+              auto E = A->right();
+              auto C = B->left();
+              auto D = B->right();
+              
+              NonTerminal* A_;
+              if (C->height() > D->height()) {
+                // Rotation 1
+                auto B_ = new NonTerminal(0, D, E);
+                A_ = new NonTerminal(0, C, B_);
+              } else {
+                // Rotation 2
+                auto F = static_cast<NonTerminal*>(D)->left();
+                auto G = static_cast<NonTerminal*>(D)->right();
+                
+                auto B_ = new NonTerminal(0, C, F);
+                auto D_ = new NonTerminal(0, G, E);
+                A_ = new NonTerminal(0, B_, D_);
+              }
+              
+              auto next_ancestor_iter = next(iter);
+              if (next_ancestor_iter == parents.rend()) {
+                return A_;
+              } else {
+                auto next_ancestor = *next_ancestor_iter;
+                assert(next_ancestor->left() == A);
+                next_ancestor->setLeft(A_);
+              }
+            }
+          }
+          
+          return static_cast<NonTerminal*>(root);
+        } else {
+          root = new NonTerminal(0, A, B);
+//          cout << "Root balance: " << int64_t(root->balance()) << endl;
+          assert(root->balance() >= -1 && root->balance() <= 1);
+          return static_cast<NonTerminal*>(root);
+        }
+        
+        throw runtime_error("Should not happen.");
+      }
+      
+      static Production* concat(vector<Production*> productions) {
+        if (productions.size() == 0) return nullptr;
+        if (productions.size() == 1) return productions.front();
+        
+        Production* concatted = productions.front();
+        for (auto iter = next(productions.begin()); iter != productions.end(); ++iter) {
+          concatted = concat(concatted, *iter);
+        }
+        
+        return concatted;
+      }
+      
+      static vector<pair<uint64_t,uint64_t>> lz_factorize(string str) {
+        cst_sct3<> cst;
+        construct_im(cst, str.c_str(), 1);
+        vector<pair<uint64_t,uint64_t>> factors;
+        
+        vector<uint64_t> first_time_seen(cst.nodes(), numeric_limits<uint64_t>::max());
+        for (auto iter = cst.begin(); iter != cst.end(); ++iter) {
+          auto current_id = cst.id(*iter);
+          
+          // cout << current_id << endl;
+          
+          if (cst.is_leaf(*iter)) {
+            first_time_seen[current_id] = cst.sn(*iter); // str.length() - cst.depth(*iter);
+          }
+          
+          if (cst.root() != *iter && first_time_seen[current_id] != numeric_limits<uint64_t>::max()) {
+            auto parent_id = cst.id(cst.parent(*iter));
+            first_time_seen[parent_id] = min(first_time_seen[parent_id], first_time_seen[current_id]);
+          }
+        }
+        
+        for (uint64_t factor_start = 0; factor_start < str.length();) {
+          auto current_node = cst.root();
+          auto previous_node = current_node;
+          
+          uint64_t current_edge_length = 0;
+          uint64_t current_edge_matched = 0;
+          
+          for (uint64_t factor_len = 1; ; ++factor_len) {
+            auto report_and_reset = [&] () {
+              const auto pos = first_time_seen[cst.id(previous_node)];
+              
+              if (factor_len == 1) {
+                // factors.push_back({ pos, pos });
+                factors.push_back({ factor_start, factor_start });
+                factor_start++;
+              } else {
+                factors.push_back({ pos, factor_len - 2 + pos });
+                // factors.push_back({ factor_start, factor_start + factor_len - 2 });
+                factor_start += factor_len - 1;
+              }
+            };
+            
+            /*
+            cout << "Looking for: ";
+            for (uint64_t i = 0; i < factor_len; ++i)
+              cout << str[factor_start + i];
+            cout << endl;
+             */
+            
+            if (current_edge_matched >= current_edge_length) {
+              previous_node = current_node;
+              current_node = cst.child(current_node, str[factor_start + factor_len - 1]);
+              current_edge_length = cst.depth(current_node) - cst.depth(previous_node);
+              current_edge_matched = 0;
+              
+              if (current_node == cst.root()) {
+                report_and_reset();
+                break;
+              }
+            }
+            
+            // cout << "Extract: " << extract(cst, current_node) << endl;
+            // cout << "Seen first at: " << first_time_seen[cst.id(current_node)] << endl;
+            
+            bool matches = current_node != cst.root() &&
+                           cst.edge(current_node, cst.depth(current_node) - current_edge_length + current_edge_matched + 1) == str[factor_start + factor_len - 1] &&
+                           first_time_seen[cst.id(current_node)] + factor_len - 1 < factor_start;
+            if (!matches) {
+              report_and_reset();
+              break;
+            }
+            
+            previous_node = current_node;
+            current_edge_matched++;
+          }
+        }
+        
+        return factors;
+      }
+      
+      class NodeHarvester : private Visitor {
+      public:
+        static vector<Production*> productions(Production* root, int64_t start, int64_t end) {
+          NodeHarvester harvester(start, end);
+          root->accept(&harvester);
+          
+          return harvester.productions_;
+        }
+        
+      private:
+        NodeHarvester(int64_t start, int64_t end) : start_(start), end_(end) { }
+        
+        void visit(Terminal* terminal) {
+          assert(start_ == end_);
+          productions_.push_back(terminal);
+        }
+        
+        void visit(NonTerminal* nonTerminal) {
+          assert(start_ <= end_);
+          
+          if (nonTerminal->lzbuilder_length == end_ - start_ + 1) {
+            productions_.push_back(nonTerminal);
+            return;
+          }
+          
+          int64_t left_len = nonTerminal->left()->lzbuilder_length;
+          if (left_len > start_) {
+            // Call recursively on left
+            int64_t tmp_end = end_;
+            end_ = min(end_, left_len - 1);
+            nonTerminal->left()->accept(this);
+            end_ = tmp_end;
+          }
+          if (left_len <= end_) {
+            // Call recursively on right
+            end_ -= left_len;
+            start_ = max((int64_t)0, start_ - left_len);
+            nonTerminal->right()->accept(this);
+            end_ += left_len;
+            start_ += left_len;
+          }
+        }
+        
+        vector<Production*> productions_;
+        int64_t start_, end_;
+      };
+      
+      class CounterAndNamer : private Visitor {
+      public:
+        // Returns: #productions
+        static int64_t run(Production* root) {
+          CounterAndNamer can;
+          root->accept(&can);
+          return can.counter;
+        }
+        
+      private:
+        CounterAndNamer() : counter(0) { }
+        
+        void visit(Terminal* terminal) {
+          if (seen.count(terminal) > 0) return;
+          seen.insert(terminal);
+          
+          ++counter;
+        }
+        
+        void visit(NonTerminal* nonTerminal) {
+          if (seen.count(nonTerminal) > 0) return;
+          seen.insert(nonTerminal);
+          
+          ++counter;
+          nonTerminal->setName(counter);
+          
+          nonTerminal->left()->accept(this);
+          nonTerminal->right()->accept(this);
+        }
+        
+        unordered_set<Production*> seen;
+        int64_t counter;
+      };
+    };
+    
     /**
      * Blow up the string generated by the SLP by replacing all terminals with non-terminals producting original terminal and a '$' symbol.
      * This is used by the LCS EditDistance calculator.
@@ -332,77 +843,6 @@ namespace Compression {
       NonTerminal* cur_parent_;
       Terminal* special_symbol_;
       SLP* slp_;
-    };
-    
-    class SLPUnfoldedPrinter : public Visitor {
-    public:
-      void visit(Terminal* terminal) {
-        ss_ << "\"n" << ++count_ << "\" [label=\"" << terminal->symbol() << "\",shape=\"plaintext\"];" << endl;
-      }
-      
-      void visit(NonTerminal* nonTerminal) {
-        int64_t node_count = ++count_;
-        ss_ << "\"n" << node_count << "\" [label=\"X" << nonTerminal->name() << "\"];" << endl;
-        ss_ << "\"n" << node_count << "\" -- \"n" << node_count + 1 << "\";" << endl;
-        nonTerminal->left()->accept(this);
-        ss_ << "\"n" << node_count << "\" -- \"n" << count_ + 1 << "\";" << endl;
-        nonTerminal->right()->accept(this);
-      }
-      
-      static string toDot(const SLP& slp) {
-        SLPUnfoldedPrinter printer(slp);
-        
-        printer.ss_ << "graph G {" << endl;
-        printer.slp_.root()->accept(&printer);
-        printer.ss_ << "}" << endl;
-        
-        return printer.ss_.str();
-      }
-      
-    private:
-      SLPUnfoldedPrinter(const SLP& slp) : slp_(slp), count_(0) { }
-      
-      const SLP& slp_;
-      stringstream ss_;
-      int64_t count_;
-    };
-    
-    class SLPFoldedPrinter : public Visitor {
-    public:
-      void visit(Terminal* terminal) {
-        if (seen.count(terminal) > 0) return;
-        seen.insert(terminal);
-        
-        ss_ << "\"n" << terminal << "\" [label=\"" << terminal->symbol() << "\",shape=\"plaintext\"];" << endl;
-      }
-      
-      void visit(NonTerminal* nonTerminal) {
-        if (seen.count(nonTerminal) > 0) return;
-        seen.insert(nonTerminal);
-        
-        ss_ << "\"n" << nonTerminal << "\" [label=\"X" << nonTerminal->name() << "\"];" << endl;
-        ss_ << "\"n" << nonTerminal << "\" -- \"n" << nonTerminal->left() << "\";" << endl;
-        nonTerminal->left()->accept(this);
-        ss_ << "\"n" << nonTerminal << "\" -- \"n" << nonTerminal->right() << "\";" << endl;
-        nonTerminal->right()->accept(this);
-      }
-      
-      static string toDot(const SLP& slp) {
-        SLPFoldedPrinter printer(slp);
-        
-        printer.ss_ << "graph G {" << endl;
-        printer.slp_.root()->accept(&printer);
-        printer.ss_ << "}" << endl;
-        
-        return printer.ss_.str();
-      }
-      
-    private:
-      SLPFoldedPrinter(const SLP& slp) : slp_(slp) { }
-      
-      const SLP& slp_;
-      stringstream ss_;
-      unordered_set<Production*> seen;
     };
     
     class Partitioner : public Visitor {

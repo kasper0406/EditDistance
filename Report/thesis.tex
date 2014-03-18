@@ -509,8 +509,8 @@ The horizontal merge will be carried out by means of a vertical merge. In order 
         \begin{align*}
           H_{A,B}(i, j) &= (m - i) + lcs(\substr{A}{m - i}{m}, \substr{B}{0}{j}) \\
             &= (m - i) + lcs(\substr{B}{0}{j}, \substr{A}{m - i}{m}) \\
-            &= (m - i) - (n - j) + lcs(B, \substr{m - i}{m} ?^{n - j}) \\
-            &= (m - i) - (n - j) + lcs(B, \substr{?^nA^n}{n + m - i}{m + n + n - j}) \\
+            &= (m - i) - (n - j) + lcs(B, \substr{A}{m - i}{m} ?^{n - j}) \\
+            &= (m - i) - (n - j) + lcs(B, \substr{?^nA?^n}{n + m - i}{m + n + n - j}) \\
             &= (m - i) - (n - j) + H_{B,A}(n + m - i, n + m - j)
         \end{align*}
 

@@ -1,6 +1,9 @@
 cmake_minimum_required (VERSION 2.6)
 project (EditDistance)
 
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/vendor/include/")
+link_directories("${CMAKE_CURRENT_SOURCE_DIR}/vendor/lib/")
+
 string(COMPARE EQUAL ${CMAKE_SYSTEM_NAME} "Linux" LINUX)
 
 IF(APPLE)
@@ -35,3 +38,5 @@ source_group("Compression" FILES ${COMPRESSION_SRCS})
 source_group("Utils"       FILES ${UTILS_SRCS})
 source_group("Benchmark"   FILES ${BENCHMARK_SRCS})
 source_group("Tests"       FILES ${TEST_SRCS})
+
+target_link_libraries(EditDistance sdsl divsufsort divsufsort64)
