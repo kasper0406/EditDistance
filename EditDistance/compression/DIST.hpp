@@ -220,6 +220,22 @@ namespace Compression {
         return inverse_transform(sigmaed, rows());
       }
       
+      Matrix<int64_t> unfoldSigma() const {
+        Matrix<int64_t> sigmaed(size() + 1, size() + 1, 0);
+        for (int64_t i_ = 0; i_ <= size(); ++i_) {
+          for (int64_t j_ = 0; j_ <= size(); ++j_) {
+            
+            int64_t sum = 0;
+            for (int64_t i = i_; i < size(); ++i) {
+              sum += (row_map_[i] < j_);
+            }
+            
+            sigmaed(i_, j_) = sum;
+          }
+        }
+        return sigmaed;
+      }
+      
       Matrix<int64_t> unfold() const {
         Matrix<int64_t> unfolded(size(), size(), 0);
         for (int64_t i = 0; i < size(); ++i)
@@ -375,22 +391,25 @@ namespace Compression {
             assert(t == locate(k));
             
             if (t != candidates.end()) {
-              list<MaxInfo>::iterator t_next = t; --t_next;
-              
               candidates.back().value--;
-              if (t_next != candidates.end()) {
-                t_next->value++;
-                if (t_next->value == 0) {
-                  // Union intervals
-                  iterators[t->pos] = candidates.end();
-                  interval.Union(t->pos, t->pos + 1);
-                  
-                  if (t == --candidates.end()) {
-                    (++candidates.rbegin())->value += candidates.back().value;
-                    candidates.pop_back();
-                  } else {
-                    t_next->value = t->value;
-                    candidates.erase(t);
+              
+              if (t != candidates.begin()) {
+                list<MaxInfo>::iterator t_next = t; --t_next;
+                
+                if (t_next != candidates.end()) {
+                  t_next->value++;
+                  if (t_next->value == 0) {
+                    // Union intervals
+                    iterators[t->pos] = candidates.end();
+                    interval.Union(t->pos, t->pos + 1);
+                    
+                    if (t == --candidates.end()) {
+                      (++candidates.rbegin())->value += candidates.back().value;
+                      candidates.pop_back();
+                    } else {
+                      t_next->value = t->value;
+                      candidates.erase(t);
+                    }
                   }
                 }
               }
@@ -1167,7 +1186,7 @@ namespace Compression {
       static unique_ptr<PermutationDISTTable> minmultiply(const PermutationDISTTable* A,
                                                           const PermutationDISTTable* B)
       {
-        constexpr int8_t base_case_switch_size = 1;
+        constexpr int64_t base_case_switch_size = 20;
         assert(A->size() == B->size());
         
         vector<int64_t> id;
@@ -1178,7 +1197,56 @@ namespace Compression {
                                vector<int64_t> B_row_indices, vector<int64_t> B_col_indices)
                     -> unique_ptr<PermutationDISTTable>
         {
-          return unique_ptr<PermutationDISTTable>(new PermutationDISTTable(0, 0, { 0 }));
+          // auto time1 = chrono::high_resolution_clock::now();
+          
+          assert(A_row_indices.size() == B_row_indices.size());
+          const uint64_t n = A_row_indices.size();
+          
+          vector<int64_t> A_row_specification; A_row_specification.reserve(n);
+          for (auto row : A_row_indices) {
+            for (int64_t col = 0; col < n; ++col) {
+              if (A_col_indices[col] == A->getCol(row)) {
+                A_row_specification.push_back(col);
+                break;
+              }
+            }
+          }
+          assert(A_row_specification.size() == n);
+          PermutationDISTTable A_unified(0, 0, A_row_specification);
+          
+          vector<int64_t> B_row_specification; B_row_specification.reserve(n);
+          for (auto row : B_row_indices) {
+            for (int64_t col = 0; col < n; ++col) {
+              if (B_col_indices[col] == B->getCol(row)) {
+                B_row_specification.push_back(col);
+                break;
+              }
+            }
+          }
+          assert(B_row_specification.size() == n);
+          PermutationDISTTable B_unified(0, 0, B_row_specification);
+          
+          auto multiplied = ::MaxMultiply::Simple<Matrix<int64_t>>::minmultiply(A_unified.unfoldSigma(), B_unified.unfoldSigma(),
+                                                                                0, n + 1, 0, n + 1, 0, n + 1, 0, n + 1);
+          
+          // Fold the multiplied result
+          vector<int64_t> result_row_spec; result_row_spec.reserve(n);
+          // Matrix<int64_t> result(multiplied.getRows() - 1, multiplied.getColumns() - 1, 0);
+          for (int64_t i = 0; i < multiplied.getRows() - 1; ++i) {
+            for (int64_t j = 0; j < multiplied.getColumns() - 1; ++j) {
+              if (multiplied(i + 1, j) - multiplied(i, j) - multiplied(i + 1, j + 1) + multiplied(i, j + 1) == 1) {
+                result_row_spec.push_back(j);
+                break;
+              }
+            }
+          }
+          assert(result_row_spec.size() == n);
+          
+          // auto time2 = chrono::high_resolution_clock::now();
+          
+          // cout << n << "\t" << chrono::duration_cast<chrono::nanoseconds>(time2 - time1).count() << endl;
+          
+          return unique_ptr<PermutationDISTTable>(new PermutationDISTTable(0, 0, result_row_spec));
         };
         
         function<unique_ptr<PermutationDISTTable>(vector<int64_t>,vector<int64_t>,vector<int64_t>,vector<int64_t>)> compute;
@@ -1195,6 +1263,8 @@ namespace Compression {
           if (n <= base_case_switch_size) {
             return move(base_case(A_row_indices, A_col_indices, B_row_indices, B_col_indices));
           } else {
+            // auto time1 = chrono::high_resolution_clock::now();
+            
             // Generate subproblems and remap indices
             const int64_t lo_subproblem_size = ceil_div<int64_t>(n, 2);
             const int64_t hi_subproblem_size = n - lo_subproblem_size;
@@ -1243,9 +1313,13 @@ namespace Compression {
             }
             assert(B_col_lo_indices.size() == lo_subproblem_size && B_col_hi_indices.size() == hi_subproblem_size);
             
+            // auto time2 = chrono::high_resolution_clock::now();
+            
             // Recursively solve subproblems
             const auto P_C_lo = compute(A_row_lo_indices, A_col_lo_indices, B_row_lo_indices, B_col_lo_indices);
             const auto P_C_hi = compute(A_row_hi_indices, A_col_hi_indices, B_row_hi_indices, B_col_hi_indices);
+            
+            // auto time3 = chrono::high_resolution_clock::now();
             
             // Invert index remap
             auto query_row_P_C_hi = [&](int64_t i) -> int64_t {
@@ -1444,6 +1518,8 @@ namespace Compression {
             }
 #endif
             
+            // auto time4 = chrono::high_resolution_clock::now();
+            
             // Combine solution
             vector<int64_t> combined_row_description(n, -1);
             
@@ -1482,6 +1558,15 @@ namespace Compression {
               }
             }
 #endif
+            
+            // auto time5 = chrono::high_resolution_clock::now();
+            
+            /*
+            cout << "input\t" << n << "\t" << chrono::duration_cast<chrono::nanoseconds>(time2 - time1).count() << endl;
+            cout << "traverse\t" << n << "\t" << chrono::duration_cast<chrono::nanoseconds>(time4 - time3).count() << endl;
+            cout << "combine\t" << n << "\t" << chrono::duration_cast<chrono::nanoseconds>(time5 - time4).count() << endl;
+            cout << "total\t" << n << "\t" << chrono::duration_cast<chrono::nanoseconds>(time5 - time1).count() << endl;
+             */
             
             return unique_ptr<PermutationDISTTable>(new PermutationDISTTable(0, 0, combined_row_description));
           }

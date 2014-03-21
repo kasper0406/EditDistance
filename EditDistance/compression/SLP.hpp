@@ -238,6 +238,10 @@ namespace Compression {
         return root_->height();
       }
       
+      double compressionFactor() const {
+        return double(productions()) / derivedLength();
+      }
+      
     private:
       Production* root_;
       int64_t derivedLength_; // Consider computing this value instead

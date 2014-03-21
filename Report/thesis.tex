@@ -80,9 +80,8 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%\chapter{Introduction}
-%\label{ch:intro}
-%\todo{\dots}
+\chapter{Setting the mood}
+\label{ch:intro}
 
 \section{Introduction}
 Focus on computation of edit distance. That is, insert / delete of cost 1, match of cost 0. This can be generalized to different classes of scoring functions, which in some cases results in more complicated algorithms with worse asymptotic running time and space consumption, even if the cost function is assumed to be computable in constant time.
@@ -143,6 +142,19 @@ The algorithm is a bit like the 4 Russion Algorithm, however the blocking of the
   \item Blocks from the dynamic programming table (called DIST tables) are precomputed for all the selected productions. These DIST tables naively takes up can be represented using $O(x^2)$ space to represent, but using a succinct representation given in \todo{cite}, it is possibly to reduce the space consumption to $O(x)$ trading for a query-time of $\log^2 x$ time. This increased query time is also the reason the algorithm gains an extra $\log{x}$ factor, which is conjectured to be unnecessary \todo{cite}. Using the succinct representation and a the way of merging succinct DISTs from \todo{cite}, this step can be computed in time $O(n^2x\log{x})$.
   \item The dynamical programming table is filled up by using the generated partition of the string and then applying the DIST tables. This step takes time $O(\left(\frac{N}{x}\right)^2 \cdot AP(x))$ where $AP(x)$ is the time to apply a DIST table. Using the succinct representation, \todo{cite} shows how to make $AP(x) = x\log{x}$, leading to a total running time of $O(\frac{N}{x} \log{x})$.
 \end{itemize}
+
+\chapter{Compressing input strings}
+\label{ch:compressing-strings}
+This chapter how well strings can be compressed in to a SLP.
+
+\section{Algorithm / techniques}
+
+\section{Benchmarks}
+
+\chapter{SLP edit-distance algorithm}
+\label{ch:algorithm}
+
+\section{Algorithm}
 
 \subsubsection{Selection of productions}
 Each of the SLPs are blocked individually using the same algorithm.
@@ -605,6 +617,10 @@ When filling out a block in the grid with input $I$, the output is given by
     \right. .
 \end{align*}
 Hence, the output can be evaluated by max-multiplying the $H$ table with a slight perturbation of the input array, followed by an addition for every resulting output. \todo{cite} gave a linear time algorithm for max-multiplying an arbitrary vector with a simple unit-Monge matrix \todo{Describe algorithm?}. This gives a linear time algorithm for applying the $\DIST$ table.
+
+
+\section{Benchmarks}
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

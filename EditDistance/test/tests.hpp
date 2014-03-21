@@ -30,9 +30,6 @@ namespace Test {
         { "Testing union find", test_union_find },
         { "Testing interval union find", test_interval_union_find },
         
-        { "Partition generation with LZ SLP.", test_partition_generation<SLP::LZSLPBuilder> },
-        { "Test LZ SLP builder", test_slp_builder<SLP::LZSLPBuilder> },
-        
         { "Verify result of sample using LCS blow up SLP and merging DIST.", test_slp_compression_align<LCSBlowUpAligner<SLP::SimpleCompressionSLPBuilder, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>>> },
         
         { "Verify result of sample using LCS blow up LZ-SLP and merging DIST.", test_slp_compression_align<LCSBlowUpAligner<SLP::LZSLPBuilder, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>>> },
@@ -50,7 +47,10 @@ namespace Test {
         { "Test construction of DIST tables using simple merging LCS DIST", test_dist_repository<DIST::LCSDISTRepository<DIST::SimpleLCSDISTTable>, DIST::MergingDISTRepository<DIST::SimpleLCSDISTTable, DIST::SimpleLCSDISTMerger>> },
         { "Verify result of sample using LCS blow up SLP and simple DIST.", test_slp_compression_align<LCSBlowUpAligner<SLP::SimpleCompressionSLPBuilder, DIST::LCSDISTRepository<DIST::SimpleLCSDISTTable>>> },        
         { "Verify result of sample using LCS blow up SLP and simple merging DIST.", test_slp_compression_align<LCSBlowUpAligner<SLP::SimpleCompressionSLPBuilder, DIST::MergingDISTRepository<DIST::SimpleLCSDISTTable, DIST::SimpleLCSDISTMerger>>> },
-        { "Test merging permutation LCS DIST builder.", test_dist_repository<DIST::LCSDISTRepository<DIST::SimpleLCSDISTTable>, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>> }
+        { "Test merging permutation LCS DIST builder.", test_dist_repository<DIST::LCSDISTRepository<DIST::SimpleLCSDISTTable>, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>> },
+        
+        { "Partition generation with LZ SLP.", test_partition_generation<SLP::LZSLPBuilder> },
+        { "Test LZ SLP builder", test_slp_builder<SLP::LZSLPBuilder> }
       };
       
       bool success = true;

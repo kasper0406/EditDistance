@@ -76,6 +76,10 @@ namespace Simple {
       return "Simple Edit-Distance";
     }
     
+    static string short_name() {
+      return "simple";
+    }
+    
   private:
     EditDistance() { }
     
@@ -117,6 +121,10 @@ namespace Simple {
     
     static string name() {
       return "Simple LCS";
+    }
+    
+    static string short_name() {
+      return "simple_lcs";
     }
     
   private:
