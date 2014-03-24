@@ -1,5 +1,7 @@
 // #define NDEBUG
 
+#undef NDEBUG
+
 #include <iostream>
 #include <vector>
 #include <memory>

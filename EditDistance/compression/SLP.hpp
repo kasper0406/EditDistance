@@ -866,6 +866,7 @@ namespace Compression {
           if (nonTerminal->derivedStringLength >= x_ &&
               nonTerminal->left()->derivedStringLength < x_ && nonTerminal->right()->derivedStringLength < x_) {
             assert(nonTerminal->derivedStringLength < 2 * x_);
+            assert(nonTerminal->associatedString.size() == nonTerminal->derivedStringLength);
             
             addKeyProduction(nonTerminal);
             return; // We are done with the subtree
@@ -942,17 +943,24 @@ namespace Compression {
         while (cur != stop) {
           string S = "";
           Production* prev_selected = nullptr;
+          // Production* prev_added_to_partition = nullptr;
           
           while (S.size() < x_ && cur != stop) {
             if (cur->right() != prev) {
               assert(!cur->right()->associatedString.empty());
               assert(cur->right()->associatedString.length() < x_);
               
+              S += cur->right()->associatedString;
+              
+              /*
               stringstream ss;
               ss << S << cur->right()->associatedString;
               S = ss.str();
+               */
               
               cur->TYPE2_next = prev_selected;
+              cur->type = LEFT;
+              
               prev_selected = cur;
             }
             
@@ -966,6 +974,10 @@ namespace Compression {
           
           if (!S.empty()) {
             assert(prev_selected->associatedString.empty() || prev_selected->associatedString == S);
+            
+            // prev_selected->TYPE2_next = prev_added_to_partition;
+            // prev_added_to_partition = prev_selected;
+            
             prev_selected->associatedString = S;
             addToPartition(prev_selected, LEFT);
           }
@@ -981,6 +993,7 @@ namespace Compression {
         while (cur != stop) {
           string S = "";
           Production* prev_selected = nullptr;
+          // Production* prev_added_to_partition = nullptr;
           
           while (S.size() < x_ && cur != stop) {
             if (cur->left() != prev) {
@@ -992,6 +1005,8 @@ namespace Compression {
               S = ss.str();
               
               cur->TYPE2_next = prev_selected;
+              cur->type = RIGHT;
+              
               prev_selected = cur;
             }
             
@@ -1005,6 +1020,10 @@ namespace Compression {
           
           if (!S.empty()) {
             assert(prev_selected->associatedString.empty() || prev_selected->associatedString == S);
+            
+            // prev_selected->TYPE2_next = prev_added_to_partition;
+            // prev_added_to_partition = prev_selected;
+            
             prev_selected->associatedString = S;
             addToPartition(prev_selected, RIGHT);
           }
@@ -1025,10 +1044,15 @@ namespace Compression {
       }
       
       void addToPartition(Production* production, ProductionType type) {
+        assert(!production->associatedString.empty());
+        assert(production->associatedString.size() == production->derivedStringLength || type != KEY);
+        
         partition_.push_back(production);
         if (!production->isAddedInPartition) {
           if (type == LEFT)
             assert(!((NonTerminal*)production)->right()->associatedString.empty());
+          if (type == RIGHT)
+            assert(!((NonTerminal*)production)->left()->associatedString.empty());
           
           production->isAddedInPartition = true;
           production->type = type;

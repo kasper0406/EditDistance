@@ -27,6 +27,9 @@ namespace Compression {
       
       int64_t rows() const { return rows_; }
       int64_t cols() const { return cols_; }
+      
+      int64_t size() const { return rows() + cols(); }
+      
       const Matrix<int64_t>& matrix() const { return matrix_; }
       Matrix<int64_t>& matrix() { return matrix_; }
       
@@ -81,6 +84,9 @@ namespace Compression {
       
       int64_t rows() const { return rows_; }
       int64_t cols() const { return cols_; }
+      
+      int64_t size() const { return rows() + cols(); }
+      
       const Matrix<int64_t>& matrix() const { return matrix_; }
       Matrix<int64_t>& matrix() { return matrix_; }
       
@@ -259,6 +265,8 @@ namespace Compression {
       }
       
       vector<int64_t> apply(const vector<int64_t>& I) const {
+        assert(this->size() + 1 == I.size());
+        
         vector<int64_t> O; O.reserve(I.size());
         
         const int64_t x = I.size();
@@ -684,7 +692,11 @@ namespace Compression {
         // Handle case where productions derive exactly the associated string
         for (auto a : A) {
           for (auto b : B) {
+            assert(!a->associatedString.empty());
+            assert(!b->associatedString.empty());
             build(a, b);
+            
+            assert((*this)(a, b).size() == a->associatedString.size() + b->associatedString.size());
           }
         }
       }
