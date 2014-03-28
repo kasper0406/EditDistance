@@ -183,6 +183,13 @@ namespace Compression {
         return min((int64_t)(x * this->xfactor_), slp->derivedLength());
       };
       
+      if (this->stats != nullptr) {
+        this->stats->A_derivedLength = this->slpA_->derivedLength();
+        this->stats->B_derivedLength = this->slpB_->derivedLength();
+        this->stats->A_productions = this->slpA_->productions();
+        this->stats->B_productions = this->slpB_->productions();
+      }
+      
       tie(this->partitionA_, this->blocksA_) = SLP::Partitioner::partition(*this->slpA_, findX(this->slpA_.get()));
       tie(this->partitionB_, this->blocksB_) = SLP::Partitioner::partition(*this->slpB_, findX(this->slpB_.get()));
     }
@@ -305,6 +312,8 @@ namespace Compression {
       const uint64_t A_y = findX(this->slpB_.get());
       
       if (this->stats != nullptr) {
+        this->stats->A_derivedLength = this->slpA_->derivedLength();
+        this->stats->B_derivedLength = this->slpB_->derivedLength();
         this->stats->A_productions = this->slpA_->productions();
         this->stats->B_productions = this->slpB_->productions();
         this->stats->A_x = A_x;

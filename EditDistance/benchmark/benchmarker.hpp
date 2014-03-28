@@ -15,8 +15,10 @@ using namespace std::chrono;
 
 namespace Benchmark {
   struct Stats {
-    Stats() : A_productions(0), B_productions(0), A_x(0), A_y(0) { }
+    Stats() : A_derivedLength(0), B_derivedLength(0), A_productions(0), B_productions(0), A_x(0), A_y(0) { }
     
+    uint64_t A_derivedLength;
+    uint64_t B_derivedLength;
     uint64_t A_productions;
     uint64_t B_productions;
     uint64_t A_x;
@@ -153,6 +155,7 @@ namespace Benchmark {
     
     // Output headers
     for (auto& output : outputs) {
+      /*
       output << left;
       output << "#" << setw(14) << "n" << setw(10) << "Time [s]" << setw(65) << " " << setw(20) << "productions" << setw(10) << "x" << endl; // << setw(15) << "Instructions" << endl;
       output << "#" << setw(14) << " " << setw(10) << "min" << setw(10) << "lower" << setw(10) << "median" << setw(10) << "upper"
@@ -160,10 +163,17 @@ namespace Benchmark {
              << setw(10) << "A" << setw(10) << "B" << setw(5) << "A" << setw(5) << "B"
              // << setw(15) << "mean"
              << endl;
+       */
+      
+      output << left;
+      output << setw(15) << "N" << setw(15) << "min" << setw(15) << "lower" << setw(15) << "median" << setw(15) << "upper"
+             << setw(15) << "max" << setw(15) << "mean" << setw(10) << "%RSD"
+             << setw(10) << "A_prod" << setw(10) << "B_prod" << setw(10) << "A_x" << setw(10) << "B_x"
+             << endl;
     }
     
-    const uint64_t maxN = 1000;
-    for (uint64_t n = 10; n < maxN; n = 1.7 * n) {
+    const uint64_t maxN = 100000;
+    for (uint64_t n = 10; n <= maxN; n = 1.7 * n) {
       cout << "Testing n = " << n << endl;
       
       string a = read_seqs_from_files({ "genome1.fa" })[0].substr(0, n);
@@ -174,10 +184,8 @@ namespace Benchmark {
        string b = generate_string(1000, { 'a' });
        */
       
-      /*
-       string a = fib_string(23);
-       string b = fib_string(23);
-       */
+      // string a = fib_string(n);
+      // string b = fib_string(n);
       
       vector<pair<vector<Measurement>, Statistics>> measurements(stages.size(), pair<vector<Measurement>, Statistics>());
       
@@ -223,25 +231,36 @@ namespace Benchmark {
       double total_median_time = 0;
       for (uint16_t stage = 0; stage < stages.size(); ++stage) {
         outputs[stage] << setw(15) << n
-                       << setw(10) << measurements[stage].first[iMin].time
-                       << setw(10) << measurements[stage].first[iLower].time
-                       << setw(10) << measurements[stage].first[iMedian].time
-                       << setw(10) << measurements[stage].first[iUpper].time
-                       << setw(10) << measurements[stage].first[iMax].time
+                       << setw(15) << measurements[stage].first[iMin].time
+                       << setw(15) << measurements[stage].first[iLower].time
+                       << setw(15) << measurements[stage].first[iMedian].time
+                       << setw(15) << measurements[stage].first[iUpper].time
+                       << setw(15) << measurements[stage].first[iMax].time
                        << setw(15) << measurements[stage].second.mean
                        << setw(10) << measurements[stage].second.RSD
                        << setw(10) << stats.A_productions
                        << setw(10) << stats.B_productions
-                       << setw(5) << stats.A_x
-                       << setw(5) << stats.A_y
+                       << setw(10) << stats.A_x
+                       << setw(10) << stats.A_y
                        // << setw(15) << measurements[stage].first[iMedian].instructions
                        << endl;
         
         total_median_time += measurements[stage].first[iMedian].time;
       }
-      outputs[stages.size()] << setw(15) << n << setw(20) << " " << setw(10) << total_median_time
-                             << setw(40) << " " << setw(10) << stats.A_productions << setw(10) << stats.B_productions
-                             << setw(5) << stats.A_x << setw(5) << stats.A_y << endl;
+      outputs[stages.size()] << setw(15) << (stats.A_derivedLength + stats.B_derivedLength)
+                             << setw(15) << 0
+                             << setw(15) << 0
+                             << setw(15) << total_median_time
+                             << setw(15) << 0
+                             << setw(15) << 0
+                             << setw(15) << 0
+                             << setw(10) << 0
+                             << setw(10) << stats.A_productions
+                             << setw(10) << stats.B_productions
+                             << setw(10) << stats.A_x
+                             << setw(10) << stats.A_y
+                             // << setw(15) << measurements[stage].first[iMedian].instructions
+                             << endl;
     }
       
     for (auto& output : outputs)

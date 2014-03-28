@@ -3,6 +3,7 @@
 \usepackage[utf8]{inputenc}
 \usepackage[american]{babel}
 \usepackage{a4}
+\usepackage{natbib}
 \usepackage{latexsym}
 \usepackage{amssymb}
 \usepackage{amsmath}
@@ -17,6 +18,7 @@
 \usepackage{cleveref}
 \usepackage{geometry}
 \usepackage{tikz}
+\usepackage[]{algorithm2e}
 
 \renewcommand*\ttdefault{txtt}
 
@@ -28,15 +30,24 @@
 \newcommand*{\circled}[1]{\tikz[baseline=(char.base)]{
                           \node[shape=circle,draw,inner sep=2pt] (char) {#1};}}
 
+\newcommand{\ceil}[1] {\lceil #1 \rceil}
+\newcommand{\SLP}[1] {\mathcal{#1}}
+
 \newcites{A,B}{Primary Bibliography,Secondary Bibliography}
 
 \newtheorem{mydef}{Definition}
 \newtheorem{lemma}{Lemma}
 \newtheorem{claim}{Claim}
+\newtheorem{problem}{Problem}
 
 % see http://imf.au.dk/system/latex/bog/
 
+\crefname{algocfline}{algorithm}{algorithms}
+
 \begin{document}
+
+\RestyleAlgo{boxruled}
+\LinesNumbered
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -84,60 +95,99 @@
 \label{ch:intro}
 
 \section{Introduction}
-Focus on computation of edit distance. That is, insert / delete of cost 1, match of cost 0. This can be generalized to different classes of scoring functions, which in some cases results in more complicated algorithms with worse asymptotic running time and space consumption, even if the cost function is assumed to be computable in constant time.
+This report will focus on the computation of edit distance in compressed strings. The edit distance between two strings $\str{A}{0}{m}$ and $\str{B}{0}{n}$ is a measure of how similar (or dissimilar) the two strings are. \todo{Describe more precisely}
 
-Focus on how well strings can be compressed as SLPs, compared to other encodings ex BWT and entropy based compression algorithms (ex Huffman encoding). Try to think about algorithms that works for these other (presumably better) compression algorithms.
+When computing edit distance inserts / deletes are charged a cost of 1, while matches are of cost 0. A natural generalization of the edit distance problem, is to generalize the scores, both to other constants, but also to arbitrary functions. Different choices may result in more complicated algorithms with worse asymptotic running time and space consumption, even if the cost function is assumed to be computable in constant time. However, this dissertation will only focus on the original edit distance problem, and how fast this can be computed in compressed strings.
 
-\section{Compression of strings}
-Describe and discuss different types of string compression.
+\subsection{Work contribution}
+The main focus of this dissertation is based on the algorithm described in \cite{Gawrychowski:2012:FAC:2422024.2422048} which builds on top of the approach described in \cite{DBLP:journals/corr/abs-1004-1194} and \cite{DBLP:journals/corr/abs-0707-3619}. To this date, this is the asymptotically best known algorithm in the RAM for computation of edit distance based on SLPs. Given two input strings $\str{A}{0}{m}$ and $\str{B}{0}{n}$ the algorithm runs in time $O(n N \sqrt{\log{\frac{N}{n}}})$, where $N = m + n$ and $n$ is the sum of the number of productions in the SLPs for the input strings (see \todo{ref to description}).
+
+This dissertation has a two-fold objective. First and foremost to implement the algorithm and benchmark it to see how the technique performs in practice. The following list main algorithms has been implemented:
 \begin{itemize}
-  \item Information theoretical bound for compression, and encoding schemes satisfying this bound (ex Huffman encoding / Arithmetic coding).
-  \item Definition of SLPs, and compression schemes transformable to SLPs (Z77, Z78, LZW).
-  \item Other transformations possibly making subsequent compression more efficient (ex BWT)
-  \item Compare how well the strings are compressed compared to the information theoretic lower bound given by the entropy.
+  \item The SLP construction algorithm of \cite{Rytter2003211}. The algorithm is further described in \todo{ref}.
+  \item Algorithm as described in \cite{DBLP:journals/corr/abs-1004-1194} for dividing the input strings into blocks of size $O(x)$, corresponding to productions in the SLP. The algorithm is described in \todo{ref}.
+  \item Algorithm from \cite{DBLP:journals/corr/abs-1004-1194} for building DIST tables based on the input string partitions. Described in \todo{ref}.
+    \begin{itemize}
+      \item This algorithm requires the ability to min-multiply two simple unit-Monge matrices given by \cite{Tiskin:2010:FDM:1873601.1873704}. This algorithm is described in \todo{ref}.
+    \end{itemize}
+  \item Algorithm for filling out the dynamic programming table using the DISTs, see \todo{ref}.
+    \begin{itemize}
+      \item An algorithm for max-multiplying a DIST with an arbitrary vector from \cite{Gawrychowski:2012:FAC:2422024.2422048} running in linear time is required. This algorithm is described in \todo{ref}.
+      \item The max-multiply algorithm further relies on an interval union find data-structure from \cite{Itai06lineartime}. Described in \todo{ref}.
+    \end{itemize}
 \end{itemize}
+The algorithm for constructing the compressed SLP requires a suffix tree. In order to have a succinct and efficient suffix tree, it has been chosen to use a suffix tree implementation in the Succinct Data Structure Library (SDSL) \cite{SDSL}. The suffix tree implementation used is based on \cite{OHL:FIS:GOG:2010}.
 
-\section{Simpel}
-\todo{Give credit to some guy!}
-A standard dynamic programming algorithm for solving the Edit Distance problem, is denoted the simple algorithm or simple implementation. It is given two string $A[1..n]$ and $B[1..m]$ for which the edit distance should be computed, and fills out a matrix of size $n \times m$ where a given entry $(i, j)$ corresponds to the edit distance between $A[1..i]$ and $B[1..j]$. The rules for filling out a table entry follows directly from the definition of edit distance when extending a string, and are as follows:
-\todo{match, insert, delete}
+The second objective of this dissertation is to give a coherent description of the algorithm and prove that it works. The proves follows the ones presented in \cite{DBLP:journals/corr/abs-0707-3619} \todo{give range on proofs?}, but the proves supplied in this report are in many cases more thorough and detailed.
+
+\subsection{Implementation and test setup}
+All measurements presented in this report were performed on a computer with an Intel i5-4258U CPU with the following technical specifications:
+\begin{itemize}
+  \item 2 cores operating at 2.4GHz, with turbo boost up to 2.9GHz.
+  \item 256KB L2 cache, 3MB L3 cache.
+\end{itemize}
+The main memory size of the machine is 16 Gb. The computer was running Mac OS X and Intel Performance Counter Monitor (IPCM) was used to measure cache misses and instructions executed. All implementations have been written in \texttt{C++11} and compiled on  Mac OS X using the clang 3.3 compiler. When measurements was performed, the code was compiled using the \texttt{-O3 -funroll-loops -flto -fasm-blocks -march=core-avx2 -DNDEBUG} optimization flags.
+
+Before doing the actual measurements, a small warm-up round was performed, ensuring that the code was in the CPU cache etc. This helped to greatly reduce the variance of the running time measurements yielding more consistent results.
+
+All running times was measured as wall-time, and all tests was run 5 times where the measurement with the median running times is the one used for data-analysis in this report. The reason for choosing the median measurement, is that an unexpected amount of machine activity in one of the trials should not penalize the result, but at the same time, some tasks done by the operating system may be needed for the algorithm to function, which is why the minimum time was not selected. However, the variation between the trails was found to be very small \todo{check this, and report RSD?}.
+
+\subsubsection{Correctness}
+In order to verify the correctness of the implementation, the result has been checked up against the simple algorithm described in \todo{ref}. Also, unit tests have been made to test some part of the algorithm, and during debugging and testing a lot of consistency checks are performed on every run. There are no known bugs in the implementation. 
+
+\section{Simple algorithm}
+A standard dynamic programming algorithm for solving the Edit Distance problem, is denoted the simple algorithm or simple implementation. It is given two string $A[1..m]$ and $B[1..n]$ for which the edit distance should be computed, and fills out a matrix of size $m \times n$ where a given entry $(i, j)$ corresponds to the edit distance between $A[1..i]$ and $B[1..j]$. The rules for filling out a table entry follows directly from the definition of edit distance when extending a string, and are as follows:
+\[
+  T[i, j] = \max \left\{ \begin{array}{lll}
+              T[i - 1, j - 1]       & \text{if } A[i] = A[j], i, j \geq 1 & \text{Match} \\
+              T[i - 1, j] + 1       & \text{if } i \geq 1, j \geq 0       & \text{Insert} \\
+              T[i, j - 1] + 1       & \text{if } i \geq 0, j \geq 1       & \text{Delete}
+            \end{array} \right.
+\]
 The base case where a string is aligned to the empty string is trivially $0$. Therefore the edit distance between two string can be computed using both $O(nm)$ time and space. Notice that an easy optimization where only the last row used is stored in memory reduces the space consumption to $O(\min\{n, m\})$.
 
 \subsection{Backtracking}
-If the actual alignment(s) of the strings is desirable, it can be found by a standard back-tracking approach on the computed matrix.
+If the actual alignment of the strings is desirable, it can be found by a standard back-tracking approach on the computed matrix.
 
 This however implies that the simple space optimization from before does not work, as all entries in the computed table potentially is needed for the backtracking. However, a divide-and-conquer algorithm was given by Hirshberg\todo{Cite} that reduces the space consumption of $O(\min\{n, m\})$ without asymptotically increasing the running time.\todo{Describe the approach?}
+
+The same approach can be used to find the alignment for the main algorithm in this report. However, a more practical approach may be to use the simple algorithm with pruning when the known optimal score is known, and then use backtracking directly on the grid. From now on, only the actual edit distance is considered to be of interest.
 
 \subsection{Optimizations}
 Ideas:
 \begin{itemize}
-  \item Compute matrix only around its diagonal, and then extend if needed.
+  \item Compute matrix only around its diagonal, and then extend if needed. Extend by powers of $2$, which will result in at most a factor of $2$ extra running time.
   \item Using SIMD instructions.
   \item Parallelization (CPU / GPU).
 \end{itemize}
 
-\section{Compression based algorithms}
-A recent approach for speeding up the computation of edit distance, is to do some compression of the strings before aligning them, and then in some way do the edit distance computation using the compressed strings, which in many cases will be shorter than the original input.
+In order to bound the scope of this dissertation, it has been chosen not to focus on parallelization of the algorithms, even through both the simple and the focus algorithm of \todo{ref} should be easily parallelizable \todo{ref to further work to get ideas on how to do it}.
 
-\subsection{The 4 Russian Trick}
+\section{Other approaches to edit distance computation}
+There exists other approaches for speeding up the computation of the edit distance between two strings. This section presents a short overview of some of the approaches that relates to the approach investigated in this dissertation.
+
+\subsection{Compression based algorithms}
+One approach for speeding up the computation of edit distance, is to compress the input strings, and then in some way do the edit distance computation using the compressed strings, which for many cases will be shorter than the original input.
+
+\subsubsection{The 4 Russian Trick}
 This approach was not originally presented as a compression based algorithm, but using that each entry in the dynamic programming matrix is changing at most 1 from an adjacent entry, and that the alphabet is finite, it is possible to encode blocks of the matrix space efficiently and pre-compute all of them. That is, for all different sub-strings and possible inputs to compute the relative outputs when applying the block. This is then used to fill out the original dynamic programming matrix block-by-block.
 \todo{Describe details and analyze time complexity?.}
 
-\subsection{Run-Length Encoding}
+\subsubsection{Run-Length Encoding}
 \begin{itemize}
   \item \todo{Describe RLE}
   \item Not the focus / implemented in this thesis, but the result is included for completeness. Refer old thesis for experimental results of this approach?
   \item \todo{cite} gave an algorithm running in time $O(nm)$ where $n$ and $m$ denotes the size of the compressed sequences. This is the first result where the running time is only depending on the length of the compressed strings. However, for string not containing long runs of the same symbol, RLE will generate strings longer than the original input!
 \end{itemize}
 
-\subsection{Compression based on SLPs}
-This is the main focus of this thesis.
+\subsubsection{Compression based on straight-line programs}
+This section gives a very brief overview of the algorithm given by \cite{Gawrychowski:2012:FAC:2422024.2422048}, which is the main focus of this dissertation. A more detailed description of each of the steps of the algorithm will be given later in this report. 
 
-\newcommand{\SLP}[1] {\mathcal{#1}}
+Another way of compressing a string, is to compress it to what is known as a straight-line program (SLP). A more formal definition of a SLP will be given in \cref{ch:compressing-strings}, for now it is sufficient to note that a SLP is a restricted context-free grammar.
 
-The algorithm is a bit like the 4 Russion Algorithm, however the blocking of the dynamic programming table is based on the productions of the SLPs, so that reused productions results in reusable blocks. The algorithm can be summarized in the following steps:
+The algorithm can be seen as a generalization of the 4-Russian approach, where the blocking of the dynamic programming table is based on the productions of the SLPs, so that reused productions results in reusable blocks when filling out the grid. The algorithm can be summarized in the following steps:
 \begin{itemize}
-  \item Construct a SLP representation $\SLP{A}$, $\SLP{B}$ of the two input strings $A$ and $B$. The better the compression scheme is able to compress the SLP representations the faster the algorithm will be. The running time of this scheme depends on the compression scheme employed, but using Z77, Z78 or LZW this can be in time $O(N)$ \todo{be sure, and cite?}.
+  \item Construct a SLP representation $\SLP{A}$, $\SLP{B}$ of the two input strings $\str{A}{0}{m}$ and $\str{B}{0}{n}$. The better the compression scheme is able to compress the SLP representations the faster the algorithm will be. A natural trade-off arises in this step, namely the running time of the compression scheme versus the quality of the resulting compression. This step will be discussed in \cref{ch:compressing-strings}.
   \item Select productions from the SLPs generating strings of length $O(x)$ for some fixed $x$ are selected in such a way that they cover the entire string without duplication. This can trivially be done in time $O(N)$ where also a list of selected productions is generated in such a way that the associated strings is the original input string.
   \item Blocks from the dynamic programming table (called DIST tables) are precomputed for all the selected productions. These DIST tables naively takes up can be represented using $O(x^2)$ space to represent, but using a succinct representation given in \todo{cite}, it is possibly to reduce the space consumption to $O(x)$ trading for a query-time of $\log^2 x$ time. This increased query time is also the reason the algorithm gains an extra $\log{x}$ factor, which is conjectured to be unnecessary \todo{cite}. Using the succinct representation and a the way of merging succinct DISTs from \todo{cite}, this step can be computed in time $O(n^2x\log{x})$.
   \item The dynamical programming table is filled up by using the generated partition of the string and then applying the DIST tables. This step takes time $O(\left(\frac{N}{x}\right)^2 \cdot AP(x))$ where $AP(x)$ is the time to apply a DIST table. Using the succinct representation, \todo{cite} shows how to make $AP(x) = x\log{x}$, leading to a total running time of $O(\frac{N}{x} \log{x})$.
@@ -145,9 +195,64 @@ The algorithm is a bit like the 4 Russion Algorithm, however the blocking of the
 
 \chapter{Compressing input strings}
 \label{ch:compressing-strings}
-This chapter how well strings can be compressed in to a SLP.
+There exist are large number of compression schemes for compressing strings, which spans both lossy and lossless schemes. Since it is desired that the edit distance algorithm always gives the correct result, only lossless compression schemes will be considered.
+
+The algorithm examined in this dissertation is working over straight-line programs (SLPs), whereby only compression to these formats are considered.
+\begin{mydef}
+  A straight-line program (SLP) is a restricted context-free grammar $G = (V, T, R, S)$, where
+  \begin{itemize}
+    \item $V = \{ S_1, \dots, S_n\}$ is a ordered set of non-terminals
+    \item $T = \{ S_{n + 1}, \dots, S_{n + m} \}$ is a ordered set of terminals
+    \item $R$ is a set of production rules mapping $V$ to $(V \cup T)^2$, with the condition that if $(S_i \to S_jS_k) \in R$, then $j,k \geq i$. This ensures that a SLP generates exactly one string.
+    \item The start production $S = S_1$.
+  \end{itemize}
+  The size of a SLP is defined to be $|V \cup T|$, which is only a constant from the actual space consumption of a simple pointer-based SLP implementation.
+\end{mydef}
+From this definition it is not possible for a SLP to generate the empty string, however this poses no problem in practice as that case can be handled separately.
+\begin{problem}
+  \label{compression:problem:minimum-slp}
+  Given an input string $\str{A}{0}{m}$ find a SLP of minimum size generating $A$.
+\end{problem}
+It is known \cite[p. 212]{Rytter2003211} that this problem is NP-complete, hence a general, exact and efficient algorithm should not be expected to be easily obtainable. However, a number of articles (ex. \cite{Rytter2003211} and \cite{Sakamoto2005416}) has studied how to approximate a minimum size SLP for the input string. The approach implemented in this article is a $O(\log{n})$-approximation given in \cite{Rytter2003211}, which is based on the Lempel-Ziv factorization (LZ-factorization), which is a version of the popular LZ77 compression scheme \todo{cite?}. The algorithm is described in \cref{sec:compression:alg}.
+
+A small theoretical improvement was given in \cite{Rytter2003211}, reducing the approximation factor to $O(\log{\frac{n}{g^*}})$ where $g^*$ denotes the size of the minimal SLP compression. As suggested by \cite{Rytter2003211} the improvement is mostly cosmetic, and from the description of the approach, I \todo{be sure} find it very likely that the approach will significantly increase the constant in front of the big-$O$ notation. Therefore, I have not chosen to implemented this theoretical improvement.
+
+For computing the LZ-factorization a suffix tree is used. Suffix tress often comes with a large constant space overhead, making them undesirable in practice in some cases. \cite{Sakamoto2005416} gave another algorithm for solving \cref{compression:problem:minimum-slp} which also actives the $O(\log{\frac{n}{g^*}})$ approximation factor, but does it based on the RE-PAIR encoding scheme, which can be made to work without using a suffix tree. The reason for not implementing this approach, is that I find the LZ-factorization approach more intuitive, and that by experiments \todo{ref} it was found that the suffix-tree was not the limiting space consumer.
+
+In other areas of lossless compression, ex. bzip2 compression, the input string is encoded using a Burrows-Wheeler transform (BWT) \cite{BurrowsWheeler}. The intuition that the BWT works, is that it permutes the string in such a way that highly repetitive parts of the string are group together, making them easier to compress. However building the SLP over the BWT of the input string will not work because the BTW permutes the string, such that productions of the SLP does not corresponds to a continuous area in the input string. I have not been able to find any articles able to take advantage of the BWT for SLP based compression.
+
+In lossless compression there exists Entropy-based encoding schemes. Such schemes uses the frequencies of the appearing alphabet symbols in the string to compress them to use as few bits as possible. This type of compression is not of significant interest in this context, since we are only interest in minimizing the number of productions in the resulting SLP. However, one thing to notice is that an absolute lower bound when losslessly encoding a string exists, which is given by its entropy.
+\todo{Talk about entropy, and relate to SLP?}
+
+\subsection{Notes about size}
+Given input strings over the finite alphabet $\Sigma$, all strings over this alphabet can trivially be encoded using $\ceil{\log_2 |\Sigma|}$ bits per symbol. However, for a direct representation of the SLP using pointers a left and a right pointer has to be stored together with the symbol, which on a new machine uses up $64$ bits each. Moreover, the algorithms working on the SLPs are likely to require more information annotated to each node in the tree. This results in a huge constant blow up on the space required to store the input string, especially for strings not compressing very well.
+
+It could be both of practical and theoretical interest to try to find a succinct representation of a SLP, in order to make the space consumption smaller, making the SLP approach practical for long strings that only compresses by around a constant factor.
 
 \section{Algorithm / techniques}
+\label{sec:compression:alg}
+The idea behind the algorithm is to iteratively build the SLP for the string, by adding a repeating factor in the string once at a time. The repeating factor is added by reusing the productions in the SLP generating the factor. After each iteration, the (unique) parse tree of the SLP is considered as a AVL-tree and is balanced using appropriate AVL-tree rotations. An overview of the algorithm is given in \cref{alg:compression:approx}.
+
+The $Concat$ process referenced in the code, is function almost the same way as concatenating two AVL trees \todo{see something}. However, nodes (productions) in the SLP parse tree may be shared, hence when adding nodes and making rotations, special care needs to be taken in order to ensure the balance of the tree, and that the derived string is correct. However, this is easy to fix, by simple introducing a constant number of new productions for every insertion and rotation. Amortized, the number of rotations that happens on every concatenation is constant, hence only a constant number of extra productions are added every time $Constant$ is called.
+
+The factors iteratively added to the SLP are the LZ-factors of the input string $\str{A}{0}{m}$. \todo{Describe what LZ factors are.}
+
+It is required to be able to efficiently find the nodes in the current SLP which generates a LZ factor. In order to do this, the LZ factors of the string are specified by their first occurrence in the input string by indices. Using these indices it is easy to find the corresponding productions in the SLP by annotating the derived length for each of the productions, and then make a top-down decent of the tree checking if the indices overlaps the current node.
+
+\begin{algorithm}[H]
+  \label{alg:compression:approx}
+  Let $G$ be an empty SLP\;
+  Construct LZ-Factorization $f_1,\dots,f_k$ of the input string $\str{A}{0}{m}$\;
+  \For{$i = 1, \dots, k$}{
+    Find productions $S_1,\dots,S_{k_i}$ in the current SLP generating $f_i$\;
+    Set $G' = Concat(S_1,\dots,S_{k_i})$\;
+    $G = Concat(G, G')$\;
+  }
+  \Return G
+  \caption{Algorithm for generating $\log{n}$ approximation of minimal SLP of input string $\str{A}{0}{m}$.}
+\end{algorithm}
+
+The only step in the SLP construction that is not fully specified in \todo{cite}, is how to compute the LZ-factorization of a string efficiently. They only state that it can be done efficiently using a suffix tree. Although the algorithm is very simple, it is included in this report for completeness. \todo{explain}
 
 \section{Benchmarks}
 
@@ -269,7 +374,7 @@ What remains is to ensure that the merge and apply operations operations on the 
 \subsubsection{Merging of $\DIST$ tables}
 The following definition will come in handy:
 \begin{mydef}
-  Let $P_{A'}$ and $P_{A''}$ be permutation matrices describing the $\DIST$ tables for the strings $\str{A'}{0}{m'}$ and $\str{A''}{0}{m''}$ respectively. Then, we define
+  Let $P_{A'}$ and $P_{A''}$ be permutation matrices describing the $\DIST$ tables for the strings $\str{A'}{0}{m'}$ and $\str{A''}{0}{m''}$ respectively. Then define the following index change matrices
   \[
     IC'_{P_{A'}} = \begin{pmatrix}
       I^{m'' \times m''} & 0 \\
@@ -281,20 +386,20 @@ The following definition will come in handy:
     \end{pmatrix}.
   \]
   Notice that both of these new matrices are also permutation matrices, and that they can be efficiently computed by a single scan of the original matrices.
-
-  The following convenient fact that will be useful later, follows directly from the definition of the $\Sigma$-operator:
-  \[
-    {IC'_{P_{A'}}}^{\varsigma} = \begin{pmatrix}
-      (I^{m'' \times m''})^{\varsigma} & 0 \\
-      0 & P_{A'}^{\varsigma}
-    \end{pmatrix}, \quad
-    {IC''_{P_{A''}}}^{\varsigma} = \begin{pmatrix}
-      P_{A''}^{\varsigma} & 0 \\
-      0 & (I^{m' \times m'})^{\varsigma}
-    \end{pmatrix},
-  \]
-  where $\varsigma$ denotes the $\Sigma$ operator, but where the last row and the first column are removed.
 \end{mydef}
+
+The following convenient fact that will be useful later, follows directly from the definition of the $\Sigma$-operator:
+\[
+  {IC'_{P_{A'}}}^{\varsigma} = \begin{pmatrix}
+    (I^{m'' \times m''})^{\varsigma} & \cdot \\
+    0 & P_{A'}^{\varsigma}
+  \end{pmatrix}, \quad
+  {IC''_{P_{A''}}}^{\varsigma} = \begin{pmatrix}
+    P_{A''}^{\varsigma} & \cdot \\
+    0 & (I^{m' \times m'})^{\varsigma}
+  \end{pmatrix},
+\]
+where $\varsigma$ denotes the $\Sigma$ operator, but where the last row and the first column are removed.
 
 \paragraph{Vertical merge}
 Now it will be explained how a vertical merge between $A'$ and $A''$ can be found only giving the succinct representation of the DIST tables $\DIST_{A',B}$ and $\DIST_{A'',B}$. From a straight forward analysis of the LCS graph described by the $\DIST$ tables, it is found that:
@@ -555,13 +660,13 @@ The horizontal merge will be carried out by means of a vertical merge. In order 
   \label{claim:sum_top_described_as_sum_bottom}
   For all $i, j \in \{0, \dots, n + m\}$ it is the case that
   \[
-    \sum_{\hat{i} \in \{i, \dots, n + m\}\atop \hat{j} \in \{ 0, \dots, j \}} P_{B,A}(m + n - \hat{i}, m + n - \hat{j})
+    \sum_{\substack{ \hat{i} \in \{i, \dots, n + m\} \\ \hat{j} \in \{ 0, \dots, j \}}} P_{B,A}(m + n - \hat{i}, m + n - \hat{j})
       = j - i + P_{B,A}^{\Sigma}(m + n - i, m + n - j)
   \]
   \begin{proof}
     Since $P_{B,A}$ is a permutation matrix, it contains exactly one $1$ in every row/column. Therefore the sum over the top-right area, can be found by taking the sum over the entire matrix and subtract the left and bottom part, and then add the double counted overlap \todo{See figure ...}. This gives that
     \begin{align*}
-      &\sum_{\hat{i} \in \{i, \dots, n + m\}\atop \hat{j} \in \{ 0, \dots, j \}} P_{B,A}(m + n - \hat{i}, m + n - \hat{j}) \\
+      &\sum_{\substack{ \hat{i} \in \{i, \dots, n + m\} \\ \hat{j} \in \{ 0, \dots, j \}}} P_{B,A}(m + n - \hat{i}, m + n - \hat{j}) \\
       = &(n + m) - (m + n - j) + ((m + n) - (m + n - i) + P_{B,A}^{\Sigma}(m + n - i, m + n - j)) \\
       = &j - i + P_{B,A}^{\Sigma}(m + n - i, m + n - j).
     \end{align*}
@@ -579,8 +684,8 @@ The horizontal merge will be carried out by means of a vertical merge. In order 
     It is needed to show that the $H$-table corresponding to the permutation matrix $P_{B,A}$ conforms to \cref{claim:H_string_switch_relation}.
     \begin{align*}
       H_{A,B}(i, j) &= j - (i - m) - P_{A,B}(i, j) \\
-        &= j - (i - m) - \sum_{\hat{i} \in \{i,\dots,n+m\}\atop \hat{j} \in \{0, \dots, j\}} P_{A,B}(\hat{i}, \hat{j}) \\
-        &= j - (i - m) - \sum_{\hat{i} \in \{i, \dots, n + m\}\atop \hat{j} \in \{ 0, \dots, j \}} P_{B,A}(m + n - \hat{i}, m + n - \hat{j}) \\
+        &= j - (i - m) - \sum_{\substack{ \hat{i} \in \{i,\dots,n+m\} \\ \hat{j} \in \{0, \dots, j\}}} P_{A,B}(\hat{i}, \hat{j}) \\
+        &= j - (i - m) - \sum_{\substack{ \hat{i} \in \{i, \dots, n + m\} \\ \hat{j} \in \{ 0, \dots, j \}}} P_{B,A}(m + n - \hat{i}, m + n - \hat{j}) \\
         &\overset{\text{\cref{claim:sum_top_described_as_sum_bottom}}}{=} j - (i - m) - (j - i + P_{B,A}^{\Sigma}(m + n - i, m + n - j)) \\
         &= m - P_{B,A}^{\Sigma}(m + n - i, m + n - j) \\
         &= m - \left( (n + m - j) - ((n + m - i) - n) - H_{B,A}(n + m - i, n + m - j) \right) \\
@@ -618,16 +723,45 @@ When filling out a block in the grid with input $I$, the output is given by
 \end{align*}
 Hence, the output can be evaluated by max-multiplying the $H$ table with a slight perturbation of the input array, followed by an addition for every resulting output. \todo{cite} gave a linear time algorithm for max-multiplying an arbitrary vector with a simple unit-Monge matrix \todo{Describe algorithm?}. This gives a linear time algorithm for applying the $\DIST$ table.
 
+\subsubsection{Max-multiplication unit-Monge matrix with vector}
+\todo{Move somewhere else?}
+
+\paragraph{Interval Union Find} As mentioned in the description of the algorithm, an interval union find data-structure is required. The data-structure implemented is the one of \cite{Itai06lineartime}, where every operation takes amortized constant time. Note however that the amortized constant time relies on blocking the input into blocks of size $\Theta(\log{n})$. In the actual implementation, it has been chosen to always use block sizes of machine word $64$ bits, which in practice is a constant. This choice will always perform superior in practice due to practical limit on the input size, but the theoretical running time of the algorithm becomes \todo{calculate this}.
 
 \section{Benchmarks}
 
 
+From the benchmark section of the string compression chapter \todo{ref}, it was found that almost all "real-world" strings, was only compressible by a constant factor (up to the trivial repetition of the string due to the fixed alphabet size \todo{experiment / comment on this?} \todo{Argue that this effect is negligible in practice (empirically determined on DNA input), and that the $\sqrt{\log{\frac{N}{n}}}$ parts eats most of the advantage}). That is, for all realistic DNA related applications it has empirically been found that $n = cN$ for some $c \in \mathbb{R}$. In this case, the running times of the algorithm is
+\[
+  O\left( nN\sqrt{\log{\frac{N}{n}}} \right) = O\left( c \cdot N^2 \sqrt{\log{\frac{N}{cN}}} \right) = O(N^2),
+\]
+which is also the running time of the simple algorithm. Therefore the practical success of the implemented algorithm becomes a battle of constants against the simple algorithm, which it is very likely going to lose. One approach to overcome this problem may be to improve the way the strings are compress, and try to make different inputs share the same SLP, a little more elaboration on this idea is done in the section on further work in \cref{chapter:conclusion}.
+
+
+\chapter{Conclusion}
+\label{chapter:conclusion}
+Summarize findings.
+
+\section{Further work}
+During the project, a number of ideas for potentially improving (mostly of practical concerns) the approach of computing edit distance based on SLPs have been considered. These ideas are shortly described and motivated in the following list:
+
+\begin{itemize}
+  \item Parallelization of the algorithm: The two SLP representations can easily be computed in parallel. Inside the construction of the SLPs the parallelization is not obvious.
+  For the expensive parts of the algorithm (constructing the DISTs and filling the dynamical programming grid), parallelization is easy. For construction of the dist, parallelization can be applied to every invocation of \texttt{build}, which happens for every pair of selected SLP productions and every recursive call.
+  For filling out the grid, the algorithm can be parallelized in the same way as the simple algorithm, by choosing a suitable order to fill out the blocks.
+
+  \item The algorithm for min-multiplying two unit-Monge matrices runs in time $O(n \log{n})$, however no lower bound other than $\Omega(n)$ is known. It could be interesting to close this gap. If is is possible to make a $\Theta(n)$ algorithm, the time for building the DIST tables can be reduced to $O(n^2 x)$, and by picking $x = \frac{N}{n}$, the total running time of the algorithm becomes $O(\underbrace{n^2 x}_{\DIST} + \underbrace{\frac{N^2}{x}}_{\text{Grid}}) = O(nN)$, which is an asymptotic improvement.
+
+  \item Consider if the compressed strings could be reused, such that a lot of compressed strings can be entangled into one SLP. This would make it possible for a lot of strings to share DIST tables, and also possible do a better compression of highly similar strings. This could be of interest when computing the edit distance between all pairs of a large number of sequences, which is useful when approximating a phylogeny from sequence data.
+
+  \item As mentioned in \todo{ref}, the space consumption of the SLP has a very high constant when measured in terms of the number of productions in the SLP. As mentioned in the report, this is directly will not make the approach applicable to strings not compressing well, however a succinct representation of the SLP for given strings may be of interest in other problems working on SLPs.
+\end{itemize}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \addcontentsline{toc}{chapter}{Bibliography}
-\bibliographystyleA{plain} 
-\bibliographyA{refs}
+\bibliographystyle{plain} 
+\bibliography{refs}
 %\addcontentsline{toc}{chapter}{Secondary Bibliography}
 %\bibliographystyleB{plain} 
 %\bibliographyB{refs} % remove this if you don't need secondary literature
