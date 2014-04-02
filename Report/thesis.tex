@@ -5,6 +5,7 @@
 \usepackage{a4}
 \usepackage{natbib}
 \usepackage{latexsym}
+\usepackage{mathtools}
 \usepackage{amssymb}
 \usepackage{amsmath}
 \usepackage{amsthm}
@@ -19,6 +20,7 @@
 \usepackage{geometry}
 \usepackage{tikz}
 \usepackage[]{algorithm2e}
+\usepackage{graphicx}
 
 \renewcommand*\ttdefault{txtt}
 
@@ -33,12 +35,16 @@
 \newcommand{\ceil}[1] {\lceil #1 \rceil}
 \newcommand{\SLP}[1] {\mathcal{#1}}
 
+\newcommand{\refbook}[2]{\cite[#1]{DBLP:journals/corr/abs-0707-3619}, #2}
+\newcommand{\reftiskin}[2]{\cite[#1]{Tiskin:2010:FDM:1873601.1873704}, #2}
+
 \newcites{A,B}{Primary Bibliography,Secondary Bibliography}
 
 \newtheorem{mydef}{Definition}
-\newtheorem{lemma}{Lemma}
-\newtheorem{claim}{Claim}
 \newtheorem{problem}{Problem}
+\newtheorem{claim}{Claim}
+\newtheorem{lemma}{Lemma}
+\newtheorem{theorem}{Theorem}
 
 % see http://imf.au.dk/system/latex/bog/
 
@@ -91,60 +97,73 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\chapter{Setting the mood}
+\chapter{Introduction}
 \label{ch:intro}
 
-\section{Introduction}
-This report will focus on the computation of edit distance in compressed strings. The edit distance between two strings $\str{A}{0}{m}$ and $\str{B}{0}{n}$ is a measure of how similar (or dissimilar) the two strings are. \todo{Describe more precisely}
+This report will focus on the computation of edit distance in compressed strings. The edit distance is a measure of how similar or dissimilar two string are. More precisely,
+\begin{problem}
+  \label{problem:edit-distance}
+  The edit distance between two strings $\str{A}{0}{m}$ and $\str{B}{0}{n}$ counts the minimum number of operations needed to transform $A$ into $B$. The set of the available operations are to: insert a character, delete a character or to substitute a character by another. Each of the operations is associated with a cost. Throughout the thesis the Levenshtein distance will be used, where the cost of a substitution is 0 on a match and 1 otherwise. Insert and delete operations have cost 1.
+\end{problem}
 
-When computing edit distance inserts / deletes are charged a cost of 1, while matches are of cost 0. A natural generalization of the edit distance problem, is to generalize the scores, both to other constants, but also to arbitrary functions. Different choices may result in more complicated algorithms with worse asymptotic running time and space consumption, even if the cost function is assumed to be computable in constant time. However, this dissertation will only focus on the original edit distance problem, and how fast this can be computed in compressed strings.
+The scores could be generalized to other constants, but also to arbitrary functions. Different choices may result in more complicated algorithms with worse asymptotic running time and space consumption, even if the cost function is assumed to be computable in constant time. However, this thesis will only focus on the edit distance problem as defined in \cref{problem:edit-distance}, and how fast this can be computed in compressed strings.
 
-\subsection{Work contribution}
-The main focus of this dissertation is based on the algorithm described in \cite{Gawrychowski:2012:FAC:2422024.2422048} which builds on top of the approach described in \cite{DBLP:journals/corr/abs-1004-1194} and \cite{DBLP:journals/corr/abs-0707-3619}. To this date, this is the asymptotically best known algorithm in the RAM for computation of edit distance based on SLPs. Given two input strings $\str{A}{0}{m}$ and $\str{B}{0}{n}$ the algorithm runs in time $O(n N \sqrt{\log{\frac{N}{n}}})$, where $N = m + n$ and $n$ is the sum of the number of productions in the SLPs for the input strings (see \todo{ref to description}).
+\section{Work contribution}
+The main focus of this thesis is based on the algorithm described in \cite{Gawrychowski:2012:FAC:2422024.2422048} which builds on top of the approach described in \cite{DBLP:journals/corr/abs-1004-1194} and \cite{DBLP:journals/corr/abs-0707-3619}. To this date, this is the asymptotically best known algorithm in the RAM for computation of edit distance in strings encoded by straight-line programs (SLPs). Given two input strings $\str{A}{0}{k}$ and $\str{B}{0}{l}$ the algorithm runs in time $O(n N \sqrt{\log{\frac{N}{n}}})$, where $N = k + l$ and $n$ is the sum of the number of productions in the SLP representation of the input strings (see \cref{ch:compressing-strings}). It is a open problem if the running time can be reduced to $O(nN)$, which is a bit further discussed in \cref{sec:conclusion:further-work}.
 
-This dissertation has a two-fold objective. First and foremost to implement the algorithm and benchmark it to see how the technique performs in practice. The following list main algorithms has been implemented:
+This thesis has a two-fold objective. First and foremost to implement the algorithm and benchmark it to see how the technique performs in practice. The second objective is to give a coherent description of the algorithm and prove that it works. The proofs follow the ones presented in \cite{DBLP:journals/corr/abs-0707-3619} \todo{give range on proofs?}, but the proofs supplied in this report are in many cases more thorough and detailed.
+
+The following list of algorithms has been implemented in order to test the algorithm in practice:
+\todo{Consider if this should be moved until a point where terminology is defined.}
 \begin{itemize}
-  \item The SLP construction algorithm of \cite{Rytter2003211}. The algorithm is further described in \todo{ref}.
-  \item Algorithm as described in \cite{DBLP:journals/corr/abs-1004-1194} for dividing the input strings into blocks of size $O(x)$, corresponding to productions in the SLP. The algorithm is described in \todo{ref}.
-  \item Algorithm from \cite{DBLP:journals/corr/abs-1004-1194} for building DIST tables based on the input string partitions. Described in \todo{ref}.
+  \item The SLP construction algorithm of \cite{Rytter2003211}. The algorithm is further described in \cref{ch:compressing-strings}.
+  \item Algorithm as described in \cite{DBLP:journals/corr/abs-1004-1194} for dividing the input strings into blocks of size $O(x)$ for some $x$, corresponding to productions in the SLP. The algorithm is described in \cref{sec:algorithm:select-productions}.
+  \item Algorithm from \cite{DBLP:journals/corr/abs-1004-1194} for building DIST tables based on the input string partitions. Described in \cref{sec:algorithm:building-DISTs-overview}.
     \begin{itemize}
-      \item This algorithm requires the ability to min-multiply two simple unit-Monge matrices given by \cite{Tiskin:2010:FDM:1873601.1873704}. This algorithm is described in \todo{ref}.
+      \item This algorithm requires the ability to min-multiply two simple unit-Monge matrices given by \cite{Tiskin:2010:FDM:1873601.1873704}. This algorithm is described in \cref{sec:algorithm:min-mult-two-unit-monge}.
     \end{itemize}
-  \item Algorithm for filling out the dynamic programming table using the DISTs, see \todo{ref}.
+  \item Algorithm for filling out the dynamic programming table using the DISTs, see \cref{sec:algorithm:filling-grid-overview}.
     \begin{itemize}
-      \item An algorithm for max-multiplying a DIST with an arbitrary vector from \cite{Gawrychowski:2012:FAC:2422024.2422048} running in linear time is required. This algorithm is described in \todo{ref}.
-      \item The max-multiply algorithm further relies on an interval union find data-structure from \cite{Itai06lineartime}. Described in \todo{ref}.
+      \item An algorithm for max-multiplying a DIST with an arbitrary vector from \cite{Gawrychowski:2012:FAC:2422024.2422048} running in linear time. This algorithm is described in \cref{sec:algorithm:max-mult-H-table-with-vector}.
+      \item The max-multiply algorithm further relies on an interval union find data-structure from \cite{Itai06lineartime}. Described in \cref{sec:algorithm:interval-union-find}.
     \end{itemize}
 \end{itemize}
-The algorithm for constructing the compressed SLP requires a suffix tree. In order to have a succinct and efficient suffix tree, it has been chosen to use a suffix tree implementation in the Succinct Data Structure Library (SDSL) \cite{SDSL}. The suffix tree implementation used is based on \cite{OHL:FIS:GOG:2010}.
+The algorithm for constructing the SLP encoding of the input strings requires a suffix tree. In order to have a succinct and efficient suffix tree, it has been chosen to use a suffix tree implementation in the Succinct Data Structure Library (SDSL) \cite{SDSL} based on \cite{OHL:FIS:GOG:2010}.
 
-The second objective of this dissertation is to give a coherent description of the algorithm and prove that it works. The proves follows the ones presented in \cite{DBLP:journals/corr/abs-0707-3619} \todo{give range on proofs?}, but the proves supplied in this report are in many cases more thorough and detailed.
-
-\subsection{Implementation and test setup}
+\section{Implementation and test setup}
 All measurements presented in this report were performed on a computer with an Intel i5-4258U CPU with the following technical specifications:
 \begin{itemize}
   \item 2 cores operating at 2.4GHz, with turbo boost up to 2.9GHz.
   \item 256KB L2 cache, 3MB L3 cache.
 \end{itemize}
-The main memory size of the machine is 16 Gb. The computer was running Mac OS X and Intel Performance Counter Monitor (IPCM) was used to measure cache misses and instructions executed. All implementations have been written in \texttt{C++11} and compiled on  Mac OS X using the clang 3.3 compiler. When measurements was performed, the code was compiled using the \texttt{-O3 -funroll-loops -flto -fasm-blocks -march=core-avx2 -DNDEBUG} optimization flags.
+The main memory size of the machine is 16 Gb. The computer was running Mac OS X and Intel Performance Counter Monitor (IPCM) was used to measure cache misses and instructions executed. All implementations have been written in \texttt{C++11} and compiled on  Mac OS X using the clang 3.3 compiler. When measurements were performed, the code was compiled using the \texttt{-O3 -funroll-loops -flto -fasm-blocks -march=core-avx2 -DNDEBUG} optimization flags.
 
 Before doing the actual measurements, a small warm-up round was performed, ensuring that the code was in the CPU cache etc. This helped to greatly reduce the variance of the running time measurements yielding more consistent results.
 
-All running times was measured as wall-time, and all tests was run 5 times where the measurement with the median running times is the one used for data-analysis in this report. The reason for choosing the median measurement, is that an unexpected amount of machine activity in one of the trials should not penalize the result, but at the same time, some tasks done by the operating system may be needed for the algorithm to function, which is why the minimum time was not selected. However, the variation between the trails was found to be very small \todo{check this, and report RSD?}.
+All running times was measured as wall-time, and all tests was repeated 5 times where the measurement with the median running times is the one used for data-analysis in this report. The reason for choosing the median measurement, is that an unexpected amount of machine activity in one of the trials should not penalize the result, but at the same time, some tasks done by the operating system may be needed for the algorithm to function, which is why the minimum time was not selected. However, the variation between the trails was found to be very small \todo{check this, and report RSD?}.
 
 \subsubsection{Correctness}
-In order to verify the correctness of the implementation, the result has been checked up against the simple algorithm described in \todo{ref}. Also, unit tests have been made to test some part of the algorithm, and during debugging and testing a lot of consistency checks are performed on every run. There are no known bugs in the implementation. 
+In order to verify the correctness of the implementation, the result has been checked up against the simple algorithm described in \cref{sec:intro:simple}. Also, unit tests have been made to individually test parts of the algorithm, and during debugging and testing a lot of consistency checks are performed on every run. There are no known bugs in the implementation. 
 
 \section{Simple algorithm}
-A standard dynamic programming algorithm for solving the Edit Distance problem, is denoted the simple algorithm or simple implementation. It is given two string $A[1..m]$ and $B[1..n]$ for which the edit distance should be computed, and fills out a matrix of size $m \times n$ where a given entry $(i, j)$ corresponds to the edit distance between $A[1..i]$ and $B[1..j]$. The rules for filling out a table entry follows directly from the definition of edit distance when extending a string, and are as follows:
+\label{sec:intro:simple}
+A standard dynamic programming algorithm for solving the edit distance problem, here denoted the simple algorithm\todo{Credit someone?}. It is given two string $\str{A}{1}{m}$ and $\str{B}{1}{n}$ for which the edit distance should be computed, and fills out a matrix of size $m \times n$ where a given entry $(i, j)$ corresponds to the edit distance between $\str{A}{1}{i}$ and $\str{B}{1}{j}$. The rules for filling out a table entry follows directly from the definition of edit distance when extending a string, and are as follows:
 \[
   T[i, j] = \max \left\{ \begin{array}{lll}
-              T[i - 1, j - 1]       & \text{if } A[i] = A[j], i, j \geq 1 & \text{Match} \\
+              T[i - 1, j - 1] + \delta(A[i], A[j]) & \text{if } i, j \geq 1 & \text{Match} \\
               T[i - 1, j] + 1       & \text{if } i \geq 1, j \geq 0       & \text{Insert} \\
               T[i, j - 1] + 1       & \text{if } i \geq 0, j \geq 1       & \text{Delete}
             \end{array} \right.
 \]
-The base case where a string is aligned to the empty string is trivially $0$. Therefore the edit distance between two string can be computed using both $O(nm)$ time and space. Notice that an easy optimization where only the last row used is stored in memory reduces the space consumption to $O(\min\{n, m\})$.
+where
+\[
+  \delta(a, b) = \begin{cases}
+                   0 & \text{if } a = b \\
+                   1 & \text{o/w.}
+                 \end{cases}
+    \quad \text{ for } \quad a, b \in \Sigma.
+\]
+The base case where a string is aligned to the empty string is trivially the length of the non-empty string. Therefore the edit distance between two string can be computed using both $O(nm)$ time and space. Notice that an easy optimization where only the last row used is stored in memory reduces the space consumption to $O(\min\{n, m\})$.
 
 \subsection{Backtracking}
 If the actual alignment of the strings is desirable, it can be found by a standard back-tracking approach on the computed matrix.
@@ -161,43 +180,42 @@ Ideas:
   \item Parallelization (CPU / GPU).
 \end{itemize}
 
-In order to bound the scope of this dissertation, it has been chosen not to focus on parallelization of the algorithms, even through both the simple and the focus algorithm of \todo{ref} should be easily parallelizable \todo{ref to further work to get ideas on how to do it}.
+In order to bound the scope of this thesis, it has been chosen not to focus on parallelization of the algorithms, even through both the simple and the main algorithm investigated in this thesis of \cite{Gawrychowski:2012:FAC:2422024.2422048} should be easily parallelizable. For more details see \ref{sec:conclusion:further-work}.
 
-\section{Other approaches to edit distance computation}
-There exists other approaches for speeding up the computation of the edit distance between two strings. This section presents a short overview of some of the approaches that relates to the approach investigated in this dissertation.
+\section{Compression based algorithms}
+There exists other approaches for speeding up the computation of the edit distance between two strings. This section presents a short overview of some of the approaches that relates to the approach investigated in this thesis.
 
-\subsection{Compression based algorithms}
 One approach for speeding up the computation of edit distance, is to compress the input strings, and then in some way do the edit distance computation using the compressed strings, which for many cases will be shorter than the original input.
 
-\subsubsection{The 4 Russian Trick}
-This approach was not originally presented as a compression based algorithm, but using that each entry in the dynamic programming matrix is changing at most 1 from an adjacent entry, and that the alphabet is finite, it is possible to encode blocks of the matrix space efficiently and pre-compute all of them. That is, for all different sub-strings and possible inputs to compute the relative outputs when applying the block. This is then used to fill out the original dynamic programming matrix block-by-block.
+\subsection{The 4 Russian Algorithm}
+This approach was not originally presented as a compression based algorithm, but using that each entry in the dynamic programming matrix is changing at most 1 from an adjacent entry, and that the alphabet is finite, it is possible to encode blocks of the dynamic programming table efficiently and pre-compute all of them. That is, for all different sub-strings and possible inputs to compute the relative outputs when applying the block. Due to that values can change by no more than $1$ between two entries, the representation can be succinctly represented and efficiently looked up. The pre-computed tables are then used to fill out the original dynamic programming matrix block-by-block.
 \todo{Describe details and analyze time complexity?.}
 
-\subsubsection{Run-Length Encoding}
+\subsection{Run-Length Encoding}
 \begin{itemize}
   \item \todo{Describe RLE}
   \item Not the focus / implemented in this thesis, but the result is included for completeness. Refer old thesis for experimental results of this approach?
   \item \todo{cite} gave an algorithm running in time $O(nm)$ where $n$ and $m$ denotes the size of the compressed sequences. This is the first result where the running time is only depending on the length of the compressed strings. However, for string not containing long runs of the same symbol, RLE will generate strings longer than the original input!
 \end{itemize}
 
-\subsubsection{Compression based on straight-line programs}
-This section gives a very brief overview of the algorithm given by \cite{Gawrychowski:2012:FAC:2422024.2422048}, which is the main focus of this dissertation. A more detailed description of each of the steps of the algorithm will be given later in this report. 
+\subsection{Compression based on straight-line programs}
+This section gives a very brief overview of the algorithm given by \cite{Gawrychowski:2012:FAC:2422024.2422048}, which is the main focus of this thesis. A more detailed description of each of the steps of the algorithm will be given later in this report. 
 
 Another way of compressing a string, is to compress it to what is known as a straight-line program (SLP). A more formal definition of a SLP will be given in \cref{ch:compressing-strings}, for now it is sufficient to note that a SLP is a restricted context-free grammar.
 
 The algorithm can be seen as a generalization of the 4-Russian approach, where the blocking of the dynamic programming table is based on the productions of the SLPs, so that reused productions results in reusable blocks when filling out the grid. The algorithm can be summarized in the following steps:
 \begin{itemize}
-  \item Construct a SLP representation $\SLP{A}$, $\SLP{B}$ of the two input strings $\str{A}{0}{m}$ and $\str{B}{0}{n}$. The better the compression scheme is able to compress the SLP representations the faster the algorithm will be. A natural trade-off arises in this step, namely the running time of the compression scheme versus the quality of the resulting compression. This step will be discussed in \cref{ch:compressing-strings}.
-  \item Select productions from the SLPs generating strings of length $O(x)$ for some fixed $x$ are selected in such a way that they cover the entire string without duplication. This can trivially be done in time $O(N)$ where also a list of selected productions is generated in such a way that the associated strings is the original input string.
-  \item Blocks from the dynamic programming table (called DIST tables) are precomputed for all the selected productions. These DIST tables naively takes up can be represented using $O(x^2)$ space to represent, but using a succinct representation given in \todo{cite}, it is possibly to reduce the space consumption to $O(x)$ trading for a query-time of $\log^2 x$ time. This increased query time is also the reason the algorithm gains an extra $\log{x}$ factor, which is conjectured to be unnecessary \todo{cite}. Using the succinct representation and a the way of merging succinct DISTs from \todo{cite}, this step can be computed in time $O(n^2x\log{x})$.
-  \item The dynamical programming table is filled up by using the generated partition of the string and then applying the DIST tables. This step takes time $O(\left(\frac{N}{x}\right)^2 \cdot AP(x))$ where $AP(x)$ is the time to apply a DIST table. Using the succinct representation, \todo{cite} shows how to make $AP(x) = x\log{x}$, leading to a total running time of $O(\frac{N}{x} \log{x})$.
+  \item Construct SLP representations $\SLP{A}$, $\SLP{B}$ of the two input strings $\str{A}{0}{m}$ and $\str{B}{0}{n}$. The better the compression scheme is able to compress the SLP representations the faster the algorithm will be. A natural trade-off arises in this step, namely the running time of the compression scheme versus the quality of the resulting compression. This step will be discussed in \cref{ch:compressing-strings}.
+  \item Productions from the SLPs generating strings of length $O(x)$ for some fixed $x$ are selected in such a way that they cover the entire string without duplication. This can be done in $O(N)$ time by traversing the productions of the SLP bottom-up as described in \cref{sec:algorithm:select-productions}.
+  \item Blocks from the dynamic programming table are precomputed for all the selected productions (these precomputed tables are called DIST tables). By naively representing the DIST tables they each take up $O(x^2)$ space, but using a succinct representation given in \cite{DBLP:journals/corr/abs-0707-3619}, it is possibly to reduce the space consumption to $O(x)$ and also improve the time it takes to use a $\DIST$. This step is described in \cref{sec:algorithm:building-DISTs-overview}.
+  \item The dynamical programming table is filled up by using the partition and the precomputed $\DIST$ tables. This step takes time $O\left(\left(\frac{N}{x}\right)^2 \cdot AP(x)\right)$ where $AP(x)$ is the time to apply a DIST table. Using the succinct representation, \cite{Gawrychowski:2012:FAC:2422024.2422048} shows how to make $AP(x) = O(x)$, leading to a total running time of $O(\frac{N^2}{x})$. This step is described in \cref{sec:algorithm:filling-grid-overview}.
 \end{itemize}
 
 \chapter{Compressing input strings}
 \label{ch:compressing-strings}
 There exist are large number of compression schemes for compressing strings, which spans both lossy and lossless schemes. Since it is desired that the edit distance algorithm always gives the correct result, only lossless compression schemes will be considered.
 
-The algorithm examined in this dissertation is working over straight-line programs (SLPs), whereby only compression to these formats are considered.
+The algorithm examined in this thesis is working over straight-line programs (SLPs), whereby only compression to these formats are considered.
 \begin{mydef}
   A straight-line program (SLP) is a restricted context-free grammar $G = (V, T, R, S)$, where
   \begin{itemize}
@@ -211,7 +229,7 @@ The algorithm examined in this dissertation is working over straight-line progra
 From this definition it is not possible for a SLP to generate the empty string, however this poses no problem in practice as that case can be handled separately.
 \begin{problem}
   \label{compression:problem:minimum-slp}
-  Given an input string $\str{A}{0}{m}$ find a SLP of minimum size generating $A$.
+  Given an input string $\str{A}{0}{m}$ find a SLP $\SLP{A}$ of minimum size generating $A$.
 \end{problem}
 It is known \cite[p. 212]{Rytter2003211} that this problem is NP-complete, hence a general, exact and efficient algorithm should not be expected to be easily obtainable. However, a number of articles (ex. \cite{Rytter2003211} and \cite{Sakamoto2005416}) has studied how to approximate a minimum size SLP for the input string. The approach implemented in this article is a $O(\log{n})$-approximation given in \cite{Rytter2003211}, which is based on the Lempel-Ziv factorization (LZ-factorization), which is a version of the popular LZ77 compression scheme \todo{cite?}. The algorithm is described in \cref{sec:compression:alg}.
 
@@ -224,16 +242,16 @@ In other areas of lossless compression, ex. bzip2 compression, the input string 
 In lossless compression there exists Entropy-based encoding schemes. Such schemes uses the frequencies of the appearing alphabet symbols in the string to compress them to use as few bits as possible. This type of compression is not of significant interest in this context, since we are only interest in minimizing the number of productions in the resulting SLP. However, one thing to notice is that an absolute lower bound when losslessly encoding a string exists, which is given by its entropy.
 \todo{Talk about entropy, and relate to SLP?}
 
-\subsection{Notes about size}
+\paragraph{Notes about size}
 Given input strings over the finite alphabet $\Sigma$, all strings over this alphabet can trivially be encoded using $\ceil{\log_2 |\Sigma|}$ bits per symbol. However, for a direct representation of the SLP using pointers a left and a right pointer has to be stored together with the symbol, which on a new machine uses up $64$ bits each. Moreover, the algorithms working on the SLPs are likely to require more information annotated to each node in the tree. This results in a huge constant blow up on the space required to store the input string, especially for strings not compressing very well.
 
 It could be both of practical and theoretical interest to try to find a succinct representation of a SLP, in order to make the space consumption smaller, making the SLP approach practical for long strings that only compresses by around a constant factor.
 
-\section{Algorithm / techniques}
+\section{Algorithm}
 \label{sec:compression:alg}
 The idea behind the algorithm is to iteratively build the SLP for the string, by adding a repeating factor in the string once at a time. The repeating factor is added by reusing the productions in the SLP generating the factor. After each iteration, the (unique) parse tree of the SLP is considered as a AVL-tree and is balanced using appropriate AVL-tree rotations. An overview of the algorithm is given in \cref{alg:compression:approx}.
 
-The $Concat$ process referenced in the code, is function almost the same way as concatenating two AVL trees \todo{see something}. However, nodes (productions) in the SLP parse tree may be shared, hence when adding nodes and making rotations, special care needs to be taken in order to ensure the balance of the tree, and that the derived string is correct. However, this is easy to fix, by simple introducing a constant number of new productions for every insertion and rotation. Amortized, the number of rotations that happens on every concatenation is constant, hence only a constant number of extra productions are added every time $Constant$ is called.
+The $Concat$ process referenced in the code, is function almost the same way as concatenating two AVL trees \todo{see something}. However, nodes (productions) in the SLP parse tree may be shared, hence when adding nodes and making rotations, special care needs to be taken in order to ensure the balance of the tree, and that the derived string is correct. However, this is easy to fix, by simple introducing a constant number of new productions for every insertion and rotation. Amortized, the number of rotations that happens on every concatenation is constant, hence only a constant number of extra productions are added every time $Concat$ is called.
 
 The factors iteratively added to the SLP are the LZ-factors of the input string $\str{A}{0}{m}$. \todo{Describe what LZ factors are.}
 
@@ -241,27 +259,157 @@ It is required to be able to efficiently find the nodes in the current SLP which
 
 \begin{algorithm}[H]
   \label{alg:compression:approx}
-  Let $G$ be an empty SLP\;
+  Let $\SLP{A}$ be an empty SLP\;
   Construct LZ-Factorization $f_1,\dots,f_k$ of the input string $\str{A}{0}{m}$\;
   \For{$i = 1, \dots, k$}{
-    Find productions $S_1,\dots,S_{k_i}$ in the current SLP generating $f_i$\;
-    Set $G' = Concat(S_1,\dots,S_{k_i})$\;
-    $G = Concat(G, G')$\;
+    Find productions $S_1,\dots,S_{k_i}$ in the current SLP $\SLP{A}$ generating $f_i$\;
+    Set $\SLP{S} = Concat(S_1,\dots,S_{k_i})$\;
+    $\SLP{A} = Concat(\SLP{A}, \SLP{S})$\;
   }
-  \Return G
+  \Return $\SLP{A}$
   \caption{Algorithm for generating $\log{n}$ approximation of minimal SLP of input string $\str{A}{0}{m}$.}
 \end{algorithm}
 
 The only step in the SLP construction that is not fully specified in \todo{cite}, is how to compute the LZ-factorization of a string efficiently. They only state that it can be done efficiently using a suffix tree. Although the algorithm is very simple, it is included in this report for completeness. \todo{explain}
 
 \section{Benchmarks}
+\label{sec:compression:benchmarks}
 
-\chapter{SLP edit-distance algorithm}
+\chapter{SLP based edit distance algorithm}
 \label{ch:algorithm}
 
-\section{Algorithm}
+This chapter will describe and benchmark the algorithm for computing the edit distance of two input SLPs $\SLP{A}$ and $\SLP{B}$.
 
-\subsubsection{Selection of productions}
+\section{Preliminaries}
+\label{sec:algorithm:preliminaries}
+In order to describe the algorithm and argue its correctness, some notation will be introduced.
+
+It has been chosen that all matrices used in this report are $0$-indexed. That is, an entry in a matrix $A$ of size $m \times n$ is indexed by $A(i, j)$ where $i \in \{0, \dots, m - 1\}, j \in \{0, \dots, n - 1\}$. Note that this is a different choice than the referenced literature describing the algorithm (most notably \cite{Tiskin:2010:FDM:1873601.1873704} and \cite{DBLP:journals/corr/abs-0707-3619}), who for convenience use odd half-integers to index some of the matrices. This approach was not chosen in order to make the calculations in this report closer to the actual \texttt{C++} implementation.
+
+Almost all matrices considered in this report will be square matrices, ie. of size $n \times n$ for some $n \in \mathbb{N}$. Therefore all following definitions will only be given for square matrices, but most of them could easily be generalized to matrices of arbitrary dimension.
+
+\begin{mydef}
+  A permutation matrix of size $n$ is a matrix over $\{0,1\}^{n \times n}$ where each row and each column contains exactly one $1$. That is, it can be seen as the identity matrix of size $n \times n$ where the rows (or columns) are permuted.
+  It is assumed that the index of the column (row) containing the $1$ can be found in constant time from a given row (column).
+\end{mydef}
+The latter constraint on the query time of the $1$ entry is required to achieve the running time of some of the algorithms (ex \todo{ref}). The way permutation matrices are represented in the implementation, is that the row and column permutation is specified using $2n = O(n)$ machine words. This directly gives the constant time query to the $1$ entry of a given row/column.
+
+The algorithm stores a lot of permutation matrices in memory. It is therefore interesting to try to minimize the space consumption of these matrices. However, it turns out that the space consumption of $O(n)$ machine words is asymptotically optimal: A permutation matrix of size $n$ can express $n!$ different permutation matrices (since there are $n!$ different permutations of the rows of the identity matrix), hence at least $\Omega(\log{n!})$ bits are needed to represent a permutation matrix. By Sterling's approximation it is known that
+\[
+  \ln{n!} = n \ln{n} - n + O(\ln{n}),
+\]
+hence $\Omega(\log{n!}) = \Omega(n \log{n})$ bits are required to represent the permutation matrix, which is also what is used in the row/column-permutation representation.
+%
+\begin{mydef}
+  The distribution matrix $A^{\Sigma}$ of a $n \times n$ matrix $A$ is a $(n + 1) \times (n + 1)$ matrix defined as
+  \[
+    A^{\Sigma}(i, j) = \sum_{\substack{\hat{i} \in \{i, \dots, n - 1\} \\ \hat{j} \in \{0, \dots, j - 1\}}} {A(\hat{i}, \hat{j})},
+  \]
+  or informally the sum of all entries in the sub-matrix to the left and below of a given entry $(i, j)$.
+\end{mydef}
+%
+\begin{mydef}
+  The density matrix $A^{\Box}$ of a $(n + 1) \times (n + 1)$ matrix is a $n \times n$ matrix defined as
+  \[
+    A^{\Box}(i, j) = A(i, j + 1) - A(i, j) - A(i + 1, j + 1) + A(i + 1, j)
+  \]
+  for all $i, j \in \{ 0, \dots, n - 1 \}$. \todo{Graphical representation?}
+\end{mydef}%
+Notice that for a any matrix $A$ of size $n \times n$ it is the case that \\
+\scalebox{0.9}{\parbox{.5\linewidth}{%
+\begin{align*}
+  (A^{\Sigma})^\Box(i, j) &= A^{\Sigma}(i, j + 1) - A^{\Sigma}(i, j) - A^{\Sigma}(i + 1, j + 1) + A^{\Sigma}(i + 1, j) \\
+    &= \sum_{\substack{\hat{i} \in \{i, \dots, n - 1\} \\ \hat{j} \in \{0, \dots, j\}}} {A(\hat{i}, \hat{j})}
+     - \sum_{\substack{\hat{i} \in \{i, \dots, n - 1\} \\ \hat{j} \in \{0, \dots, j - 1\}}} {A(\hat{i}, \hat{j})}
+     - \sum_{\substack{\hat{i} \in \{i + 1, \dots, n - 1\} \\ \hat{j} \in \{0, \dots, j\}}} {A(\hat{i}, \hat{j})}
+     + \sum_{\substack{\hat{i} \in \{i + 1, \dots, n - 1\} \\ \hat{j} \in \{0, \dots, j - 1\}}} {A(\hat{i}, \hat{j})} \\
+    &= A(i, j)
+\end{align*}
+}}\\
+If the operators are applied in the opposite order, it will not always describe a identity transformation. A class of matrices with this property is defined.
+\begin{mydef}[\reftiskin{p. 1288}{Definition 2.1}]
+  A matrix $A$ is called simple if $(A^{\Box})^\Sigma = A$.
+\end{mydef}
+The set of simple matrices can be classified by the following claim.
+\begin{claim}[\reftiskin{p. 1288}{remark without proof}]
+  A matrix $A$ of size $(n + 1) \times (n + 1)$ is simple iff $\forall i,j: A(n, j) = A(i, 0) = 0$, ie. iff the leftmost column and bottom row have all zero entries.
+  \begin{proof}
+    The proof follows almost directly by unfolding definitions. For all $i, j \in \{ 0, \dots, n \}$ it follows that%
+    \begin{align*}
+      (A^{\Box})^{\Sigma}(i, j) &= \left( \left\{ A(\hat{i}, \hat{j} + 1) - A(\hat{i}, \hat{j}) - A(\hat{i} + 1, \hat{j} + 1) + A(\hat{i} + 1, \hat{j}) \right\}_{\hat{i}, \hat{j}} \right)^{\Sigma}(i, j) \\
+        &= \sum_{\substack{\hat{i} \in \{i, \dots, n - 1\} \\ \hat{j} \in \{0, \dots, j - 1\}}} { A(\hat{i}, \hat{j} + 1) - A(\hat{i}, \hat{j}) - A(\hat{i} + 1, \hat{j} + 1) + A(\hat{i} + 1, \hat{j}) } .
+    \end{align*}%
+    By splitting the sum on every term, changing indexes in the sum and using the definition of the $\Sigma$-operator, it is found that
+    \begin{align*}
+      (A^{\Box})^{\Sigma}(i, j) &=
+        \begin{aligned}
+          &A^{\Sigma}(i, j + 1) - \sum_{\mathclap{\hat{j} \in \{0, \dots, j\}}} A(n, \hat{j}) - \sum_{\mathclap{\hat{i} \in \{i, \dots, n\}}} {A(\hat{i}, 0)} \\
+          - &\left( A^{\Sigma}(i, j) - \sum_{\mathclap{\hat{j} \in \{0, \dots, j - 1\}}} A(n, \hat{j}) \right) \\
+          - &\left( A^{\Sigma}(i + 1, j + 1) - \sum_{\mathclap{\hat{i} \in \{i + 1, \dots, n\}}} A(\hat{i}, 0) \right) \\
+          + &A^{\Sigma}(i + 1, j)
+        \end{aligned} \\
+        &= \sum_{\hat{i} \in \{i, \dots, n\}} A(\hat{i}, j) - \sum_{\hat{i} \in \{i + 1, \dots, n\}} A(\hat{i}, j) - A(n, j) - A(i, 0) \\
+        &= A(i, j) - A(n, j) - A(i, 0).
+    \end{align*}
+    Therefore a matrix is simple iff $\forall i, j: A(i, 0) = -A(n, j)$ iff $\forall i, j: A(i, 0) = A(n, j) = 0$.
+    \todo{Should the last iff be more detailed?}
+  \end{proof}
+\end{claim}
+%
+\begin{mydef}[\reftiskin{p. 1288}{Definition 2.4}]
+  A matrix $A$ is called Monge if $A^{\Box}$ is non-negative.
+\end{mydef}
+\begin{mydef}[\reftiskin{p. 1288}{Definition 2.6}]
+  A square matrix $A$ is called unit-Monge if $A^{\Box}$ is a permutation matrix.
+\end{mydef}
+It follows clearly that any unit-Monge matrix is also Monge since the identity matrix has no negative entries. The following lemma characterizes the unit-Monge matrices.
+\begin{lemma}[\refbook{p. 10}{Lemma 2.11}]
+  \todo{Some statement}
+  \begin{proof}
+    \todo{Some proof...}
+  \end{proof}
+\end{lemma}
+Notice that if a matrix $A$ is both simple and unit-Monge (from now on denoted simple unit-Monge), then from the unit-Monge property, there exists some permutation matrix $P$ such that $P = A^{\Box}$, and by applying the $\Sigma$-operator and using the simple property, it is found that $P^\Sigma = (A^{\Box})^{\Sigma} = A$. Therefore a simple unit-Monge matrix can be represented in linear space by a permutation matrix.
+
+An important observation required for the algorithm described in \cref{sec:algorithm:min-mult-two-unit-monge} is the following.
+\begin{lemma}
+  Given a permutation matrix of size $n$, then given the value of $P^{\Sigma}(i, j)$ for some $i, j \in \{0, \dots, n\}$, the adjacent entries $P^{\Sigma}(i \pm 1, j), P^{\Sigma}(i, j \pm 1)$ where they exist, can be computed in constant time.
+  \begin{proof}
+    Because a permutation matrix $P$ only contains a single $1$ in any row or column, the value of adjacent entries in $P^{\Sigma}$ can only differ by either $-1$, $0$ or $1$. Determining which is the case is easy by looking at the query direction and in which column (row) the $1$ entry in $P$ is located.
+
+    For example, to query the entry to the right of the given entry, it is easily seen that
+    \begin{align*}
+      P^{\Sigma}(i, j + 1) &= \sum_{\substack{\hat{i} \ in \{i, \dots, n - 1\} \\ \hat{j} \in \{0, \dots, j\}}} P(\hat{i}, \hat{j})
+        = \sum_{\substack{\hat{i} \ in \{i, \dots, n - 1\} \\ \hat{j} \in \{0, \dots, j - 1\}}} P(\hat{i}, \hat{j}) + \sum_{\hat{i} \in \{i, \dots, n - 1\}} P(\hat{i}, j) \\
+        &= P^{\Sigma}(i, j) + \begin{cases}
+            1  & \text{if position of $1$ in $j$'th row of $P \geq i$} \\
+            0  & \text{o/w}
+          \end{cases},
+    \end{align*}
+    where the latter can be calculated in $O(1)$ time by assumption of constant query time on permutation matrices.
+  \end{proof}
+\end{lemma}
+
+\section{Algorithm}
+The algorithm follows the steps of \todo{ref}, however instead of directly computing the edit distance between the two input SLPs, the longest common subsequence (LCS) between the two SLPs will be computed. This is done because it turns out that it is easier to succinctly represent the DIST tables for the LCS problem, in such a way that computations can efficiently be performed.
+
+\begin{mydef}
+  In the longest common subsequence (LCS) problem two input strings (or SLPs) $\str{A}{0}{m}$ and $\str{B}{0}{n}$ are given, and \todo{...}
+\end{mydef}
+
+The LCS problem can be seen as the edit distance, but where substitutions are not allowed. The simple algorithm for calculating the LCS between two strings is almost the same as the simple algorithm for computing the edit distance given in \cref{sec:intro:simple}. Therefore, the same terminology with the dynamic programming grid and $\DIST$ tables also applies for the LCS problem. From this point on the dynamic programming grid and $\DIST$ tables will always refer to the ones in the LCS problem. 
+
+In order for this technique to work, it is required that the edit distance reduces to the LCS problem with only a constant overhead in time and space consumption. The reduction is given in \cite{DBLP:journals/corr/abs-0707-3619} \todo{describe general case?} where it is called the \textit{blow-up technique}.
+
+\paragraph{Blow-up technique}
+The idea is to "blow-up" the input strings by a constant fraction by inserting special characters, which in a suitable way will relate the length of the LCS of the transformed strings to the edit distance of the original input strings.
+
+The transformation is as follows: All symbols $a \in \Sigma$ in the inputs strings are transformed to $a\$$, where $\$ \not\in \Sigma$. \todo{Describe/prove why this work.}
+
+This approach results in the strings becoming a factor of $2$ longer. For a simple $O(N^2)$ implementation of the LCS algorithm, this would result in a factor of $2^2 = 4 = O(1)$ slow down. However, for LCS working on compressed strings, the penalty might not be as severe, since the blown up strings compresses well. This follows from, and also gives an algorithm for performing the blow-up: Every terminal in the SLP (of which there are $|\Sigma|$) is replaced by a non-terminal producing the original terminal and a new terminal producing the $\$$ symbol. This results in only $|\Sigma| + 1$ new productions being added to the SLP encoding of the string.
+
+\subsection{Selection of productions}
+\label{sec:algorithm:select-productions}
 Each of the SLPs are blocked individually using the same algorithm.
 \begin{itemize}
   \item First the SLP is traversed bottom up, where all productions are annotated with the derived string length, and if the derived string is of length less than $2x$, the string is associated to the production. A production is marked as a \textit{key production} iff it derives a string of length greater than $x$ and both of its children derived strings of length strictly less than $x$. All these key productions are selected, which covers some part of the string.
@@ -271,7 +419,8 @@ Each of the SLPs are blocked individually using the same algorithm.
   \item Notice that a given production is only associated one unique string. For the key productions this is trivial, and for the second type it follows since the same key productions are selected in different parts of the strings, resulting in the paths between the key productions being unique, so that they always produces the same result.
 \end{itemize}
 
-\subsubsection{Building DIST repository}
+\subsection{Building DIST repository}
+\label{sec:algorithm:building-DISTs-overview}
 Build by recursively merging DIST tables for sub-productions of the selected productions. Notice that generating DIST tables for a pair of terminals is trivial.
 \begin{description}
   \item[Productions associated with entires string the derive] This is the case for all key productions. Say a DIST table needs to be constructed for two non-terminals $a$ and $b$. Call the left and right child of the productions respectively $a_L$, $a_R$, $b_L$ and $b_R$. The DIST table is constructed by first recursively constructing the DIST tables for all combinations of the children, ie. $(a_L, b_L), (a_L, b_R), (a_R, b_L)$ and $(a_R, b_R)$. Then the DIST from $a$ and $b$ can be obtained by merging as shown in Figure~\ref{fig:compression:dist:merge}.
@@ -286,7 +435,8 @@ Build by recursively merging DIST tables for sub-productions of the selected pro
 \end{description}
 Since the number of productions is bounded by $O(n^2)$, the time for constructing the dist repository can be build in time $O(n^2 M(x))$ using memorization, where $M(x)$ denotes the time for merging two DIST tables, which for a rational scoring function and the succinct DIST representation takes time $O(x \log{x})$. In total $O(n^2x\log{x})$ time is spend.
 
-\subsubsection{Filling out the dynamical programming table}
+\subsection{Filling out the dynamical programming table}
+\label{sec:algorithm:filling-grid-overview}
 The dynamical programming table is filled from top to bottom, left to right. This is done by keeping two columns of the table in memory (could be reduced to a little more than one column), and then $O(x)$ of a row. This specifies the inputs $I$ to the dist table, and the output can then be computed by
 \begin{equation}
   \label{eqn:dist-application}
@@ -296,14 +446,9 @@ since the DIST table stores the shortest path from input $i$ to output $j$. Eval
 
 If an explicit representation of the DIST tables is used, then this can be evaluated in time $O(x)$ using the SMAWK algorithm (however, this would increase the time needed for constructing the DIST tables).
 
-\subsubsection{Blow-up method}
-In order to improve the theoretical running time of the algorithm, a succinct representation of the DIST tables will be employed. It turns out, that it is much easier to make a succinct encoding of the DIST tables for the related problem Longest Common Subsequence (LCS).
+\section{Representation of $\DIST$s}
+As mentioned in the previous section, representing the $\DIST$s in a succinct way is crucial in order to obtain the desired running time \todo{some more trash talk?}.
 
-The LCS problem can be seen as the edit distance, but where substitutions are not allowed. The approach taken by \todo{cite} is to use whats known as the blow-up technique, where extra special characters are inserted in the input strings, in order to mimic the edit distance metric. This can be done by transforming every symbol $a \in \Sigma$ in the strings to $a\$$, where $\$ \not\in \Sigma$. \todo{Describe/prove why this works.}
-
-This approach results in the strings becoming a factor of $2$ longer. For a simple $O(n^2)$ implementation of the LCS algorithm, this would result in a factor of $2^2 = 4$ slow down. However, for LCS working on compressed strings, the penalty might not be as severe, since the blown up strings compresses well if the original strings compresses well. This follows from, and also gives an algorithm for performing the blow-up, since every terminal in the SLP can be replaced by a non-terminal producing the original terminal and a new terminal producing the $\$$ symbol. Assuming that the SLP contains $T$  terminals before the blow-up, a total of $T + 1$ new productions are added to the SLP.
-
-\subsubsection{Representation of DIST table}
 Given two strings $A$ and $B$, a succinct representation of the LCS DIST tables should be constructed. By definition of the $\DIST$ tables it is known that \todo{Upper and lower triangle not well-defined for $\DIST$! Fix this.}
 \[
   \DIST_{A,B}[i, j] = \left\{
@@ -316,7 +461,8 @@ Given two strings $A$ and $B$, a succinct representation of the LCS DIST tables 
   \right. ,
 \]
 that is, the $\DIST$ can be summarized as the LCS between all prefix-suffix pairs of the two strings $A$ and $B$. A different way of describing the LCS between these prefix-suffix pairs, is by the following definition.
-\begin{mydef}
+
+\begin{mydef}[\refbook{p.-48}{Definition 4.8}]
   \label{def:H-table}
   Let $\str{A}{0}{m}$ and $\str{B}{0}{n}$ be strings, then
   \[
@@ -325,7 +471,7 @@ that is, the $\DIST$ can be summarized as the LCS between all prefix-suffix pair
   for $i,j \in \{ 0, \dots, m + n \}$ where $? \not\in \Sigma$ denotes a wildcard character matching all other symbols.
 \end{mydef}
 The precise correspondence between the $H$-table of \cref{def:H-table} and the $\DIST$ tables, is given by the following lemma.
-\begin{lemma}
+\begin{lemma}[\refbook{p.-48}{mentioned but not proved}]
   \label{lemma:dist-H-relation}
   \[
   DIST[i, j] = H(i, j) + \left\{
@@ -366,12 +512,28 @@ The precise correspondence between the $H$-table of \cref{def:H-table} and the $
     \end{description}
   \end{proof}
 \end{lemma}
-An important property of the $H$-table is that it is simple unit-monge \todo{Cite (and prove?)} \todo{Introduce all the matrix terminologies}.
-This means, that $H_{A,B}(i, j) = j - (i - m) - P^{\Sigma}(i, j)$ for some permutation matrix $P$ of size $m + n - 1$. Therefore, the permutation matrix $P$, which can be represented in linear space, encodes the $H$-table, and thereby also the $\DIST$-table.
+An important property of the $H$-table is that it is almost simple unit-Monge.
+\begin{lemma}[\refbook{p.-49}{Theorem 4.10}]
+  \label{lemma:H-permutation-representation}
+  Given a $H$-table $H$ satisfying \cref{def:H-table}, there exists a permutation matrix $P$ of size $m + n - 1$ such that
+  \[
+    H(i, j) = j - (i - m) - P^{\Sigma}(i, j).
+  \]
+  Therefore, the permutation matrix $P$, which can be represented in linear space, encodes the $H$-table, and thereby also the $\DIST$-table.
 
+  \begin{proof}
+    Define the following matrix to be a small pertubation of the $H$-table
+    \[
+      N(i, j) := j - (i - m) - H(i, j).
+    \]
+    \todo{Note that N is simple}
+    \todo{Note that N is Monge + more?}
+    Therefore $N = P^{\Sigma}$ for some permutation matrix $P$, which completes the proof.
+  \end{proof}
+\end{lemma}
 What remains is to ensure that the merge and apply operations operations on the $\DIST$ table can be computed efficiently using only the permutation matrix representation.
 
-\subsubsection{Merging of $\DIST$ tables}
+\subsection{Merging of $\DIST$ tables}
 The following definition will come in handy:
 \begin{mydef}
   Let $P_{A'}$ and $P_{A''}$ be permutation matrices describing the $\DIST$ tables for the strings $\str{A'}{0}{m'}$ and $\str{A''}{0}{m''}$ respectively. Then define the following index change matrices
@@ -401,7 +563,7 @@ The following convenient fact that will be useful later, follows directly from t
 \]
 where $\varsigma$ denotes the $\Sigma$ operator, but where the last row and the first column are removed.
 
-\paragraph{Vertical merge}
+\subsubsection{Vertical merge}
 Now it will be explained how a vertical merge between $A'$ and $A''$ can be found only giving the succinct representation of the DIST tables $\DIST_{A',B}$ and $\DIST_{A'',B}$. From a straight forward analysis of the LCS graph described by the $\DIST$ tables, it is found that:
 \begin{claim}
   \label{claim:dist-vertical-merge}
@@ -454,12 +616,12 @@ Therefore \cref{lemma:dist-H-relation} now implies that $H_{A'A'',B}(i, j) = \ma
                     &= j - (i - m) + \max_k \left\{ -\left( P_{A'}^{\Sigma}(i - m'', k) + P_{A''}^{\Sigma}(k + m'', j) \right)  \right\} \\
                     &= j - (i - m) - \min_k \left\{ P_{A'}^{\Sigma}(i - m'', k) + P_{A''}^{\Sigma}(k + m'', j) \right\}.
 \end{align*}
-Now \cref{def:H-table} gives that
+Now \cref{lemma:H-permutation-representation} gives that
 \begin{align*}
-  P_{A'A''}^{\Sigma}(i - m'', j) &= \min_k \left\{ P_{A'}^{\Sigma}(i - m'', k) + P_{A''}^{\Sigma}(k + m'', j) \right\} \\
-                                 &= \min_k \{ {IC'_{P_{A'}}}^{\Sigma}(i, k) + {IC''_{P_{A''}}}^{\Sigma}(k, j) \},
+  P_{A'A''}^{\Sigma}(i, j) &= \min_k \left\{ P_{A'}^{\Sigma}(i - m'', k) + P_{A''}^{\Sigma}(k + m'', j) \right\} \\
+                           &= \min_k \{ {IC'_{P_{A'}}}^{\Sigma}(i, k) + {IC''_{P_{A''}}}^{\Sigma}(k, j) \},
 \end{align*}
-which reduces this case to min-multiplying two simple unit-Monge matrices, which can be solved in time $O(n \log{n})$ by \todo{cite}.
+which reduces this case to min-multiplying two simple unit-Monge matrices, which can be solved in time $O(n \log{n})$ by an algorithm given by \cite{Tiskin:2010:FDM:1873601.1873704} and described in \cref{sec:algorithm:min-mult-two-unit-monge}.
 
 For case \circled{1} where $i \leq m'', j \leq n + m''$, the definition of the $\DIST$ table yields
 \begin{align*}
@@ -578,8 +740,8 @@ Notice that the second case always dominates the first, hence the second case ca
   \circled{*} &=  \begin{aligned} \min
                     &\left\{
                       n + m'' + j - n - m'',
-                      \min_{k \in \{n + m'', j\}} {j - k + P_{A'}^{\Sigma}(i - m'', k - m'')}, \right.
-                    \left.
+                      \min_{k \in \{n + m'', j\}} {j - k + P_{A'}^{\Sigma}(i - m'', k - m'')}, \right. \\
+                    &\left.
                       \min_{k \in \{j, \dots, n + m\}} {P_{A'}^{\Sigma}(i - m'', k - m'')}
                     \right\}
                   \end{aligned} \\
@@ -609,11 +771,19 @@ This eliminates the middle case of the minimization in $\circled{*}$. Moreover, 
 \[
   P_{A'}^{\Sigma}(i - m'', j - m'') \leq (j - m'') + P_{A'}^{\Sigma}(i - m'', 0) = j - m'' \leq j,
 \]
-which directly gives that $\circled{*} = P_{A'}^{\Sigma}(i - m'', j - m'')$. Therefore the min-multiplication can also be used to solve case \circled{2}. Therefore two $\DIST$ tables can be merged vertically by a single min-multiplication taking $O(x \log{x})$ time.
+which directly gives that $\circled{*} = P_{A'}^{\Sigma}(i - m'', j - m'')$. Therefore the min-multiplication can also be used to solve case \circled{2}. The above calculations establish the following important theorem.
+\begin{theorem}[\refbook{p.-55}{Theorem 4.19}]
+  Given two $\DIST$ tables $DIST_{A',B}$ and $\DIST_{A'',B}$ with representations $P_{A'}$ and $P_{A''}$ they can be merged into $\DIST_{A'A'',B}$ with representation $P_{A'A''}^{\Sigma}$ by setting
+  \[
+    P_{A'A''} = IC'_{P_{A'}} \boxdot IC''_{P_{A''}} .
+  \]
+\end{theorem}
 
-\paragraph{Horizontal merge}
+ Therefore two $\DIST$ tables can be merged vertically by a single min-multiplication taking $O(x \log{x})$ time using the described in \cref{sec:algorithm:min-mult-two-unit-monge}.
+
+\subsubsection{Horizontal merge}
 The horizontal merge will be carried out by means of a vertical merge. In order to do this, it should be efficient to compute $\DIST_{B,A}$ from $\DIST_{A,B}$. It turns out that this indeed easy. In order to see this, first notice that
-\begin{claim}
+\begin{claim}[\refbook{p.-52}{Lemma 4.14, no proof}]
   \label{claim:H_string_switch_relation}
   For all $i, j \in \{0, \dots, n + m\}$ the following identity holds
   \[
@@ -660,20 +830,20 @@ The horizontal merge will be carried out by means of a vertical merge. In order 
   \label{claim:sum_top_described_as_sum_bottom}
   For all $i, j \in \{0, \dots, n + m\}$ it is the case that
   \[
-    \sum_{\substack{ \hat{i} \in \{i, \dots, n + m\} \\ \hat{j} \in \{ 0, \dots, j \}}} P_{B,A}(m + n - \hat{i}, m + n - \hat{j})
+    \sum_{\substack{ \hat{i} \in \{i, \dots, n + m - 1\} \\ \hat{j} \in \{ 0, \dots, j - 1 \}}} P_{B,A}(m + n - \hat{i}, m + n - \hat{j})
       = j - i + P_{B,A}^{\Sigma}(m + n - i, m + n - j)
   \]
   \begin{proof}
     Since $P_{B,A}$ is a permutation matrix, it contains exactly one $1$ in every row/column. Therefore the sum over the top-right area, can be found by taking the sum over the entire matrix and subtract the left and bottom part, and then add the double counted overlap \todo{See figure ...}. This gives that
     \begin{align*}
-      &\sum_{\substack{ \hat{i} \in \{i, \dots, n + m\} \\ \hat{j} \in \{ 0, \dots, j \}}} P_{B,A}(m + n - \hat{i}, m + n - \hat{j}) \\
-      = &(n + m) - (m + n - j) + ((m + n) - (m + n - i) + P_{B,A}^{\Sigma}(m + n - i, m + n - j)) \\
+      &\sum_{\substack{ \hat{i} \in \{i, \dots, n + m - 1\} \\ \hat{j} \in \{ 0, \dots, j - 1 \}}} P_{B,A}(m + n - \hat{i}, m + n - \hat{j}) \\
+      = &(n + m) - (m + n - j) - ((m + n) - (m + n - i)) + P_{B,A}^{\Sigma}(m + n - i, m + n - j) \\
       = &j - i + P_{B,A}^{\Sigma}(m + n - i, m + n - j).
     \end{align*}
   \end{proof}
 \end{claim}
 
-\begin{lemma}
+\begin{lemma}[\refbook{p.-52}{Lemma 4.14, no proof}]
   \label{lemma:swap_strings}
   Assuming $P_{A,B}$ is the permutation matrix encoding $\DIST_{A,B}$, the $\DIST$-table $\DIST_{B,A}$ is encoded by the permutation matrix $P_{B,A}$ where,
   \[
@@ -683,9 +853,9 @@ The horizontal merge will be carried out by means of a vertical merge. In order 
   \begin{proof}
     It is needed to show that the $H$-table corresponding to the permutation matrix $P_{B,A}$ conforms to \cref{claim:H_string_switch_relation}.
     \begin{align*}
-      H_{A,B}(i, j) &= j - (i - m) - P_{A,B}(i, j) \\
-        &= j - (i - m) - \sum_{\substack{ \hat{i} \in \{i,\dots,n+m\} \\ \hat{j} \in \{0, \dots, j\}}} P_{A,B}(\hat{i}, \hat{j}) \\
-        &= j - (i - m) - \sum_{\substack{ \hat{i} \in \{i, \dots, n + m\} \\ \hat{j} \in \{ 0, \dots, j \}}} P_{B,A}(m + n - \hat{i}, m + n - \hat{j}) \\
+      H_{A,B}(i, j) &= j - (i - m) - P_{A,B}^{\Sigma}(i, j) \\
+        &= j - (i - m) - \sum_{\substack{ \hat{i} \in \{i,\dots,n+m - 1\} \\ \hat{j} \in \{0, \dots, j - 1\}}} P_{A,B}(\hat{i}, \hat{j}) \\
+        &= j - (i - m) - \sum_{\substack{ \hat{i} \in \{i, \dots, n + m - 1\} \\ \hat{j} \in \{ 0, \dots, j - 1 \}}} P_{B,A}(m + n - \hat{i}, m + n - \hat{j}) \\
         &\overset{\text{\cref{claim:sum_top_described_as_sum_bottom}}}{=} j - (i - m) - (j - i + P_{B,A}^{\Sigma}(m + n - i, m + n - j)) \\
         &= m - P_{B,A}^{\Sigma}(m + n - i, m + n - j) \\
         &= m - \left( (n + m - j) - ((n + m - i) - n) - H_{B,A}(n + m - i, n + m - j) \right) \\
@@ -695,9 +865,9 @@ The horizontal merge will be carried out by means of a vertical merge. In order 
   \end{proof}
 \end{lemma}
 %
-Follow \cref{lemma:swap_strings} a horizontal merge can be carried out by first swapping the strings, then performing a vertical merge, and then swapping the strings of the merged $\DIST$ table again. Since swapping the strings runs in time $O(x)$, the total time of a horizontal merge is bounded by the time of the vertical merging. Hence, the total time of either of the merge routines is bounded by $O(x\log{x})$.
+Following \cref{lemma:swap_strings} a horizontal merge can be carried out by first swapping the strings, then performing a vertical merge, and then swapping the strings of the merged $\DIST$ table again. Since swapping the strings runs in time $O(x)$, the total time of a horizontal merge is bounded by the time of the vertical merging. Hence, the total time of either of the merge routines is bounded by $O(x\log{x})$.
 
-\subsubsection{Application of $\DIST$ tables}
+\subsection{Application of $\DIST$ tables}
 When filling out a block in the grid with input $I$, the output is given by
 \begin{align*}
   O[j] &= \max_i \left\{ I[i] + \DIST[i, j] \right\} \\
@@ -721,17 +891,27 @@ When filling out a block in the grid with input $I$, the output is given by
       \end{array}
     \right. .
 \end{align*}
-Hence, the output can be evaluated by max-multiplying the $H$ table with a slight perturbation of the input array, followed by an addition for every resulting output. \todo{cite} gave a linear time algorithm for max-multiplying an arbitrary vector with a simple unit-Monge matrix \todo{Describe algorithm?}. This gives a linear time algorithm for applying the $\DIST$ table.
+Hence, the output can be evaluated by max-multiplying the $H$ table with a slight perturbation of the input array, followed by an addition for every resulting output. \cite{Gawrychowski:2012:FAC:2422024.2422048} gave a linear time algorithm for max-multiplying an arbitrary vector with a $H$-table which is described in \cref{sec:algorithm:max-mult-H-table-with-vector}. This gives a linear time algorithm for applying a $\DIST$ table.
 
-\subsubsection{Max-multiplication unit-Monge matrix with vector}
-\todo{Move somewhere else?}
+\section{Efficient simple unit-Monge operations}
 
-\paragraph{Interval Union Find} As mentioned in the description of the algorithm, an interval union find data-structure is required. The data-structure implemented is the one of \cite{Itai06lineartime}, where every operation takes amortized constant time. Note however that the amortized constant time relies on blocking the input into blocks of size $\Theta(\log{n})$. In the actual implementation, it has been chosen to always use block sizes of machine word $64$ bits, which in practice is a constant. This choice will always perform superior in practice due to practical limit on the input size, but the theoretical running time of the algorithm becomes \todo{calculate this}.
+\subsection{Min-multiplication of two simple unit-Monge matrices}
+\label{sec:algorithm:min-mult-two-unit-monge}
+\todo{Description / proof of the algorithm.}
+
+\subsection{Max-multiplication of $H$-table with vector}
+\label{sec:algorithm:max-mult-H-table-with-vector}
+\todo{Description / proof of the algorithm.}
+
+\subsubsection{Interval Union Find}
+\label{sec:algorithm:interval-union-find}
+\todo{Describe the algorithm.}
+
+As mentioned in the description of the algorithm, an interval union find data-structure is required. The data-structure implemented is the one of \cite{Itai06lineartime}, where every operation takes amortized constant time. Note however that the amortized constant time relies on blocking the input into blocks of size $\Theta(\log{n})$. In the actual implementation, it has been chosen to always use block sizes of machine word $64$ bits, which in practice is a constant. This choice will always perform superior in practice due to practical limit on the input size, but the theoretical running time of the algorithm becomes \todo{calculate this}.
 
 \section{Benchmarks}
 
-
-From the benchmark section of the string compression chapter \todo{ref}, it was found that almost all "real-world" strings, was only compressible by a constant factor (up to the trivial repetition of the string due to the fixed alphabet size \todo{experiment / comment on this?} \todo{Argue that this effect is negligible in practice (empirically determined on DNA input), and that the $\sqrt{\log{\frac{N}{n}}}$ parts eats most of the advantage}). That is, for all realistic DNA related applications it has empirically been found that $n = cN$ for some $c \in \mathbb{R}$. In this case, the running times of the algorithm is
+From the benchmark section of the string compression chapter (\cref{sec:compression:benchmarks}), it was found that almost all "real-world" strings, was only compressible by a constant factor (up to the trivial repetition of the string due to the fixed alphabet size \todo{experiment / comment on this?} \todo{Argue that this effect is negligible in practice (empirically determined on DNA input), and that the $\sqrt{\log{\frac{N}{n}}}$ parts eats most of the advantage}). That is, for all realistic DNA related applications it has empirically been found that $n = cN$ for some $c \in \mathbb{R}$. In this case, the running times of the algorithm is
 \[
   O\left( nN\sqrt{\log{\frac{N}{n}}} \right) = O\left( c \cdot N^2 \sqrt{\log{\frac{N}{cN}}} \right) = O(N^2),
 \]
@@ -743,6 +923,7 @@ which is also the running time of the simple algorithm. Therefore the practical 
 Summarize findings.
 
 \section{Further work}
+\label{sec:conclusion:further-work}
 During the project, a number of ideas for potentially improving (mostly of practical concerns) the approach of computing edit distance based on SLPs have been considered. These ideas are shortly described and motivated in the following list:
 
 \begin{itemize}
@@ -754,7 +935,7 @@ During the project, a number of ideas for potentially improving (mostly of pract
 
   \item Consider if the compressed strings could be reused, such that a lot of compressed strings can be entangled into one SLP. This would make it possible for a lot of strings to share DIST tables, and also possible do a better compression of highly similar strings. This could be of interest when computing the edit distance between all pairs of a large number of sequences, which is useful when approximating a phylogeny from sequence data.
 
-  \item As mentioned in \todo{ref}, the space consumption of the SLP has a very high constant when measured in terms of the number of productions in the SLP. As mentioned in the report, this is directly will not make the approach applicable to strings not compressing well, however a succinct representation of the SLP for given strings may be of interest in other problems working on SLPs.
+  \item As mentioned in \cref{ch:compressing-strings}, the space consumption of the SLP has a very high constant when measured in terms of the number of productions in the SLP. As mentioned in the report, this is directly will not make the approach applicable to strings not compressing well, however a succinct representation of the SLP for given strings may be of interest in other problems working on SLPs.
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

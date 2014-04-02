@@ -15,7 +15,7 @@ using namespace std::chrono;
 
 namespace Benchmark {
   struct Stats {
-    Stats() : A_derivedLength(0), B_derivedLength(0), A_productions(0), B_productions(0), A_x(0), A_y(0) { }
+    Stats() : A_derivedLength(0), B_derivedLength(0), A_productions(0), B_productions(0), A_x(0), A_y(0), result(0) { }
     
     uint64_t A_derivedLength;
     uint64_t B_derivedLength;
@@ -23,6 +23,7 @@ namespace Benchmark {
     uint64_t B_productions;
     uint64_t A_x;
     uint64_t A_y;
+    uint64_t result;
   };
   
   struct Measurement {
@@ -172,9 +173,9 @@ namespace Benchmark {
              << endl;
     }
     
-    const uint64_t maxN = 100000;
+    const uint64_t maxN = 10000;
     for (uint64_t n = 10; n <= maxN; n = 1.7 * n) {
-      cout << "Testing n = " << n << endl;
+      cout << left << "Testing n = " << setw(8) << n << flush;
       
       string a = read_seqs_from_files({ "genome1.fa" })[0].substr(0, n);
       string b = read_seqs_from_files({ "genome2.fa" })[0].substr(0, n);
@@ -200,6 +201,8 @@ namespace Benchmark {
           measurements[stage].first.push_back(measurement);
         }
       }
+      
+      cout << "Result: " << stats.result << endl;
       
       // Compute interesting results from measurements
       for (uint16_t stage = 0; stage < stages.size(); ++stage) {

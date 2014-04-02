@@ -45,8 +45,8 @@ int main(int argc, char* argv[])
     const double xfactor = 3;
     const uint16_t trials = 1;
     
+    Benchmark::run_benchmark<Simple::EditDistance>(trials, xfactor);
     Benchmark::run_benchmark<Compression::LCSBlowUpAligner<SLP::LZSLPBuilder, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>>>(trials, xfactor);
-    // Benchmark::run_benchmark<Simple::EditDistance>(trials, xfactor);
     
     // Benchmark::run_benchmark<Compression::LCSBlowUpAligner<SLP::SimpleCompressionSLPBuilder, DIST::MergingDISTRepository<DIST::SimpleLCSDISTTable, DIST::SimpleLCSDISTMerger>>>(trials, x);
     

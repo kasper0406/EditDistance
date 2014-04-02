@@ -259,7 +259,10 @@ namespace Compression {
         Bpos += b_len;
         if (Bpos == this->slpB_->derivedLength()) {
           const int64_t result = block_row[block_row.size() - 1];
-          return (this->slpA_->derivedLength() + this->slpB_->derivedLength()) / 2 - result;
+          const uint64_t res = (this->slpA_->derivedLength() + this->slpB_->derivedLength()) / 2 - result;
+          if (this->stats != nullptr)
+            this->stats->result = res;
+          return res;
         }
       }
       
@@ -300,7 +303,7 @@ namespace Compression {
        */
       
       auto findX = [this] (SLP::SLP* slp) -> int64_t {
-        // return min((int64_t)50, slp->derivedLength());
+        return min((int64_t)5, slp->derivedLength());
         
         const int64_t f = max((int64_t)2, slp->derivedLength() / slp->productions());
         const int64_t x = max(f / (int64_t)sqrt(log2(f)), min((int64_t)5, slp->derivedLength()));

@@ -7,15 +7,19 @@
 #include <iostream>
 #include <iomanip>
 
+#include "../benchmark/benchmarker.hpp"
+
 namespace Simple {
   using namespace std;
   
   class EditDistance {
   public:
-    EditDistance(string a, string b) : a_(a), b_(b) { }
+    EditDistance(string a, string b) : a_(a), b_(b), stats(nullptr) { }
     
-    static vector<pair<string, function<int64_t()>>> run(tuple<string, string, int64_t> input) {
+    static vector<pair<string, function<int64_t()>>> run(tuple<string, string, int64_t> input, Benchmark::Stats* stats = nullptr) {
       EditDistance* simple = new EditDistance();
+      simple->stats = stats;
+      
       tie(simple->a_, simple->b_, ignore) = input;
       
       auto compute = [simple]() -> int64_t {
@@ -69,7 +73,10 @@ namespace Simple {
         swap(prev, cur);
       }
       
-      return prev[a_.size()];
+      const uint64_t res = prev[a_.size()];
+      if (this->stats != nullptr)
+        this->stats->result = res;
+      return res;
     }
     
     static string name() {
@@ -84,6 +91,7 @@ namespace Simple {
     EditDistance() { }
     
     string a_, b_;
+    Benchmark::Stats* stats;
   };
   
   class LCS {
