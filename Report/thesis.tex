@@ -270,7 +270,35 @@ It is required to be able to efficiently find the nodes in the current SLP which
   \caption{Algorithm for generating $\log{n}$ approximation of minimal SLP of input string $\str{A}{0}{m}$.}
 \end{algorithm}
 
-The only step in the SLP construction that is not fully specified in \todo{cite}, is how to compute the LZ-factorization of a string efficiently. They only state that it can be done efficiently using a suffix tree. Although the algorithm is very simple, it is included in this report for completeness. \todo{explain}
+The only step in the SLP construction that is not fully specified in \todo{cite}, is how to compute the LZ-factorization of a string efficiently. They only state that it can be done efficiently using a suffix tree. Although the algorithm is very simple, it is included in this report for completeness.
+
+First the suffix tree for the input string is generated. Then every node $v$ in the tree is annotated with the first index in the string where the substring spelled out from the root to $v$ occurs. This is done by traversing the tree bottom up where all leafs are marked by their suffix numbers, and for any parent the minimum of their children is chosen.
+
+Having the described suffix tree, the LZ-factorization can be found by searching in the suffix tree guided by a start position in the string and checking if the corresponding path was already seen in the string. Pseudo code for the algorithm is given in \cref{alg:compression:lz-factorization}.\todo{Implement this in code instead of slowscanning!}
+
+\begin{algorithm}[H]
+  \label{alg:compression:lz-factorization}
+  $LZFactors = \emptyset$\;
+  $i = 0$\;
+  \While{$i < m$}{
+    $start = i, edgeLength = 0$\;
+    $currentNode = Root$\;
+    \While{$FirstSeen[Root \to currentNode] < start$ and $i < m$}{
+      $edgeFollowed, newNode = \operatorname{Follow}(curPos, A[i])$\;
+      $edgeLength =$ length of $edgeFollowed$\;
+      $currentNode = newNode$\;
+      $i = i + edgeLength$\;
+    }
+    \eIf{$edgeLength == 0$}{
+      $LZFactors = LZFactors \cup \{ A[start] \}$\;
+      $i = i + 1$\;
+    }{
+      $LZFactors = LZFactors \cup \{ \substr{A}{start}{i - edgeLength} \}$\;
+    }
+  }
+  \Return $LZFactors$
+  \caption{Algorithm for generating the LZ-factorization of a given input string $A$. The algorithm assumes a $FirstSeen$ array that for a given node gives the first time its associated string occurs in the string.}
+\end{algorithm}
 
 \section{Benchmarks}
 \label{sec:compression:benchmarks}
@@ -294,7 +322,7 @@ Almost all matrices considered in this report will be square matrices, ie. of si
 \end{mydef}
 The latter constraint on the query time of the $1$ entry is required to achieve the running time of some of the algorithms (ex \todo{ref}). The way permutation matrices are represented in the implementation, is that the row and column permutation is specified using $2n = O(n)$ machine words. This directly gives the constant time query to the $1$ entry of a given row/column.
 
-The algorithm stores a lot of permutation matrices in memory. It is therefore interesting to try to minimize the space consumption of these matrices. However, it turns out that the space consumption of $O(n)$ machine words is asymptotically optimal: A permutation matrix of size $n$ can express $n!$ different permutation matrices (since there are $n!$ different permutations of the rows of the identity matrix), hence at least $\Omega(\log{n!})$ bits are needed to represent a permutation matrix. By Sterling's approximation it is known that
+The algorithm stores a lot of permutation matrices in memory. It is therefore interesting to try to minimize the space consumption of these matrices. However, it turns out that the space consumption of $O(n)$ machine words is asymptotically optimal: A permutation matrix of size $n$ can express $n!$ different permutation matrices (since there are $n!$ different permutations of the rows of the identity matrix), hence at least $\Omega(\log{n!})$ bits are needed to represent a permutation matrix. By Stirling's approximation it is known that
 \[
   \ln{n!} = n \ln{n} - n + O(\ln{n}),
 \]
