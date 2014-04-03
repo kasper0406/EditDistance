@@ -203,7 +203,7 @@ This section gives a very brief overview of the algorithm given by \cite{Gawrych
 
 Another way of compressing a string, is to compress it to what is known as a straight-line program (SLP). A more formal definition of a SLP will be given in \cref{ch:compressing-strings}, for now it is sufficient to note that a SLP is a restricted context-free grammar.
 
-The algorithm can be seen as a generalization of the 4-Russian approach, where the blocking of the dynamic programming table is based on the productions of the SLPs, so that reused productions results in reusable blocks when filling out the grid. The algorithm can be summarized in the following steps:
+The algorithm can be seen as a generalization of the 4-Russian approach, where the blocking of the dynamic programming table is based on the productions of the SLPs, so that reused productions result in reusable blocks when filling out the grid. The algorithm can be summarized in the following steps:
 \begin{itemize}
   \item Construct SLP representations $\SLP{A}$, $\SLP{B}$ of the two input strings $\str{A}{0}{m}$ and $\str{B}{0}{n}$. The better the compression scheme is able to compress the SLP representations the faster the algorithm will be. A natural trade-off arises in this step, namely the running time of the compression scheme versus the quality of the resulting compression. This step will be discussed in \cref{ch:compressing-strings}.
   \item Productions from the SLPs generating strings of length $O(x)$ for some fixed $x$ are selected in such a way that they cover the entire string without duplication. This can be done in $O(N)$ time by traversing the productions of the SLP bottom-up as described in \cref{sec:algorithm:select-productions}.
@@ -213,7 +213,7 @@ The algorithm can be seen as a generalization of the 4-Russian approach, where t
 
 \chapter{Compressing input strings}
 \label{ch:compressing-strings}
-There exist are large number of compression schemes for compressing strings, which spans both lossy and lossless schemes. Since it is desired that the edit distance algorithm always gives the correct result, only lossless compression schemes will be considered.
+There exist are large number of compression schemes for compressing strings, spanning both lossy and lossless schemes. Since it is desired that the edit distance algorithm always gives the correct result, only lossless compression schemes are considered.
 
 The algorithm examined in this thesis is working over straight-line programs (SLPs), whereby only compression to these formats are considered.
 \begin{mydef}
@@ -332,6 +332,7 @@ If the operators are applied in the opposite order, it will not always describe 
 \end{mydef}
 The set of simple matrices can be classified by the following claim.
 \begin{claim}[\reftiskin{p. 1288}{remark without proof}]
+  \label{claim:simple-matrix-characterization}
   A matrix $A$ of size $(n + 1) \times (n + 1)$ is simple iff $\forall i,j: A(n, j) = A(i, 0) = 0$, ie. iff the leftmost column and bottom row have all zero entries.
   \begin{proof}
     The proof follows almost directly by unfolding definitions. For all $i, j \in \{ 0, \dots, n \}$ it follows that%
@@ -364,23 +365,51 @@ The set of simple matrices can be classified by the following claim.
 \end{mydef}
 It follows clearly that any unit-Monge matrix is also Monge since the identity matrix has no negative entries. The following lemma characterizes the unit-Monge matrices.
 \begin{lemma}[\refbook{p. 10}{Lemma 2.11}]
-  \todo{Some statement}
+  \label{lemma:unit-monge-characterization}
+  Let $A \in \mathbb{N}^{(n + 1) \times (n + 1)}$ be a simple Monge matrix. Then $A$ is unit-Monge iff
+  \[
+    A(i, n) - A(i + 1, n) = 1 \quad \text{ and } \quad A(0, j + 1) - A(0, j) = 1
+  \]
+  for all $i, j \in \{0, \dots, n - 1\}$.
   \begin{proof}
-    \todo{Some proof...}
+    Since all entries of $A$ are natural numbers, the entries of $A^{\Box}$ are all integers directly by definition. Also, since $A$ is Monge, it is known that $A^{\Box}(i, j) \geq 0$ for all $i, j \in \{0, \dots, n - 1\}$. Therefore it can be noticed that $A^{\Box}$ is a permutation matrix iff
+    \[
+      \sum_{\hat{j} \in \{0, \dots, n - 1\}} A^{\Box}(i, \hat{j}) = 1
+      \quad \text{ and } \quad
+      \sum_{\hat{i} \in \{0, \dots, n - 1\}} A^{\Box}(\hat{i}, j) = 1
+    \]
+    for all $i, j \in \{0, \dots, n - 1\}$. Both of the sums can be written out to find that for all $i, j \in \{0, \dots, n - 1\}$:
+    \begin{align*}
+      \sum_{\hat{j} \in \{0, \dots, n - 1\}} A^{\Box}(i, \hat{j})
+        &= \sum_{\hat{j} \in \{0, \dots, n - 1\}} \left( A(i, \hat{j} + 1) - A(i, \hat{j}) - A(i + 1, \hat{j} + 1) + A(i + 1, \hat {j}) \right) \\
+        &= A(i, n) - A(i, 0) - A(i + 1, n) + A(i + 1, 0) \\
+        \text{\cref{claim:simple-matrix-characterization}} &= A(i, n) - A(i + 1, n)
+    \end{align*}
+    \begin{align*}
+      \sum_{\hat{i} \in \{0, \dots, n - 1\}} A^{\Box}(\hat{i}, j)
+        &= \sum_{\hat{i} \in \{0, \dots, n - 1\}} \left( A(\hat{i}, j + 1) - A(\hat{i}, j) - A(\hat{i} + 1, j + 1) + A(\hat{i} + 1, j) \right) \\
+        &= A(0, j + 1) - A(n, j + 1) - A(0, j) + A(n, j) \\
+        \text{\cref{claim:simple-matrix-characterization}} &= A(0, j + 1) - A(0, j)
+    \end{align*}
+    Therefore $A^{\Box}$ is a permutation matrix (i.e. $A$ is unit-Monge) iff
+    \[
+      A(i, n) - A(i + 1, n) = 1 \quad \text{ and } \quad A(0, j + 1) - A(0, j) = 1
+    \]
+    for all $i, j \in \{0, \dots, n - 1\}$.
   \end{proof}
 \end{lemma}
 Notice that if a matrix $A$ is both simple and unit-Monge (from now on denoted simple unit-Monge), then from the unit-Monge property, there exists some permutation matrix $P$ such that $P = A^{\Box}$, and by applying the $\Sigma$-operator and using the simple property, it is found that $P^\Sigma = (A^{\Box})^{\Sigma} = A$. Therefore a simple unit-Monge matrix can be represented in linear space by a permutation matrix.
 
 An important observation required for the algorithm described in \cref{sec:algorithm:min-mult-two-unit-monge} is the following.
-\begin{lemma}
+\begin{lemma}[\reftiskin{p. 1288}{Theorem 2.1}]
   Given a permutation matrix of size $n$, then given the value of $P^{\Sigma}(i, j)$ for some $i, j \in \{0, \dots, n\}$, the adjacent entries $P^{\Sigma}(i \pm 1, j), P^{\Sigma}(i, j \pm 1)$ where they exist, can be computed in constant time.
   \begin{proof}
     Because a permutation matrix $P$ only contains a single $1$ in any row or column, the value of adjacent entries in $P^{\Sigma}$ can only differ by either $-1$, $0$ or $1$. Determining which is the case is easy by looking at the query direction and in which column (row) the $1$ entry in $P$ is located.
 
     For example, to query the entry to the right of the given entry, it is easily seen that
     \begin{align*}
-      P^{\Sigma}(i, j + 1) &= \sum_{\substack{\hat{i} \ in \{i, \dots, n - 1\} \\ \hat{j} \in \{0, \dots, j\}}} P(\hat{i}, \hat{j})
-        = \sum_{\substack{\hat{i} \ in \{i, \dots, n - 1\} \\ \hat{j} \in \{0, \dots, j - 1\}}} P(\hat{i}, \hat{j}) + \sum_{\hat{i} \in \{i, \dots, n - 1\}} P(\hat{i}, j) \\
+      P^{\Sigma}(i, j + 1) &= \sum_{\substack{\hat{i} \in \{i, \dots, n - 1\} \\ \hat{j} \in \{0, \dots, j\}}} P(\hat{i}, \hat{j})
+        = \sum_{\substack{\hat{i} \in \{i, \dots, n - 1\} \\ \hat{j} \in \{0, \dots, j - 1\}}} P(\hat{i}, \hat{j}) + \sum_{\hat{i} \in \{i, \dots, n - 1\}} P(\hat{i}, j) \\
         &= P^{\Sigma}(i, j) + \begin{cases}
             1  & \text{if position of $1$ in $j$'th row of $P \geq i$} \\
             0  & \text{o/w}
@@ -389,6 +418,25 @@ An important observation required for the algorithm described in \cref{sec:algor
     where the latter can be calculated in $O(1)$ time by assumption of constant query time on permutation matrices.
   \end{proof}
 \end{lemma}
+
+\begin{mydef}[\reftiskin{p. 1289}{Definition 3.1}]
+  Given two matrices $A, B$ both of size $n \times n$ the minimum distance product of the two matrices is
+  \[
+    (A \odot B)(i, j) = \min_{k \in \{ 0, \dots, n - 1 \}} \left( A(i, k) + B(k, j) \right)
+  \]
+\end{mydef}
+The algorithm crucially relies on the following claim, which implies the minimum distance product of two simple unit-Monge can be succinctly represented by a permutation matrix.
+\begin{claim}[\refbook{p. 16}{Theorem 3.4}]
+  \label{claim:unit-monge-min-prod-closed}
+  Given two simple unit-Monge matrices $A, B$, then their minimum distance product $A \odot B$ is also simple unit-Monge.
+  \begin{proof}
+    \todo{Give the proof, of simply reference proof in paper?}
+  \end{proof}
+\end{claim}
+\Cref{claim:unit-monge-min-prod-closed} gives rise to the following notation that will be useful later.
+\begin{mydef}[\reftiskin{p. 1289}{Definition 3.2}]
+  Given permutation matrices $P_A$ and $P_B$, then $P_A \boxdot P_B = P_C$ if $P_C^{\Sigma} = P_A^{\Sigma} \odot P_B^{\Sigma}$.
+\end{mydef}
 
 \section{Algorithm}
 The algorithm follows the steps of \todo{ref}, however instead of directly computing the edit distance between the two input SLPs, the longest common subsequence (LCS) between the two SLPs will be computed. This is done because it turns out that it is easier to succinctly represent the DIST tables for the LCS problem, in such a way that computations can efficiently be performed.
@@ -449,7 +497,7 @@ If an explicit representation of the DIST tables is used, then this can be evalu
 \section{Representation of $\DIST$s}
 As mentioned in the previous section, representing the $\DIST$s in a succinct way is crucial in order to obtain the desired running time \todo{some more trash talk?}.
 
-Given two strings $A$ and $B$, a succinct representation of the LCS DIST tables should be constructed. By definition of the $\DIST$ tables it is known that \todo{Upper and lower triangle not well-defined for $\DIST$! Fix this.}
+Given two strings $A$ and $B$, a succinct representation of the LCS DIST tables should be constructed. By definition of the $\DIST$ tables \todo{ref} it is known that
 \[
   \DIST_{A,B}[i, j] = \left\{
     \begin{array}{ll}
@@ -460,16 +508,24 @@ Given two strings $A$ and $B$, a succinct representation of the LCS DIST tables 
     \end{array}
   \right. ,
 \]
-that is, the $\DIST$ can be summarized as the LCS between all prefix-suffix pairs of the two strings $A$ and $B$. A different way of describing the LCS between these prefix-suffix pairs, is by the following definition.
+that is, the $\DIST$ can be summarized as the LCS between all prefix-suffix pairs of the two strings $A$ and $B$.
+\todo{Should this be here? Consider other approaches. Discuss with Chr!} Notice that a $\DIST$ table is not well-defined for $i > j + m$ and $j > i + n$ since it corresponds to non-existing paths in the dynamic programming table. In all following calculations or statements these invalid index combinations should simply be considered as statements without any information.
+
+A different way of describing the LCS between these prefix-suffix pairs, is by the following definition.
 
 \begin{mydef}[\refbook{p.-48}{Definition 4.8}]
   \label{def:H-table}
-  Let $\str{A}{0}{m}$ and $\str{B}{0}{n}$ be strings, then
+  Let $\str{A}{0}{m}$ and $\str{B}{0}{n}$ be strings, then for $i, j \in \{ 0, \dots, m + n \}$
   \[
-    H_{A,B}(i, j) = lcs(A, \substr{?^mB?^m}{i}{j + m})
+    H_{A,B}(i, j) := \begin{cases}
+                        j - (i - m)                         & \text{if j < i - m} \\
+                        lcs(A, \substr{?^mB?^m}{i}{j + m})  & \text{o/w}
+                      \end{cases}
   \]
-  for $i,j \in \{ 0, \dots, m + n \}$ where $? \not\in \Sigma$ denotes a wildcard character matching all other symbols.
+  where $? \not\in \Sigma$ denotes a wildcard character matching all other symbols.
 \end{mydef}
+The first case in the $H_{A,B}$ definition is introduced because of the entries in the corresponding $\DIST$ table that are not well-defined. The $H$-table entries corresponding to these undefined $\DIST$ entries is simply chosen to make everything work out as they should in able to make the $H$-tables easy representable. In almost all the following calculations is has been chosen not to include this case as it is straight forward that the choice will work.
+
 The precise correspondence between the $H$-table of \cref{def:H-table} and the $\DIST$ tables, is given by the following lemma.
 \begin{lemma}[\refbook{p.-48}{mentioned but not proved}]
   \label{lemma:dist-H-relation}
@@ -526,9 +582,53 @@ An important property of the $H$-table is that it is almost simple unit-Monge.
     \[
       N(i, j) := j - (i - m) - H(i, j).
     \]
-    \todo{Note that N is simple}
-    \todo{Note that N is Monge + more?}
-    Therefore $N = P^{\Sigma}$ for some permutation matrix $P$, which completes the proof.
+    We will prove that $N$ is simple unit-Monge by which the statement follows. First it will be shown that $N$ is Monge, that is $N^{\Box} \geq 0$. From the definition of $N$ and $\Box$ it is needed to show that
+    \begin{align*}
+      &H(i, j + 1) - H(i, j) - H(i + 1, j + 1) + H(i + 1, j) = H^{\Box}(i, j) \leq 0 \\
+      \iff &H(i, j + 1) + H(i + 1, j) \leq H(i, j) + H(i + 1, j + 1)
+    \end{align*}
+    for all $i,j$. By \cref{def:H-table} the adjacent entries of the $H$-table in the above equation correspond to the LCS of a fixed string with a string where a character is possibly extended in both ends. The situation is illustrated in \cref{fig:H-permutation-representation:monge} where the top of the illustration corresponds to the left hand side of the inequality and the bottom corresponds to the right hand side.
+
+    It is clear that the part between $i + 1$ and $j$ will always ensure some fixed contribution to all of the intervals. Now assume that the top contribution is strictly more than two times this fixed contribution. This can happen if it is possible to match an unmatched symbol by introducing cell $i$ or $j + 1$. It is easy to see that if this is the case, then it is easy to do the same for one (or both) of the bottom intervals. Therefore the bottom intervals will always match more than the top intervals, which gives the inequality and thereby the Monge property.
+    \begin{figure}[h!]
+      \centering
+      \includegraphics[width=11cm]{images/monge-condition-illustration}
+      \caption{Illustration of how the longest common subsequence extension relates to the Monge property.}
+      \label{fig:H-permutation-representation:monge}
+    \end{figure}
+
+    Note the following properties about $N$:
+    \begin{align*}
+      N(i, 0) &= 0 - (i - m) - H(i, j)
+        = (m - i) - \begin{cases}
+          0 - (i - m)                    & \text{if } i > m \\
+          lcs(A, \substr{?^mB?^m}{i}{m}) & \text{o/w}
+        \end{cases} \\
+        &= (m - i) - (m - i) = 0
+    \end{align*}
+    \begin{align*}
+      N(m + n, j) &= j - ((m + n) - m) - H(i, j) \\
+        &= j - n - \begin{cases}
+          j - n                                   & \text{if } j < n \\
+          lcs(A, \substr{?^mB?^m}{m + n}{j + m})  & \text{o/w}
+        \end{cases} \\
+        &= (j - n) - (j - n) = 0
+    \end{align*}
+    Therefore \cref{claim:simple-matrix-characterization} gives that $N$ is a simple matrix. Also note that the following equalities hold for $i,j \in \{0, \dots, m + n\}$:
+    \begin{align*}
+      N&(i, n + m) - N(i + 1, n + m) \\
+        &= (n + m - (i - m) - H(i, n + m)) - (n + m - ((i + 1) - m)) - H(i + 1, n + m) \\
+        &= 1 - H(i, n + m) + H(i + 1, n + m) \\
+        &= 1 - lcs(A, \substr{?^mB?^m}{i}{2m+n}) + lcs(A, \substr{?^mB?^m}{i + 1}{2m+n}) \\
+        &= 1 - m + m = 1
+    \\ \\
+      N&(0, j + 1) - N(0, j) \\
+        &= (j + 1 - (0 - m) - H(i, j + 1)) - (j - (0 - m) - H(i, j)) \\
+        &= 1 - H(0, j + 1) + H(0, j) \\
+        &= 1 - lcs(A, \substr{?^mB?^m}{0}{j + 1 + m}) + lcs(A, \substr{?^mB?^m}{0}{j + m}) \\
+        &= 1 - m + m = 1
+    \end{align*}
+    Since $N$ is simple Monge and have the above properties \cref{lemma:unit-monge-characterization} gives that $N$ is unit-Monge.
   \end{proof}
 \end{lemma}
 What remains is to ensure that the merge and apply operations operations on the $\DIST$ table can be computed efficiently using only the permutation matrix representation.
