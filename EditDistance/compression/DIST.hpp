@@ -1503,17 +1503,17 @@ namespace Compression {
               for (int64_t k = 0; k < K; ++k) {
                 {
                   if (slow_delta(i, k) >= 0)
-                    assert(i + k > r(k - i).r_high);
+                    assert(i + k >= r(k - i).r_high);
                   
-                  if (i + k > r(k - i).r_high)
+                  if (i + k >= r(k - i).r_high)
                     assert(slow_delta(i, k) >= 0);
                 }
                 
                 {
                   if (slow_delta(i, k) <= 0)
-                    assert(i + k < r(k - i).r_low);
+                    assert(i + k <= r(k - i).r_low);
                   
-                  if (i + k < r(k - i).r_low)
+                  if (i + k <= r(k - i).r_low)
                     assert(slow_delta(i, k) <= 0);
                 }
                 
@@ -1539,7 +1539,7 @@ namespace Compression {
               const int64_t i = A_row_lo_small_to_large[row];
               const int64_t k = B_col_lo_small_to_large[P_C_lo->getCol(row)];
               
-              if (i + k + 2 < r(k - i).r_low)
+              if (i + k + 2 <= r(k - i).r_low)
                 combined_row_description[i] = k;
             }
             
@@ -1547,7 +1547,7 @@ namespace Compression {
               const int64_t i = A_row_hi_small_to_large[row];
               const int64_t k = B_col_hi_small_to_large[P_C_hi->getCol(row)];
               
-              if (i + k > r(k - i).r_high)
+              if (i + k >= r(k - i).r_high)
                 combined_row_description[i] = k;
             }
             

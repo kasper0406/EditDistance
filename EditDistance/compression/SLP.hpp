@@ -429,6 +429,146 @@ namespace Compression {
       stringstream ss;
     };
     
+    class LZFactorize {
+    public:
+      static vector<pair<uint64_t,uint64_t>> naive_lz_factorize(string str) {
+        // cout << str << endl;
+        
+        vector<pair<uint64_t,uint64_t>> factors;
+        
+        uint64_t i = 0;
+        while (i < str.length()) {
+          int64_t length = 1;
+          uint64_t found_at = i;
+          for (; length <= str.length() - i; ++length) {
+            uint64_t found = str.substr(0, i).find(str.substr(i, length));
+            if (found != string::npos) {
+              found_at = found;
+            } else {
+              break;
+            }
+          }
+          
+          uint64_t begin = found_at;
+          uint64_t end = found_at + (max(length - 2, int64_t(0)));
+          
+          factors.push_back({ begin, end });
+          // cout << str.substr(begin, end - begin + 1) << endl;
+          
+          i += end - begin + 1;
+        }
+        
+        return factors;
+      }
+      
+      /**
+       * I think this approach has an error on the last edge!
+       * Slowscan is probably required on that edge.
+       */
+      static vector<pair<uint64_t,uint64_t>> experimental_fast_scan_lz_factorize(string str) {
+        cst_sct3<> cst;
+        construct_im(cst, str.c_str(), 1);
+        vector<pair<uint64_t,uint64_t>> factors;
+        
+        vector<int64_t> first_time_seen(cst.nodes(), numeric_limits<int64_t>::max());
+        for (auto iter = cst.begin(); iter != cst.end(); ++iter) {
+          auto current_id = cst.id(*iter);
+          
+          // cout << current_id << endl;
+          
+          if (cst.is_leaf(*iter)) {
+            first_time_seen[current_id] = cst.sn(*iter); // str.length() - cst.depth(*iter);
+          }
+          
+          if (cst.root() != *iter && first_time_seen[current_id] != numeric_limits<uint64_t>::max()) {
+            auto parent_id = cst.id(cst.parent(*iter));
+            first_time_seen[parent_id] = min(first_time_seen[parent_id], first_time_seen[current_id]);
+          }
+        }
+        
+        int64_t i = 0;
+        while (i < str.length()) {
+          int64_t start = i, edgeLength = 0;
+          auto currentNode = cst.root();
+          auto previousNode = currentNode;
+          while (first_time_seen[cst.id(currentNode)] + i - start - 1 < start) {
+            previousNode = currentNode;
+            
+            currentNode = cst.child(currentNode, str[i]);
+            assert(currentNode != cst.root());
+            edgeLength = cst.depth(currentNode) - cst.depth(previousNode);
+            
+            i += edgeLength;
+          }
+          
+          if (previousNode == cst.root()) {
+            factors.push_back({ start, start });
+            i -= edgeLength - 1;
+          } else {
+            const auto firstPos = first_time_seen[cst.id(previousNode)];
+            const int64_t length = i - edgeLength - start;
+            factors.push_back({ firstPos, firstPos + length - 1 });
+            i -= edgeLength;
+          }
+        }
+        return factors;
+      }
+      
+      static vector<pair<uint64_t,uint64_t>> lz_factorize(string str) {
+        cst_sct3<> cst;
+        construct_im(cst, str.c_str(), 1);
+        vector<pair<uint64_t,uint64_t>> factors;
+        
+        vector<uint64_t> first_time_seen(cst.nodes(), numeric_limits<uint64_t>::max());
+        for (auto iter = cst.begin(); iter != cst.end(); ++iter) {
+          auto current_id = cst.id(*iter);
+          
+          // cout << current_id << endl;
+          
+          if (cst.is_leaf(*iter)) {
+            first_time_seen[current_id] = cst.sn(*iter); // str.length() - cst.depth(*iter);
+          }
+          
+          if (cst.root() != *iter && first_time_seen[current_id] != numeric_limits<uint64_t>::max()) {
+            auto parent_id = cst.id(cst.parent(*iter));
+            first_time_seen[parent_id] = min(first_time_seen[parent_id], first_time_seen[current_id]);
+          }
+        }
+        
+        for (uint64_t factor_start = 0; factor_start < str.length();) {
+          auto current_node = cst.root(), previous_node = cst.root();
+          uint64_t current_edge_length = 0, current_edge_matched = 0;
+          
+          for (uint64_t factor_len = 1; ; ++factor_len) {
+            if (current_edge_matched >= current_edge_length) {
+              previous_node = current_node;
+              current_node = cst.child(current_node, str[factor_start + factor_len - 1]);
+              current_edge_length = cst.depth(current_node) - cst.depth(previous_node);
+              current_edge_matched = 0;
+            }
+            
+            if (first_time_seen[cst.id(current_node)] + factor_len - 1 >= factor_start) {
+              if (factor_len == 1) {
+                factors.push_back({ factor_start, factor_start });
+                factor_start++;
+              } else {
+                const auto pos = first_time_seen[cst.id(previous_node)];
+                factors.push_back({ pos, factor_len - 2 + pos });
+                factor_start += factor_len - 1;
+              }
+              
+              break;
+            }
+            
+            previous_node = current_node;
+            current_edge_matched++;
+          }
+        }
+        
+        return factors;
+      }
+    };
+    
     class LZSLPBuilder {
     public:
       static unique_ptr<SLP> build(string input) {
@@ -437,7 +577,7 @@ namespace Compression {
         // cout << "Factors:" << endl;
         
         int64_t processed = 0;
-        auto factors = lz_factorize(input);
+        auto factors = LZFactorize::lz_factorize(input);
         for (auto factor : factors) {
           // cout << input.substr(get<0>(factor), get<1>(factor) - get<0>(factor) + 1) << endl;
           
@@ -623,87 +763,6 @@ namespace Compression {
         }
         
         return concatted;
-      }
-      
-      static vector<pair<uint64_t,uint64_t>> lz_factorize(string str) {
-        cst_sct3<> cst;
-        construct_im(cst, str.c_str(), 1);
-        vector<pair<uint64_t,uint64_t>> factors;
-        
-        vector<uint64_t> first_time_seen(cst.nodes(), numeric_limits<uint64_t>::max());
-        for (auto iter = cst.begin(); iter != cst.end(); ++iter) {
-          auto current_id = cst.id(*iter);
-          
-          // cout << current_id << endl;
-          
-          if (cst.is_leaf(*iter)) {
-            first_time_seen[current_id] = cst.sn(*iter); // str.length() - cst.depth(*iter);
-          }
-          
-          if (cst.root() != *iter && first_time_seen[current_id] != numeric_limits<uint64_t>::max()) {
-            auto parent_id = cst.id(cst.parent(*iter));
-            first_time_seen[parent_id] = min(first_time_seen[parent_id], first_time_seen[current_id]);
-          }
-        }
-        
-        for (uint64_t factor_start = 0; factor_start < str.length();) {
-          auto current_node = cst.root();
-          auto previous_node = current_node;
-          
-          uint64_t current_edge_length = 0;
-          uint64_t current_edge_matched = 0;
-          
-          for (uint64_t factor_len = 1; ; ++factor_len) {
-            auto report_and_reset = [&] () {
-              const auto pos = first_time_seen[cst.id(previous_node)];
-              
-              if (factor_len == 1) {
-                // factors.push_back({ pos, pos });
-                factors.push_back({ factor_start, factor_start });
-                factor_start++;
-              } else {
-                factors.push_back({ pos, factor_len - 2 + pos });
-                // factors.push_back({ factor_start, factor_start + factor_len - 2 });
-                factor_start += factor_len - 1;
-              }
-            };
-            
-            /*
-            cout << "Looking for: ";
-            for (uint64_t i = 0; i < factor_len; ++i)
-              cout << str[factor_start + i];
-            cout << endl;
-             */
-            
-            if (current_edge_matched >= current_edge_length) {
-              previous_node = current_node;
-              current_node = cst.child(current_node, str[factor_start + factor_len - 1]);
-              current_edge_length = cst.depth(current_node) - cst.depth(previous_node);
-              current_edge_matched = 0;
-              
-              if (current_node == cst.root()) {
-                report_and_reset();
-                break;
-              }
-            }
-            
-            // cout << "Extract: " << extract(cst, current_node) << endl;
-            // cout << "Seen first at: " << first_time_seen[cst.id(current_node)] << endl;
-            
-            bool matches = current_node != cst.root() &&
-                           cst.edge(current_node, cst.depth(current_node) - current_edge_length + current_edge_matched + 1) == str[factor_start + factor_len - 1] &&
-                           first_time_seen[cst.id(current_node)] + factor_len - 1 < factor_start;
-            if (!matches) {
-              report_and_reset();
-              break;
-            }
-            
-            previous_node = current_node;
-            current_edge_matched++;
-          }
-        }
-        
-        return factors;
       }
       
       class NodeHarvester : private Visitor {

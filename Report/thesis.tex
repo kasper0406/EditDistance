@@ -21,6 +21,11 @@
 \usepackage{tikz}
 \usepackage[]{algorithm2e}
 \usepackage{graphicx}
+\usepackage{microtype}
+
+\SetAlFnt{\small}
+\SetAlCapFnt{\large}
+\SetAlCapNameFnt{\large}
 
 \renewcommand*\ttdefault{txtt}
 
@@ -274,26 +279,42 @@ The only step in the SLP construction that is not fully specified in \todo{cite}
 
 First the suffix tree for the input string is generated. Then every node $v$ in the tree is annotated with the first index in the string where the substring spelled out from the root to $v$ occurs. This is done by traversing the tree bottom up where all leafs are marked by their suffix numbers, and for any parent the minimum of their children is chosen.
 
-Having the described suffix tree, the LZ-factorization can be found by searching in the suffix tree guided by a start position in the string and checking if the corresponding path was already seen in the string. Pseudo code for the algorithm is given in \cref{alg:compression:lz-factorization}.\todo{Implement this in code instead of slowscanning!}
+Having the described suffix tree, the LZ-factorization can be found by scanning the input string and follow the corresponding path in the suffix tree. While the string has already occurred before the path is extended, and when it is not a new LZ factor is added and the search begins from the top of the suffix tree. Pseudo code for the algorithm is given in \cref{alg:compression:lz-factorization}. The algorithm could potentially be improved a bit by following an entire suffix tree edge in every iteration. However, since the SLP construction is not the time consuming part of the algorithm this has not been implemented as the gain will be almost non noticeable.
 
 \begin{algorithm}[H]
   \label{alg:compression:lz-factorization}
   $LZFactors = \emptyset$\;
-  $i = 0$\;
-  \While{$i < m$}{
-    $start = i, edgeLength = 0$\;
-    $currentNode = Root$\;
-    \While{$FirstSeen[Root \to currentNode] < start$ and $i < m$}{
-      $edgeFollowed, newNode = \operatorname{Follow}(curPos, A[i])$\;
-      $edgeLength =$ length of $edgeFollowed$\;
-      $currentNode = newNode$\;
-      $i = i + edgeLength$\;
-    }
-    \eIf{$edgeLength == 0$}{
-      $LZFactors = LZFactors \cup \{ A[start] \}$\;
-      $i = i + 1$\;
-    }{
-      $LZFactors = LZFactors \cup \{ \substr{A}{start}{i - edgeLength} \}$\;
+  $factorStart = 0$\;
+  \While{$factorStart < |A|$}{
+    $previousNode = currentNode = Root$\;
+    $currentEdgeLength = currentEdgeMatched = 0$\;
+
+    $factorLen = 1$\;
+    \While{true}{
+      \If{$currentEdgeMatched \geq currentEdgeLength$}{
+        $previousNode = currentNode$\;
+        $pos = factorStart + factorLen - 1$\;
+        $currentNode, followedEdge = \operatorname{FastScan}(currentNode, A[pos])$\;
+        $currentEdgeLength = |followedEdge|$\;
+        $currentEdgeMatched = 0$\;
+      }
+
+      \If{$FirstSeen[Root \to currentNode] + factorLen - 1 \geq factorStart$}{
+        \eIf{$factorLen == 1$}{
+          $LZFactors = LZFactors \cup \{ (factorStart, factorStart) \}$\;
+          $factorStart = factorStart + 1$\;
+        }{
+          $pos = FirstSeen[Root \to previousNode]$\;
+          $LZFactors = LZFators \cup \{ (pos, pos + factorLen - 2) \}$\;
+          $factorStart = factorStart + factorLen - 1$\;
+        }
+
+        break\;
+      }
+
+      $previousNode = currentNode$\;
+      $currentEdgeMatched = currentEdgeMatched + 1$\;
+      $factorLen = factorLen + 1$\;
     }
   }
   \Return $LZFactors$
@@ -320,7 +341,7 @@ Almost all matrices considered in this report will be square matrices, ie. of si
   A permutation matrix of size $n$ is a matrix over $\{0,1\}^{n \times n}$ where each row and each column contains exactly one $1$. That is, it can be seen as the identity matrix of size $n \times n$ where the rows (or columns) are permuted.
   It is assumed that the index of the column (row) containing the $1$ can be found in constant time from a given row (column).
 \end{mydef}
-The latter constraint on the query time of the $1$ entry is required to achieve the running time of some of the algorithms (ex \todo{ref}). The way permutation matrices are represented in the implementation, is that the row and column permutation is specified using $2n = O(n)$ machine words. This directly gives the constant time query to the $1$ entry of a given row/column.
+The latter constraint on the query time of the $1$ entry is required to achieve the running time of some of the algorithms (ex \cref{lemma:simple-unit-monge-query-next}). The way permutation matrices are represented in the implementation, is that the row and column permutation are specified using $2n = O(n)$ machine words. This directly gives the constant time query to the $1$ entry of a given row/column.
 
 The algorithm stores a lot of permutation matrices in memory. It is therefore interesting to try to minimize the space consumption of these matrices. However, it turns out that the space consumption of $O(n)$ machine words is asymptotically optimal: A permutation matrix of size $n$ can express $n!$ different permutation matrices (since there are $n!$ different permutations of the rows of the identity matrix), hence at least $\Omega(\log{n!})$ bits are needed to represent a permutation matrix. By Stirling's approximation it is known that
 \[
@@ -343,17 +364,27 @@ hence $\Omega(\log{n!}) = \Omega(n \log{n})$ bits are required to represent the 
   \]
   for all $i, j \in \{ 0, \dots, n - 1 \}$. \todo{Graphical representation?}
 \end{mydef}%
-Notice that for a any matrix $A$ of size $n \times n$ it is the case that \\
-\scalebox{0.9}{\parbox{.5\linewidth}{%
-\begin{align*}
-  (A^{\Sigma})^\Box(i, j) &= A^{\Sigma}(i, j + 1) - A^{\Sigma}(i, j) - A^{\Sigma}(i + 1, j + 1) + A^{\Sigma}(i + 1, j) \\
-    &= \sum_{\substack{\hat{i} \in \{i, \dots, n - 1\} \\ \hat{j} \in \{0, \dots, j\}}} {A(\hat{i}, \hat{j})}
-     - \sum_{\substack{\hat{i} \in \{i, \dots, n - 1\} \\ \hat{j} \in \{0, \dots, j - 1\}}} {A(\hat{i}, \hat{j})}
-     - \sum_{\substack{\hat{i} \in \{i + 1, \dots, n - 1\} \\ \hat{j} \in \{0, \dots, j\}}} {A(\hat{i}, \hat{j})}
-     + \sum_{\substack{\hat{i} \in \{i + 1, \dots, n - 1\} \\ \hat{j} \in \{0, \dots, j - 1\}}} {A(\hat{i}, \hat{j})} \\
-    &= A(i, j)
-\end{align*}
-}}\\
+The distribution and density operators always have the useful relation stated by the following claim.
+\begin{claim}[\reftiskin{p. 1288}{remarked}]
+  \label{claim:sigma-box-identity}
+  For any matrix $A$ of size $n \times n$ it is the case that
+  \[
+    (A^{\Sigma})^{\Box}(i, j) = A(i, j)
+  \]
+  \begin{proof}
+    The proof follows directly by unfolding definitions:\\
+    \scalebox{0.9}{\parbox{.5\linewidth}{%
+    \begin{align*}
+      (A^{\Sigma})^\Box(i, j) &= A^{\Sigma}(i, j + 1) - A^{\Sigma}(i, j) - A^{\Sigma}(i + 1, j + 1) + A^{\Sigma}(i + 1, j) \\
+        &= \sum_{\substack{\hat{i} \in \{i, \dots, n - 1\} \\ \hat{j} \in \{0, \dots, j\}}} {A(\hat{i}, \hat{j})}
+         - \sum_{\substack{\hat{i} \in \{i, \dots, n - 1\} \\ \hat{j} \in \{0, \dots, j - 1\}}} {A(\hat{i}, \hat{j})}
+         - \sum_{\substack{\hat{i} \in \{i + 1, \dots, n - 1\} \\ \hat{j} \in \{0, \dots, j\}}} {A(\hat{i}, \hat{j})}
+         + \sum_{\substack{\hat{i} \in \{i + 1, \dots, n - 1\} \\ \hat{j} \in \{0, \dots, j - 1\}}} {A(\hat{i}, \hat{j})} \\
+        &= A(i, j)
+    \end{align*}
+    }}\\
+  \end{proof}
+\end{claim}
 If the operators are applied in the opposite order, it will not always describe a identity transformation. A class of matrices with this property is defined.
 \begin{mydef}[\reftiskin{p. 1288}{Definition 2.1}]
   A matrix $A$ is called simple if $(A^{\Box})^\Sigma = A$.
@@ -430,6 +461,7 @@ Notice that if a matrix $A$ is both simple and unit-Monge (from now on denoted s
 
 An important observation required for the algorithm described in \cref{sec:algorithm:min-mult-two-unit-monge} is the following.
 \begin{lemma}[\reftiskin{p. 1288}{Theorem 2.1}]
+  \label{lemma:simple-unit-monge-query-next}
   Given a permutation matrix of size $n$, then given the value of $P^{\Sigma}(i, j)$ for some $i, j \in \{0, \dots, n\}$, the adjacent entries $P^{\Sigma}(i \pm 1, j), P^{\Sigma}(i, j \pm 1)$ where they exist, can be computed in constant time.
   \begin{proof}
     Because a permutation matrix $P$ only contains a single $1$ in any row or column, the value of adjacent entries in $P^{\Sigma}$ can only differ by either $-1$, $0$ or $1$. Determining which is the case is easy by looking at the query direction and in which column (row) the $1$ entry in $P$ is located.
@@ -1022,10 +1054,186 @@ When filling out a block in the grid with input $I$, the output is given by
 Hence, the output can be evaluated by max-multiplying the $H$ table with a slight perturbation of the input array, followed by an addition for every resulting output. \cite{Gawrychowski:2012:FAC:2422024.2422048} gave a linear time algorithm for max-multiplying an arbitrary vector with a $H$-table which is described in \cref{sec:algorithm:max-mult-H-table-with-vector}. This gives a linear time algorithm for applying a $\DIST$ table.
 
 \section{Efficient simple unit-Monge operations}
+The two basic building blocks for merging and applying DIST tables are the following two algorithms described in this section. They both rely on properties of simple unit-Monge matrices in order to gain faster computation that otherwise possible.
 
 \subsection{Min-multiplication of two simple unit-Monge matrices}
 \label{sec:algorithm:min-mult-two-unit-monge}
-\todo{Description / proof of the algorithm.}
+\todo{ref book}
+This section will describe how the minimum distance product of two simple unit-Monge matrices of size $n$ can be calculated in $O(n\log{n})$ time. The algorithm is the main result of \cite{Tiskin:2010:FDM:1873601.1873704}. The explanation follows the one in \cite{Tiskin:2010:FDM:1873601.1873704}, however there seems to be an error (or unexplained step) in the end of the algorithm, which is fixed in this description.
+
+It is assumed from now on that the input matrices are given by their permutation matrices $P_A$ and $P_B$ both of size $n$. The result of the algorithm should be a permutation matrix $P_C$ such that $P_A \boxdot P_B = P_C$. The algorithm is a divide and conquer algorithm on the input permutation matrices $P_A$ and $P_B$.
+
+The computation is trivial in the base case $n = 1$ since only one permutation matrix of this size exists. In the actual implementation the base case size was chosen to be $k \geq 1$. The reason for choosing a bigger base case is that the constant involved in the algorithm makes it slower than direct evaluation for small input sizes. In practice it was found that $k \approx 20$ was the best performing configuration \todo{link to some experiments?}.
+
+For the recursive step the two input permutation matrices are first divided into four of size $\frac{n}{2}$ and two recursive calls are then performed. More specifically the subproblems are defined as
+\begin{align*}
+  P_{A,lo} = P_A\left[*, 0 : \frac{n}{2}\right], \quad &P_{B,lo} = P_B\left[0 : \frac{n}{2}, *\right] \\
+  P_{A,hi} = P_A\left[*, \frac{n}{2} : n\right], \quad &P_{B,hi} = P_B\left[\frac{n}{2} : n, *\right].
+\end{align*}
+\todo{graphical illustration} Notice that all of these sub-problems are rectangular matrices of size $n \times \frac{n}{2}$ or $\frac{n}{2} \times n$. However, half of the rows (or columns) contains all zero entries, and they can therefore be virtually removed by doing an appropriate index mapping when doing recursive calls. The results of the recursive calls are denoted by
+\[
+  P_{C,lo} = P_{A,lo} \boxdot P_{B,lo}, \quad P_{C,hi} = P_{A,hi} \boxdot P_{B,hi}.
+\]
+As a result from the recursive calls these matrices are of size $\frac{n}{2}$. However, by doing the inverse index remapping from the above step, they can be considered as matrices of size $n$ and with the property that $P_{C,lo} + P_{C,hi}$ is a permutation matrix, since they come from disjoint ranges. From this point on $P_{C,lo}$ and $P_{C,hi}$ will be considered as matrices of size $n$. Notice that when the $\Sigma$-operator is applied to the sub-problem matrices, all the rows (columns) that contain all zeros in the sub-problem matrix will be identical to the previous row (column) in the $\Sigma$'ed version. Therefore all the sub-problem matrices where $\Sigma$ is applied will be indexed as $n \times \frac{n}{2}$ or $\frac{n}{2} \times n$ matrices as this eases index notation.
+
+In the following calculations, let $i, j \in \{0, \dots, n\}$. First notice that the desired result can be written as
+\begin{align*}
+  P_C^{\Sigma}(i, j) &= \min_{k \in \{0, \dots n\}} \left( P_A^{\Sigma}(i, k) + P_B^{\Sigma}(k, j) \right) \\
+    &= \min\left( \min_{k \in \{0, \dots, \frac{n}{2}\}} {P_A^{\Sigma}(i, k) + P_B^{\Sigma}(k, j)}, \min_{k \in \{\frac{n}{2}, \dots, n\}} {P_A^{\Sigma}(i, k) + P_B^{\Sigma}(k, j)} \right).
+\end{align*}
+The goal is to reduce the two sums inside the minimization to a constant number of table lookups in the results from the recursive calls. To do this notice that
+\begin{align*}
+  P_{C,hi}^{\Sigma}(0, j) &= \min_{k \in \{0, \dots, \frac{n}{2}\}} \left( P_{A,hi}^{\Sigma}(0, k) + P_{B,hi}^{\Sigma}(k, j) \right) \\
+    &= \min_{k \in \{0, \dots, \frac{n}{2}\}} \left( k + P_{B,hi}^{\Sigma}(k, j) \right) = P_{B,hi}^{\Sigma}(0, j)
+  \\ \\
+  P_{C,lo}^{\Sigma}(i, n) &= \min_{k \in \{0, \dots, \frac{n}{2}\}} \left( P_{A,lo}^{\Sigma}(i, k) + P_{B,lo}^{\Sigma}(k, n) \right) \\
+    &= \min_{k \in \{0, \dots, \frac{n}{2}\}} \left( P_{A,lo}^{\Sigma}(i, k) + \frac{n}{2} - k \right)
+    = P_{A,lo}^{\Sigma}(i, \frac{n}{2})
+\end{align*}
+where the last equality in both statements follows since $P_{B,hi}$ and $P_{A,lo}$ are sub-permutation \todo{define} matrices and hence can decrease by at most one every time $k$ is increased. These two observations can be used to find that
+\begin{align*}
+  \min_{k \in \{0, \dots, \frac{n}{2}\}} \left( P_A^{\Sigma}(i, k) + P_B^{\Sigma}(k, j) \right)
+    &= \min_{k \in \{0, \dots, \frac{n}{2}\}} \left( P_{A,lo}^{\Sigma}(i, k) + P_{B,lo}^{\Sigma}(k, j) + P_{B,hi}^{\Sigma}(0, j) \right) \\
+    &= P_{C,lo}^{\Sigma}(i, j) + P_{B,hi}^{\Sigma}(0, j)
+    = P_{C,lo}^{\Sigma}(i, j) + P_{C,hi}^{\Sigma}(0, j)
+  \\ \\
+  \min_{k \in \{\frac{n}{2}, \dots, n\}} \left( P_A^{\Sigma}(i, k) + P_B^{\Sigma}(k, j) \right)
+    &= \min_{k \in \{0, \dots, \frac{n}{2}\}} \left( P_{A,hi}^{\Sigma}(i, k) + P_{A,lo}^{\Sigma}(i, \frac{n}{2}) + P_{B,hi}^{\Sigma}(k, j) \right) \\
+    &= P_{C,hi}^{\Sigma}(i, j) + P_{A,lo}^{\Sigma}(i, \frac{n}{2})
+    = P_{C,hi}^{\Sigma}(i, j) + P_{C,lo}^{\Sigma}(i, n),
+\end{align*}
+which give the following correspondence between the result from the recursive calls and the result of the current call
+\[
+  P_C^{\Sigma}(i, j) = \min\left( P_{C,lo}^{\Sigma}(i, j) + P_{C,hi}^{\Sigma}(0, j),
+                                  P_{C,hi}^{\Sigma}(i, j) + P_{C,lo}^{\Sigma}(i, n)
+                            \right).
+\]
+However, there is not enough time to loop through all combinations of $i,j$ since this would take $O(n^2)$ time. Instead three conditions will be established that gives the positions of the $1$'s in $P_C$. In order to do this, the difference between the two arguments in the minimization is investigated. Define:
+\begin{align*}
+  \delta(i, j) :&= \left( P_{C,lo}^{\Sigma}(i, j) + P_{C,hi}^{\Sigma}(0, j) \right) - \left( P_{C,hi}^{\Sigma}(i, j) + P_{C,lo}^{\Sigma}(i, n) \right) \\
+    &= \left( P_{C,hi}^{\Sigma}(0, j) - P_{C,hi}^{\Sigma}(i, j) \right) - \left( P_{C,lo}^{\Sigma}(i, n) - P_{C,lo}^{\Sigma}(i, j) \right) \\
+    &= \left( \sum_{\substack{\hat{i} \in \{0, \dots, n - 1\} \\ \hat{j} \in \{0, \dots, j - 1\}}} P_{C,hi}(\hat{i}, \hat{j}) - \sum_{\substack{\hat{i} \in \{i, \dots, n - 1\} \\ \hat{j} \in \{0, \dots, j - 1\}}} P_{C,hi}(\hat{i}, \hat{j}) \right) \\ &\quad\quad- \left( \sum_{\substack{\hat{i} \in \{i, \dots, n - 1\} \\ \hat{j} \in \{0, \dots, n - 1\}}} P_{C,lo}(\hat{i}, \hat{j}) - \sum_{\substack{\hat{i} \in \{i, \dots, n - 1\} \\ \hat{j} \in \{0, \dots, j - 1\}}} P_{C,lo}(\hat{i}, \hat{j}) \right) \\
+    &= \sum_{\substack{\hat{i} \in \{0, \dots, i - 1\} \\ \hat{j} \in \{0, \dots, j - 1\}}} P_{C,hi}(\hat{i}, \hat{j}) - \sum_{\substack{\hat{i} \in \{i, \dots, n - 1\} \\ \hat{j} \in \{j, \dots, n - 1\}}} P_{C,lo}(\hat{i}, \hat{j})
+\end{align*}
+Since $P_{C,lo} + P_{C,hi}$ is a permutation matrix, $\delta$ is unit-monotone increasing in both of its arguments. The sign of $\delta(i, i)$ plays a vital role in determining the position of the $1$'s in $P_C$. The following three exhaustive mutual exclusive cases are considered:
+\begin{description}
+  \item[$\delta(i + 1, j + 1) \leq 0$]: From the monotonicity of $\delta$ it is known that $\delta(k, l) \leq 0$ for all $k \leq i + 1$ and $j \leq j + 1$. Therefore the definition of the $\delta$-function gives that for all such $k$ and $l$'s it is the case that
+  \[
+    P_C^{\Sigma}(k, l) = P_{C,lo}^{\Sigma}(k, l) + P_{C,hi}^{\Sigma}(0, l).
+  \]
+  By using the above identity, \cref{claim:sigma-box-identity} and unfolding definitions it is found that
+  \begin{align*}
+    P_C(i, j) &= (P_C^{\Sigma})^{\Box}(i, j) = P_C^{\Sigma}(i, j + 1) - P_C^{\Sigma}(i, j) - P_C^{\Sigma}(i + 1, j + 1) + P_C^{\Sigma}(i + 1, j) \\
+    &= (P_{C,lo}^{\Sigma}(i, j + 1) + P_{C,hi}^{\Sigma}(0, j + 1)) - (P_{C,lo}^{\Sigma}(i, j) + P_{C,hi}^{\Sigma}(0, j)) \\&\quad\quad - (P_{C,lo}^{\Sigma}(i + 1, j + 1) + P_{C,hi}^{\Sigma}(0, j + 1)) + (P_{C,lo}^{\Sigma}(i + 1, j) + P_{C,hi}^{\Sigma}(0, j)) \\
+    &= P_{C,lo}^{\Sigma}(i, j + 1) - P_{C,lo}^{\Sigma}(i, j) - P_{C,lo}^{\Sigma}(i + 1, j + 1) + P_{C,lo}^{\Sigma}(i + 1, j) \\
+    &= (P_{C,lo}^{\Sigma})^{\Box}(i, j) = P_{C,lo}(i, j).
+  \end{align*}
+
+  \item[$\delta(i, j) \geq 0$]: This case is very similar to the first. By monotonicity of $\delta$ it is known that $\delta(k, l) \geq 0$ for all $k \geq i, l \geq l$. For all such $k$ and $l$'s the definition of $\delta$ now gives that
+  \[
+    P_C^{\Sigma}(i, j) = P_{C,hi}^{\Sigma}(i, j) + P_{C,lo}^{\Sigma}(i, n).
+  \]
+  Like before \cref{claim:sigma-box-identity} is used to find that
+  \begin{align*}
+    P_C(i, j) &= (P_C^{\Sigma})^{\Box}(i, j) = P_C^{\Sigma}(i, j + 1) - P_C^{\Sigma}(i, j) - P_C^{\Sigma}(i + 1, j + 1) + P_C^{\Sigma}(i + 1, j) \\
+    &= (P_{C,hi}^{\Sigma}(i, j + 1) + P_{C,lo}^{\Sigma}(i, n)) - (P_{C,hi}^{\Sigma}(i, j) + P_{C,lo}^{\Sigma}(i, n)) \\&\quad\quad - (P_{C,hi}^{\Sigma}(i + 1, j + 1) + P_{C,hi}^{\Sigma}(i + 1, n)) + (P_{C,hi}^{\Sigma}(i + 1, j) + P_{C,lo}^{\Sigma}(i + 1, n)) \\
+    &= P_{C,hi}^{\Sigma}(i, j + 1) - P_{C,hi}^{\Sigma}(i, j) - P_{C,hi}^{\Sigma}(i + 1, j + 1) + P_{C,hi}^{\Sigma}(i + 1, j) \\
+    &= (P_{C,hi}^{\Sigma})^{\Box}(i, j) = P_{C,hi}(i, j).
+  \end{align*}
+
+  \item[$\delta(i + 1, j + 1) > 0, \delta(i, j) < 0$]: By unit monotonicity of $\delta$ it must be the case that
+  \[
+    \delta(i + 1, j) = \delta(i, j + 1) = 0.
+  \]
+  From the definition of $\delta$, this implies that
+  \begin{align*}
+    P_C^{\Sigma}(i, j + 1) &= P_{C,lo}^{\Sigma}(i, j + 1) + P_{C,hi}^{\Sigma}(0, j + 1) = P_{C,hi}^{\Sigma}(i, j + 1) + P_{C,lo}^{\Sigma}(i, n) \\
+    P_C^{\Sigma}(i + 1, j) &= P_{C,lo}^{\Sigma}(i + 1, j) + P_{C,hi}^{\Sigma}(0, j) = P_{C,hi}^{\Sigma}(i + 1, j) + P_{C,lo}^{\Sigma}(i + 1, n).
+  \end{align*}
+  Also the assumptions on $\delta$ gives that
+  \begin{align*}
+    P_C^\Sigma(i, j) &= P_{C,lo}^{\Sigma}(i, j) + P_{C,hi}^{\Sigma}(0, j) < P_{C,hi}^{\Sigma}(i, j) + P_{C,lo}^{\Sigma}(i, n) \\
+    P_C^{\Sigma}(i + 1, j + 1) &= P_{C,hi}^{\Sigma}(i + 1, j + 1) + P_{C,lo}^{\Sigma}(i + 1, n) < P_{C,lo}^{\Sigma}(i + 1, j + 1) + P_{C,hi}(0, j + 1).
+  \end{align*}
+  Using these facts and \cref{claim:sigma-box-identity} it is found that
+  \begin{align*}
+    P_C(i, j) &= P_C^{\Sigma}(i, j + 1) - P_C^{\Sigma}(i, j) - P_C^{\Sigma}(i + 1, j + 1) + P_C^{\Sigma}(i + 1, j) \\
+    &> (P_{C,lo}^{\Sigma}(i, j + 1) + P_{C,hi}^{\Sigma}(0, j + 1)) - (P_{C,lo}^{\Sigma}(i, j) + P_{C,hi}^{\Sigma}(0, j)) \\&\quad\quad - (P_{C,lo}^{\Sigma}(i + 1, j + 1) + P_{C,hi}(0, j + 1)) + (P_{C,lo}^{\Sigma}(i + 1, j) + P_{C,hi}^{\Sigma}(0, j)) \\
+    &= P_{C,lo}^{\Sigma}(i, j + 1) - P_{C,lo}^{\Sigma}(i, j) - P_{C,lo}^{\Sigma}(i + 1, j + 1) + P_{C,lo}^{\Sigma}(i + 1, j) \\
+    &= P_{C,lo}(i, j)
+  \end{align*}
+  Since both $P_{C,lo}$ and $P_C$ by \cref{claim:unit-monge-min-prod-closed} are permutation matrices and the strict equality $P_C(i, j) > P_{C,lo}(i, j)$ is established, it must be the case that $P_C(i, j) = 1$.
+\end{description}
+Summarizing the above cases, $P_C(i, j)$ should contain a $1$ iff one of the following mutual exclusive conditions is satisfied
+\begin{align}
+  P_{C,lo}(i, j) = 1 &\text{ and } \delta(i + 1, j + 1) \leq 0 \\
+  P_{C,hi}(i, j) = 1 &\text{ and } \delta(i, j) \geq 0 \\
+  \delta(i + 1, j + 1) > 0 &\text{ and } \delta(i, j) < 0.
+\end{align}
+The idea is to make it efficiently to check when one of the condition is satisfied. In order to do this, is is needed to be able to efficiently check if the $\delta$ function contains a number $< 0$ or $> 0$. If for a given $i, j$ this can be done in constant time, all the above $\delta$-constraints can be efficiently checked.
+
+In order to facilitate this, the $\delta$ function is viewed as a $n \times n$ matrix. From unit monotonicity the entries $< 0$ must be located in the top left part, and the entries $> 0$ must be in the bottom right path as illustrated by \todo{insert illustration}. Basically the idea now is to trace two separating paths, separating the entries $< 0$ and the ones $> 0$ from the rest. The separating bath for the entries $< 0$ are called $r_{hi}$ and the other is called $r_{low}$.
+
+Each of these paths are of length exactly $2n$, and the idea is to represent a path, say $r_{hi}$ as an array $r_{hi}$ of length $2n$ such that an entry on the path is given by
+\[
+  \left( \frac{r_{hi}(d) - d}{2}, \frac{r_{hi}(d) + d}{2} \right)
+\]
+where $d \in \{-n, \dots, n\}$. That is, if $r_{hi}(-n) := n$, then the starting position becomes $(n, 0)$ which is the desired starting position. Let $d \in \{-n, \dots, n - 1\}$, then if the path should go upward set $r_{hi}(d + 1) = r_{hi}(d) - 1$ because
+\begin{align*}
+  \frac{r_{hi}(d + 1) - (d + 1)}{2} &= \frac{r_{hi}(d) - 1 - (d + 1)}{2} = \frac{r_{hi}(d) - d}{2} - 1 \quad \text{and} \\
+  \frac{r_{hi}(d + 1) + (d + 1)}{2} &= \frac{r_{hi}(d) - 1 + (d + 1)}{2} = \frac{r_{hi}(d) - d}{2}.
+\end{align*}
+Similarly if the path should go right, then set $r_{hi}(d + 1) = r_{hi}(d) + 1$ since
+\begin{align*}
+  \frac{r_{hi}(d + 1) - (d + 1)}{2} &= \frac{r_{hi}(d) + 1 - (d + 1)}{2} = \frac{r_{hi}(d) - d}{2} \quad \text{and} \\
+  \frac{r_{hi}(d + 1) + (d + 1)}{2} &= \frac{r_{hi}(d) + 1 + (d + 1)}{2} = \frac{r_{hi}(d) - d}{2} + 1.
+\end{align*}
+Exactly the same encoding of the path is used for $r_{low}$. In order to actually trace the separating paths, it is required that a $\delta$ entry called the \textit{witness}, adjacent to the current position in the path can be queried in constant time. For the high path, the witness is the entry just above the current entry and for the low path it is the one immediately to the right of the current position. In order to compute the witness in constant time, the approach taken in \cref{lemma:simple-unit-monge-query-next} can be almost directly reused as the $\delta$ function is a combination of sums over two permutation matrices.
+
+Since the witness can be computed in constant time, it takes $O(n)$ times to build the two separating paths. Now the $\delta$ checks can be simplified as follows:
+\begin{description}
+  \item[$\delta(i + 1, j + 1) \leq 0$]: This case happens iff $(i + 1, j + 1)$ is above or on the $r_{lo}$ path. Let $d = (n - (i + 1) + (j + 1)) - n = j - i$ be the number of steps that is required for the path to meet the $(i + 1, j + 1)$ entry. Then $(i + 1, j + 1)$ is above or on $r_{lo}$ iff
+  \begin{align*}
+         &\frac{r_{lo}(j - i) + j - i}{2} = \frac{r_{lo}(d) + d}{2} \geq j + 1 \\
+    \iff &r_{lo}(j - i) + j - i \geq 2(j + 1) \\
+    \iff &r_{lo}(j - i) \geq i + j + 2
+  \end{align*}
+
+  \item[$\delta(i, j) \geq 0$]: This case happens iff $(i, j)$ is below or on $r_{hi}$. Again define $d = (n - i) + j - n = j - i$ to be the number of steps required to reach entry $(i, j)$. Then $(i, j)$ is below or on $r_{hi}$ iff
+  \begin{align*}
+         &\frac{r_{hi}(j - i) + j - i}{2} = \frac{r_{hi}(d) + d}{2} \leq j \\
+    \iff &r_{hi}(j - i) + j - i \leq 2j \\
+    \iff &r_{hi}(j - i) \leq i + j
+  \end{align*}
+
+  \item[$\delta(i + 1, j + 1) > 0, \delta(i, j) < 0$]: This happens iff $(i + 1, j + 1)$ is under $r_{lo}$ and $(i, j)$ is above $r_{hi}$. Notice that the number of steps required to reach any of these entries is $d = j - i$. Therefore using the same reasoning as in the previous two cases the condition is satisfied iff both of the following statements are satisfied
+  \begin{itemize}
+  \item $r_{lo}(j - i) < j + i + 2$
+  \item $r_{hi}(j - i) > j + i$
+  \end{itemize}
+  Or summarized into a single line iff $r_{lo}(j - i) - 2 < j + i < r_{hi}(j - i)$.
+  By the unit monotonicity of $\delta$, $r_{lo}$ will be located below $r_{hi}$. For this reason, it will be the case that $r_{lo}(d') \geq r_{hi}(d')$ for all $d' \in \{-n, \dots, n\}$, which squeezes the possible values of $r_{hi}(j - i) \in \{r_{lo}(j - i), r_{lo}(j - i) + 1\}$. However, by construction it must always be the case that $r(d') + d'$ is even, for both $r_{lo}$ and $r_{hi}$. Hence it follows that the condition is satisfied iff $r_{hi}(j - i) = r_{lo}(j - i)$.
+\end{description}%
+%
+The check if $P_C(i, j)$ should contain a $1$ can now be formulated as
+\begin{align}
+  P_{C,lo}(i, j) = 1 &\text{ and } r_{lo}(j - i) \geq i + j + 2 \\
+  P_{C,hi}(i, j) = 1 &\text{ and } r_{hi}(j - i) \leq i + j \\
+  r_{lo}(j - i) = r_{hi}(j - i).
+\end{align}
+The first two cases can be checked by looping through all the $1$'s in both $P_{C,lo}$ and $P_{C,hi}$ and then for each of them check the corresponding path condition. Each check takes constant time and there are in total $n$ $1$'s in the two matrices. The $1$'s from the first two cases can thereby be computed in time $O(n)$.
+
+For the last case the idea is to loop through all $d \in \{-n, \dots, n\}$ and then check if $r_{lo}(d) = r_{hi}(d)$. If this is the case, then the position corresponding to that path position should be set to $1$. The corresponding path position is by definition given to be
+\[
+  (i, j) = \left( \frac{r(d) - d}{2}, \frac{r(d) + d}{2} \right).
+\]
+Therefore the $1$'s from the last case can also be computed in time $O(n)$.
+
+The total time for the algorithm then becomes
+\[
+  T(n) = O(n) + 2 T\left(\frac{n}{2}\right)
+\]
+which is well known and solves to $O(n \log{n})$.
 
 \subsection{Max-multiplication of $H$-table with vector}
 \label{sec:algorithm:max-mult-H-table-with-vector}

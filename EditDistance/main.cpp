@@ -1,5 +1,3 @@
-#define NDEBUG
-
 #include <iostream>
 #include <vector>
 #include <memory>
@@ -39,7 +37,7 @@ int main(int argc, char* argv[])
 #endif
   
   // TODO: Write test for blow up slp
-  // Test::TestSuite::run_tests();
+  Test::TestSuite::run_tests();
   
   {
     const double xfactor = 3;
@@ -47,7 +45,7 @@ int main(int argc, char* argv[])
     
     Benchmark::run_benchmark<Simple::EditDistance>(trials, xfactor);
     Benchmark::run_benchmark<Compression::LCSBlowUpAligner<SLP::LZSLPBuilder, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>>>(trials, xfactor);
-    
+     
     // Benchmark::run_benchmark<Compression::LCSBlowUpAligner<SLP::SimpleCompressionSLPBuilder, DIST::MergingDISTRepository<DIST::SimpleLCSDISTTable, DIST::SimpleLCSDISTMerger>>>(trials, x);
     
     /*

@@ -27,6 +27,8 @@ namespace Test {
       const int64_t colwidth = 80;
       
       vector<pair<string, function<bool()>>> tests = {
+        { "Test LZ factorization", test_lz_factorization },
+        
         { "Testing union find", test_union_find },
         { "Testing interval union find", test_interval_union_find },
         
@@ -393,6 +395,43 @@ namespace Test {
             }
           }
         }
+      }
+      
+      return true;
+    }
+    
+    static bool test_lz_factorization() {
+      for (uint64_t len = 100; len <= 40000; len *= 1.7) {
+      // string str = Benchmark::generate_string(len, { 'a' });
+        string str = Benchmark::generate_string(len, { 'a', 'b', 'c' });
+      
+        auto baseFactors = SLP::LZFactorize::naive_lz_factorize(str);
+        auto testFactors = SLP::LZFactorize::lz_factorize(str);
+        // auto experimentalFactors = SLP::LZFactorize::experimental_fast_scan_lz_factorize(str);
+      
+        /*
+         cout << "Should be:" << endl;
+         for (auto factor : baseFactors) {
+         cout << str.substr(get<0>(factor), get<1>(factor) - get<0>(factor) + 1) << endl;
+         }
+         
+         cout << endl << "Was:" << endl;
+         for (auto factor : testFactors1) {
+         cout << str.substr(get<0>(factor), get<1>(factor) - get<0>(factor) + 1) << endl;
+         }
+        */
+        
+        if (baseFactors != testFactors) {
+          cout << "Test factors failed! :(" << endl;
+          return false;
+        }
+        
+        /*
+        if (baseFactors != experimentalFactors) {
+          cout << "Experimental factors failed!" << endl;
+          return false;
+        }
+         */
       }
       
       return true;
