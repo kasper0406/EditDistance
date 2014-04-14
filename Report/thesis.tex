@@ -22,6 +22,7 @@
 \usepackage[]{algorithm2e}
 \usepackage{graphicx}
 \usepackage{microtype}
+\usepackage{varwidth}
 
 \SetAlFnt{\small}
 \SetAlCapFnt{\large}
@@ -54,6 +55,8 @@
 % see http://imf.au.dk/system/latex/bog/
 
 \crefname{algocfline}{algorithm}{algorithms}
+
+\usetikzlibrary{shapes,arrows,positioning}
 
 \begin{document}
 
@@ -134,6 +137,54 @@ The following list of algorithms has been implemented in order to test the algor
     \end{itemize}
 \end{itemize}
 The algorithm for constructing the SLP encoding of the input strings requires a suffix tree. In order to have a succinct and efficient suffix tree, it has been chosen to use a suffix tree implementation in the Succinct Data Structure Library (SDSL) \cite{SDSL} based on \cite{OHL:FIS:GOG:2010}.
+
+\setlength{\tabcolsep}{3pt}
+\tikzstyle{block} = [draw, rectangle, align=left]
+\newcommand{\nodecontent}[3]{%
+  \begin{tabular}{l p{2.4cm}}
+    \multicolumn{2}{p{3.5cm}}{#1} \\
+    \textit{Reference:} & #2 \\
+    \textit{Literature:} & #3 \\
+  \end{tabular}
+}%
+
+\begin{figure}
+  \begin{tikzpicture}[font=\tiny\sffamily,node distance=1.5cm]
+    \node[block](simple-classification){
+      \nodecontent{Characterization of simple matrices}
+                  {\Cref{claim:simple-matrix-characterization}}
+                  {\cite[p. 1288]{Tiskin:2010:FDM:1873601.1873704}}
+    };
+
+    \node[block, right of=simple-classification](unit-Monge-classification){
+      \nodecontent{Characterization of unit-Monge matrices}
+                  {\Cref{lemma:unit-monge-characterization}}
+                  {\cite[Lemma 2.11, p. 10]{DBLP:journals/corr/abs-0707-3619}}
+    };
+
+    \node[block, below right of=simple-classification](dist-representation){
+      \nodecontent{Succinct DIST representation}
+                  {\Cref{lemma:H-permutation-representation}}
+                  {\cite[Theorem 4.10, p. 49]{DBLP:journals/corr/abs-0707-3619}}
+    };
+
+    \node[block](simple-unit-monge-closed){
+      \nodecontent{Simple unit-Monge matrices closed\newline under the minimum distance product}
+                  {\Cref{claim:unit-monge-min-prod-closed}}
+                  {\cite[Theorem 3.4, p. 16]{Tiskin:2010:FDM:1873601.1873704}}
+    };
+    \node[block, below of=simple-unit-monge-closed](min-mult){
+      \nodecontent{Minimum Distance Product}
+                  {\Cref{sec:algorithm:min-mult-two-unit-monge}}
+                  {\cite[Theorem 3.3]{Tiskin:2010:FDM:1873601.1873704} and\newline\cite[Theorem 3.16, p. 28]{DBLP:journals/corr/abs-0707-3619}}
+    };
+
+    \draw [->] (simple-unit-monge-closed) -- (min-mult);
+  \end{tikzpicture}
+
+  \caption{Overview of the proofs needed to describe and prove the correctness of the algorithm. Specifies how the proves in this thesis relates to the ones in the literature.}
+  \label{fig:proof-overview}
+\end{figure}
 
 \section{Implementation and test setup}
 All measurements presented in this report were performed on a computer with an Intel i5-4258U CPU with the following technical specifications:
@@ -1217,9 +1268,9 @@ Since the witness can be computed in constant time, it takes $O(n)$ times to bui
 %
 The check if $P_C(i, j)$ should contain a $1$ can now be formulated as
 \begin{align}
-  P_{C,lo}(i, j) = 1 &\text{ and } r_{lo}(j - i) \geq i + j + 2 \\
-  P_{C,hi}(i, j) = 1 &\text{ and } r_{hi}(j - i) \leq i + j \\
-  r_{lo}(j - i) = r_{hi}(j - i).
+  &P_{C,lo}(i, j) = 1 \text{ and } r_{lo}(j - i) \geq i + j + 2 \\
+  &P_{C,hi}(i, j) = 1 \text{ and } r_{hi}(j - i) \leq i + j \\
+  &r_{lo}(j - i) = r_{hi}(j - i).
 \end{align}
 The first two cases can be checked by looping through all the $1$'s in both $P_{C,lo}$ and $P_{C,hi}$ and then for each of them check the corresponding path condition. Each check takes constant time and there are in total $n$ $1$'s in the two matrices. The $1$'s from the first two cases can thereby be computed in time $O(n)$.
 
@@ -1237,13 +1288,55 @@ which is well known and solves to $O(n \log{n})$.
 
 \subsection{Max-multiplication of $H$-table with vector}
 \label{sec:algorithm:max-mult-H-table-with-vector}
-\todo{Description / proof of the algorithm.}
+In order to apply the DIST tables to fill out the grid, it is required to be able to compute the maximum distance product between an arbitrary vector and a $H$-table. This is a description of the algorithm given in \cite[Lemma 2, p. 234]{Gawrychowski:2012:FAC:2422024.2422048}.
 
-\subsubsection{Interval Union Find}
+Let $v$ denote the input vector of size $n$ and assume we are given a $n \times n$ $H$-table $H$. The algorithm incrementally computes the maximum distance product where each iteration takes $O(1)$ time, leading to a $O(n)$ time algorithm. The output of the algorithm should be
+\[
+  u(j) = \max_i v(i) + H(i, j) = \max_i v(i) + j - (i - m) - P^{\Sigma}(i, j)
+\]
+where $P$ is the permutation matrix representation of the $H$-table. By defining $v'(i) = v(i) - i$ and $u'(j) = u(j) - j$ the maximization can be simplified to
+\[
+  u'(j) = \max_i v'(i) - P^{\Sigma}(i, j).
+\]
+In the implementation it is not necessary to copy the input, but the slightly modified input and output vectors can be "simulated" directly from the original input. However, the redefinition makes the description of the algorithm a bit more clear, and makes it follow \cite[Lemma 2, p. 234]{Gawrychowski:2012:FAC:2422024.2422048}.
+
+Define $t_j(i) := v'(i) - P^{\Sigma}(i, j)$. That is, for a fixed $j$ it contains all the entries from where the maximum entry needs to be found. Assume there exist two indices $i < i'$ such that $t_j(i) \leq t(i')$, then because $P$ is a permutation matrix and by the definition of the $\Sigma$-operator, there are two possibilities:
+\begin{description}
+  \item[$P^{\Sigma}(i', j) = P^{\Sigma}(i', j + 1) - 1$]: In this case it follows by the definition of the $\Sigma$-operator and that $P$ is a permutation matrix that $P^{\Sigma}(i, j) = P^{\Sigma}(i, j + 1) - 1$.  This can be used to find that
+  \begin{align*}
+    &t_{j + 1}(i) = v'(i) - P^{\Sigma}(i, j + 1) = v'(i) - P^{\Sigma}(i, j) - 1
+      = t_{j}(i) - 1 \\
+      \leq\quad &t_j(i') - 1 = v'(i') - P^{\Sigma}(i', j) - 1
+      = v'(i') - (P^{\Sigma}(i', j + 1) - 1) - 1 \\
+      &= v'(i') - P^{\Sigma}(i', j + 1) = t_{j + 1}(i').
+  \end{align*}
+
+  \item[$P^{\Sigma}(i', j) = P^{\Sigma}(i', j + 1)$]: A similar calculation can be used in this case. First notice that $P^{\Sigma}(i, j) \leq P^{\Sigma}(i, j + 1)$ which follows since $P$ is non-negative. It is found that
+  \begin{align*}
+    &t_{j + 1}(i) = v'(i) - P^{\Sigma}(i, j + 1) \leq v'(i) - P^{\Sigma}(i, j) = t_{j}(i) \\
+      \leq\quad &t_j(i') = v'(i') - P^{\Sigma}(i', j) = v'(i') - P^{\Sigma}(i', j + 1) = t_{j + 1}(i').
+  \end{align*}
+\end{description}
+%
+Therefore, once such two indices $i,i'$ are found, it is in all successive iterations not necessary to consider the entry at position $i$ as $i'$ will always be at least as good.
+
+The idea now is to store a list of candidates that can attain the maximum possible values, and then weed out this list by using the above observation. Therefore a list of candidate indices $i_1 < i_2 < \dots < i_l$ is maintained such that $t(i_1) > t(i_2) > \dots > t(i_l)$, where $t$ denotes the $t$-values for the current value of $j$. This also means that the result of a given iteration is always given by $t(i_1)$.
+
+The first such index list is easy to compute by sweeping from right to left and then pick out the sequence of strictly increasing $t$-values.
+
+Notice that by the definition of the $\Sigma$-operator, all entries $t(1), \dots, t(k)$ should be decreased by $1$, where $k$ is the row number of the $1$ entry in row $j$ in $P$. In order to be able to do this in constant time, the selected candidates of $t$ are represented by their relative difference. A bit more details on this is given in \cite[Lemma 2, p. 234]{Gawrychowski:2012:FAC:2422024.2422048}.
+
+Doing this, a prefix of the entries can be decreased by decreasing the first entry, and then find the leftmost entry $> k$, and increase this difference by $1$. If some difference reaches $0$ it is removed from the list, as this can never again be a candidate from the condition above.
+
+The only thing that remains is to locate the leftmost candidate $> k$. This can be done using whats called an interval union find data structure. Such a data structure is initialized with an interval of length $n$. In the beginning there are $n$ disjoint, contiguous and evenly distributed intervals. The data structure support the operation to merge two adjacent intervals, and to query the last point contained in some interval.
+
+The interval union find data structure is used as follows: In the beginning all the entries in the $t$-array have their own interval. As more and more candidates are removed from the list, their intervals are joined. Finding the leftmost candidate $> k$ can then be done by issuing a single interval union find query, taking $O(1)$ time \cite{Itai06lineartime}.
+
+\subsubsection{Note on Interval Union Find}
 \label{sec:algorithm:interval-union-find}
-\todo{Describe the algorithm.}
+The interval union find data-structure implemented is the one of \cite{Itai06lineartime}. The algorithm works by blocking the interval into blocks fitting a machine word of size $\Theta(\log{n})$. Operations inside such a block can be supported very efficiently using simple bit operations. Operations spanning blocks are carried out by using an ordinary union find data structure. \cite{Itai06lineartime} shows that this leads to a data-structure using amortized constant time operations.
 
-As mentioned in the description of the algorithm, an interval union find data-structure is required. The data-structure implemented is the one of \cite{Itai06lineartime}, where every operation takes amortized constant time. Note however that the amortized constant time relies on blocking the input into blocks of size $\Theta(\log{n})$. In the actual implementation, it has been chosen to always use block sizes of machine word $64$ bits, which in practice is a constant. This choice will always perform superior in practice due to practical limit on the input size, but the theoretical running time of the algorithm becomes \todo{calculate this}.
+ Note however that the amortized constant time relies on blocking the input into blocks of size $\Theta(\log{n})$. In the actual implementation, it has been chosen to always use block sizes of machine word $64$ bits, which is a constant. This choice will always perform superior in practice due to practical limit on the input size, but the theoretical running time of the algorithm becomes that of the ordinary union find data structure, which is the inverse Ackermann function. However, for all practical purposes this is also is a constant. Therefore it is not to be expected that the choice of the constant block size will result in weird looking results in the graphs in the following benchmarks.
 
 \section{Benchmarks}
 
