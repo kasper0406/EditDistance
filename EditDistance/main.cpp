@@ -42,9 +42,15 @@ int main(int argc, char* argv[])
   {
     const double xfactor = 3;
     const uint16_t trials = 1;
+    const uint64_t max_len = 2500000;
     
-    Benchmark::run_benchmark<Simple::EditDistance>(trials, xfactor);
-    Benchmark::run_benchmark<Compression::LCSBlowUpAligner<SLP::LZSLPBuilder, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>>>(trials, xfactor);
+    Benchmark::benchmark_compression(trials, Benchmark::FastaInput("genome1.fa", max_len));
+    Benchmark::benchmark_compression(trials, Benchmark::FastaInput("genome2.fa", max_len));
+    Benchmark::benchmark_compression(trials, Benchmark::FibonacciInput(30));
+    Benchmark::benchmark_compression(trials, Benchmark::UniformRandomInput(max_len));
+    
+    // Benchmark::run_benchmark<Simple::EditDistance>(trials, xfactor);
+    // Benchmark::run_benchmark<Compression::LCSBlowUpAligner<SLP::LZSLPBuilder, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>>>(trials, xfactor);
      
     // Benchmark::run_benchmark<Compression::LCSBlowUpAligner<SLP::SimpleCompressionSLPBuilder, DIST::MergingDISTRepository<DIST::SimpleLCSDISTTable, DIST::SimpleLCSDISTMerger>>>(trials, x);
     

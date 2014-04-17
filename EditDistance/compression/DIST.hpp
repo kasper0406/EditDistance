@@ -745,7 +745,7 @@ namespace Compression {
         } else {
           // TODO: Consider if this can happen!
           cout << "COVERED 1!" << endl;
-          assert(!a->type != KEY);
+          assert(a->type != KEY);
           if (a->type == LEFT) {
             if (a->TYPE2_next == nullptr)
               return repo_(a->DISTTableIndex, b->DISTTableIndex) = build(a->right(), (Production*)b);

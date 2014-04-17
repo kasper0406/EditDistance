@@ -1,5 +1,7 @@
 #pragma once
 
+#define IPCM
+
 #include <cstdint>
 #include <string>
 #include <functional>
@@ -9,6 +11,12 @@
 #include <iomanip>
 #include <sstream>
 #include <fstream>
+
+#include "../compression/SLP.hpp"
+
+#ifdef IPCM
+#include "ipcm/cpucounters.h"
+#endif
 
 using namespace std;
 using namespace std::chrono;
@@ -49,11 +57,26 @@ namespace Benchmark {
   Measurement time(function<Return()> fct) {
     Measurement measurement;
     
+#ifdef IPCM
+    SystemCounterState before_sstate = getSystemCounterState();
+#endif
+    
     auto start = high_resolution_clock::now();
     
     fct();
     
     auto duration = high_resolution_clock::now() - start;
+    
+#ifdef IPCM
+    SystemCounterState after_sstate = getSystemCounterState();
+    
+    measurement.l2_cache_hits        = getL2CacheHits(before_sstate, after_sstate);
+    measurement.l2_cache_misses      = getL2CacheMisses(before_sstate, after_sstate);
+    measurement.l3_cache_hits        = getL3CacheHits(before_sstate, after_sstate);
+    measurement.l3_cache_misses      = getL3CacheMisses(before_sstate, after_sstate);
+    measurement.instructions         = getInstructionsRetired(before_sstate, after_sstate);
+#endif
+    
     measurement.time = duration_cast<microseconds>(duration).count() / 1E6; // Time in seconds
     
     return measurement;
@@ -88,8 +111,9 @@ namespace Benchmark {
       if (!mem[n].empty())
         return mem[n];
       
-      if (n == 0) return "a";
-      else if (n == 1) return "ab";
+      if (n == 0) return "";
+      if (n == 1) return "a";
+      else if (n == 2) return "ab";
       else {
         string res = fib(n - 1) + fib(n - 2);
         mem[n] = res;
@@ -138,6 +162,146 @@ namespace Benchmark {
     return seqs;
   }
   
+  class FibonacciInput {
+  public:
+    FibonacciInput(uint64_t to) : m_current(1), m_to(to) { }
+    
+    string name() const {
+      return "fib";
+    }
+    
+    bool hasNext() const {
+      return m_current <= m_to;
+    }
+    
+    string next() {
+      return fib_string(++m_current);
+    }
+    
+  private:
+    uint64_t m_current, m_to;
+  };
+  
+  class FastaInput {
+  public:
+    FastaInput(string file, uint64_t max_len = string::npos, double grow_factor = 1.7) : m_file(file), m_grow(grow_factor), m_current_len(1) {
+      ifstream input(file);
+      m_input = read_fasta_from_stream(input)[0].second.substr(0, max_len);
+      input.close();
+    }
+    
+    string name() const {
+      return "fasta_" + m_file.substr(0, m_file.find("."));
+    }
+    
+    bool hasNext() const {
+      return m_current_len < m_input.size();
+    }
+    
+    string next() {
+      const string result = m_input.substr(0, m_current_len);
+      m_current_len = max((uint64_t)ceil(m_grow * m_current_len), m_current_len + 1);
+      return result;
+    }
+    
+  private:
+    string m_input;
+    string m_file;
+    double m_grow;
+    uint64_t m_current_len;
+  };
+  
+  class UniformRandomInput {
+  public:
+    UniformRandomInput(uint64_t max_len, double grow_factor = 1.7, vector<char> alphabet = { 'a', 'c', 'g', 't' }, uint64_t seed = 0xDEADBEEF)
+      : m_max_len(max_len), m_current_len(1), m_grow_factor(grow_factor), m_alphabet(alphabet), m_generator(seed), m_distr(0, alphabet.size() - 1)
+    { }
+    
+    string name() const {
+      return "random";
+    }
+    
+    bool hasNext() const {
+      return m_current_len < m_max_len;
+    }
+    
+    string next() {
+      stringstream sstream;
+      for (uint64_t i = 0; i < m_current_len; ++i)
+        sstream << m_alphabet[m_distr(m_generator)];
+      
+      m_current_len = max((uint64_t)ceil(m_grow_factor * m_current_len), m_current_len + 1);
+      return sstream.str();
+    }
+    
+  private:
+    uint64_t m_max_len, m_current_len;
+    double m_grow_factor;
+    vector<char> m_alphabet;
+    
+    mt19937 m_generator;
+    uniform_int_distribution<int> m_distr;
+  };
+  
+  template <class InputGenerator>
+  void benchmark_compression(uint64_t trials, InputGenerator generator) {
+    ofstream output("compression_" + generator.name() + ".dat", ofstream::out);
+    
+    output << left;
+    output << setw(10) << "num" << setw(15) << "N" << setw(15) << "min" << setw(15) << "lower" << setw(15) << "median" << setw(15) << "upper"
+                       << setw(15) << "max" << setw(15) << "compression";
+    
+#ifdef IPCM
+    output << setw(15) << "L2_hits" << setw(15) << "L2_miss"
+           << setw(15) << "L3_hits" << setw(15) << "L3_miss"
+           << setw(15) << "instructions";
+#endif
+    output << endl;
+    
+    for (uint64_t iteration = 1; generator.hasNext(); ++iteration) {
+      cout << "Running iteration: " << iteration << endl;
+      
+      auto input = generator.next();
+      unique_ptr<Compression::SLP::SLP> slp;
+      vector<Measurement> measurements;
+      
+      for (uint64_t trial = 0; trial < trials; ++trial) {
+        function<void()> compute = [&slp,input] () {
+          slp = Compression::SLP::LZSLPBuilder::build(input);
+        };
+        measurements.push_back(time(compute));
+      }
+      
+      sort(measurements.begin(), measurements.end());
+      const uint16_t iMin = 0;
+      const uint16_t iMax = trials - 1;
+      const uint16_t iLower = iMax / 4;
+      const uint16_t iUpper = (3 * iMax) / 4;
+      const uint16_t iMedian = trials / 2;
+      
+      output << setw(10) << iteration
+             << setw(15) << input.size()
+             << setw(15) << measurements[iMin].time
+             << setw(15) << measurements[iLower].time
+             << setw(15) << measurements[iMedian].time
+             << setw(15) << measurements[iUpper].time
+             << setw(15) << measurements[iMax].time
+             << setw(15) << slp->compressionFactor();
+      
+#ifdef IPCM
+      output << setw(15) << measurements[iMedian].l2_cache_hits
+             << setw(15) << measurements[iMedian].l2_cache_misses
+             << setw(15) << measurements[iMedian].l3_cache_hits
+             << setw(15) << measurements[iMedian].l3_cache_misses
+             << setw(15) << measurements[iMedian].instructions;
+#endif
+      
+      output << endl;
+    }
+    
+    output.close();
+  }
+  
   template <class Implementation>
   void run_benchmark(uint16_t trials, const double xfactor) {
     cout << "#Testing: " << Implementation::name() << endl;
@@ -169,11 +333,18 @@ namespace Benchmark {
       output << left;
       output << setw(15) << "N" << setw(15) << "min" << setw(15) << "lower" << setw(15) << "median" << setw(15) << "upper"
              << setw(15) << "max" << setw(15) << "mean" << setw(10) << "%RSD"
-             << setw(10) << "A_prod" << setw(10) << "B_prod" << setw(10) << "A_x" << setw(10) << "B_x"
-             << endl;
+             << setw(10) << "A_prod" << setw(10) << "B_prod" << setw(10) << "A_x" << setw(10) << "B_x";
+      
+#ifdef IPCM
+      output << setw(15) << "L2_hits" << setw(15) << "L2_miss"
+             << setw(15) << "L3_hits" << setw(15) << "L3_miss"
+             << setw(15) << "instructions";
+#endif
+      
+      output << endl;
     }
     
-    const uint64_t maxN = 10000;
+    const uint64_t maxN = 1000;
     for (uint64_t n = 10; n <= maxN; n = 1.7 * n) {
       cout << left << "Testing n = " << setw(8) << n << flush;
       
@@ -232,6 +403,7 @@ namespace Benchmark {
       
       // Print out the test results
       double total_median_time = 0;
+      uint64_t l2_misses = 0, l2_hits = 0, l3_misses = 0, l3_hits = 0, instructions = 0;
       for (uint16_t stage = 0; stage < stages.size(); ++stage) {
         outputs[stage] << setw(15) << n
                        << setw(15) << measurements[stage].first[iMin].time
@@ -244,11 +416,25 @@ namespace Benchmark {
                        << setw(10) << stats.A_productions
                        << setw(10) << stats.B_productions
                        << setw(10) << stats.A_x
-                       << setw(10) << stats.A_y
+                       << setw(10) << stats.A_y;
                        // << setw(15) << measurements[stage].first[iMedian].instructions
-                       << endl;
+        
+#ifdef IPCM
+        outputs[stage] << setw(15) << measurements[stage].first[iMedian].l2_cache_hits
+                       << setw(15) << measurements[stage].first[iMedian].l2_cache_misses
+                       << setw(15) << measurements[stage].first[iMedian].l3_cache_hits
+                       << setw(15) << measurements[stage].first[iMedian].l3_cache_misses
+                       << setw(15) << measurements[stage].first[iMedian].instructions;
+#endif
+        
+        outputs[stage] << endl;
         
         total_median_time += measurements[stage].first[iMedian].time;
+        l2_misses += measurements[stage].first[iMedian].l2_cache_misses;
+        l2_hits += measurements[stage].first[iMedian].l2_cache_hits;
+        l3_misses += measurements[stage].first[iMedian].l3_cache_misses;
+        l3_hits += measurements[stage].first[iMedian].l3_cache_hits;
+        instructions += measurements[stage].first[iMedian].instructions;
       }
       outputs[stages.size()] << setw(15) << (stats.A_derivedLength + stats.B_derivedLength)
                              << setw(15) << 0
@@ -261,11 +447,20 @@ namespace Benchmark {
                              << setw(10) << stats.A_productions
                              << setw(10) << stats.B_productions
                              << setw(10) << stats.A_x
-                             << setw(10) << stats.A_y
+                             << setw(10) << stats.A_y;
                              // << setw(15) << measurements[stage].first[iMedian].instructions
-                             << endl;
-    }
       
+#ifdef IPCM
+      outputs[stages.size()] << setw(15) << l2_hits
+                             << setw(15) << l2_misses
+                             << setw(15) << l3_hits
+                             << setw(15) << l3_misses
+                             << setw(15) << instructions;
+#endif
+      
+      outputs[stages.size()] << endl;
+    }
+    
     for (auto& output : outputs)
       output.close();
   }
