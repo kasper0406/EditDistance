@@ -200,6 +200,8 @@ Before doing the actual measurements, a small warm-up round was performed, ensur
 
 All running times was measured as wall-time, and all tests was repeated 5 times where the measurement with the median running times is the one used for data-analysis in this report. The reason for choosing the median measurement, is that an unexpected amount of machine activity in one of the trials should not penalize the result, but at the same time, some tasks done by the operating system may be needed for the algorithm to function, which is why the minimum time was not selected. However, the variation between the trails was found to be very small \todo{check this, and report RSD?}.
 
+All the tested input sizes have been grown by a factor of $1.7$. This has been chosen to have a exponential growth with a reasonable step size that is not a power of $2$. The reason for not choosing a power of $2$ is that this could give worse measurement results than would be seen for other input sizes, primarily due to cache associativity. Since inputs in practice are typically not strict powers of $2$ the artifacts by cache associativity is not desired.
+
 \subsubsection{Correctness}
 In order to verify the correctness of the implementation, the result has been checked up against the simple algorithm described in \cref{sec:intro:simple}. Also, unit tests have been made to individually test parts of the algorithm, and during debugging and testing a lot of consistency checks are performed on every run. There are no known bugs in the implementation. 
 
@@ -407,7 +409,7 @@ Notice directly by definition, $F_1$ can be represented by a SLP of size $1$ and
 
 Therefore Fibonacci strings compresses very well to a SLP, where a representation of $F_{i}$ uses only $i + 1$ productions for $i \geq 2$. Therefore the quality of the compressed Fibonacci strings can be measured relative to the optimal SLP. \Cref{fig:compression:quality:fibonacci} shows a plot where the blue line shows how big a factor the computed SLP is bigger than the optimal SLP.
 
-By the proof in \cite{Rytter2003211} this overhead should be bounded by $O(\log{n})$. The red line of \cref{fig:compression:quality:fibonacci} plots the production overhead normalized by $\log{n}$. From theory this should converge towards a constant, which also seems to be the case in practice as indicated by the figure .
+By the proof in \cite{Rytter2003211} this overhead should be bounded by $O(\log{n})$. The red line of \cref{fig:compression:quality:fibonacci} plots the production overhead normalized by $\log{n}$. From theory this should converge towards a constant, which also seems to be the case in practice.
 %
 \begin{figure}[h!]
   \centering
@@ -1415,6 +1417,26 @@ The interval union find data-structure implemented is the one of \cite{Itai06lin
 
 \section{Benchmarks}
 \label{sec:algorithm:benchmarks}
+This section will benchmark the compression based edit distance algorithm. Both with respect to the theoretical running time and also by comparing it to the performance of the simple algorithm. First it will be verified that the distance product algorithms performs as expected, and then the combined algorithm for computing the edit distance of compressed strings will be evaluated.
+
+\subsection{Distance products}
+In this section the distance product operations on unit-Monge matrices will be benchmarked and optimized for later use.
+
+\subsubsection{Minimum distance product}
+In order to get the best possible performance for the minimum distance product computation, the size of the base case of the algorithm described in \cref{sec:algorithm:min-mult-two-unit-monge} should be determined.
+
+\todo{Plot of simple vs recursive algorithm.}
+\todo{Verification of theoretical running time.}
+
+\subsubsection{Maximum distance product}
+\todo{Verify theoretical running time, and compare with simple unfolding algorithm?}
+
+\subsection{Combined algorithm}
+\todo{Verification of theoretical running time for DIST/grid.}
+\todo{Plots of time distribution of compression/DIST/grid, ex a pie chart or stacked plot.}
+\todo{Plots of theoretical running time for combined algorithm.}
+\todo{Plots of performance compared to simple algorithm / implementation.}
+
 From the benchmark section of the string compression chapter (\cref{sec:compression:benchmarks}), it was found that almost all "real-world" strings, was only compressible by a constant factor (up to the trivial repetition of the string due to the fixed alphabet size \todo{experiment / comment on this?} \todo{Argue that this effect is negligible in practice (empirically determined on DNA input), and that the $\sqrt{\log{\frac{N}{n}}}$ parts eats most of the advantage}). That is, for all realistic DNA related applications it has empirically been found that $n = cN$ for some $c \in \mathbb{R}$. In this case, the running times of the algorithm is
 \[
   O\left( nN\sqrt{\log{\frac{N}{n}}} \right) = O\left( c \cdot N^2 \sqrt{\log{\frac{N}{cN}}} \right) = O(N^2),
