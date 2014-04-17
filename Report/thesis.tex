@@ -306,11 +306,11 @@ It is known \cite[p. 212]{Rytter2003211} that this problem is NP-complete, hence
 
 A small theoretical improvement was given in \cite{Rytter2003211}, reducing the approximation factor to $O(\log{\frac{n}{g^*}})$ where $g^*$ denotes the size of the minimal SLP compression. As suggested by \cite{Rytter2003211} the improvement is mostly cosmetic, and from the description of the approach, I \todo{be sure} find it very likely that the approach will significantly increase the constant in front of the big-$O$ notation. Therefore, I have not chosen to implemented this theoretical improvement.
 
-For computing the LZ-factorization a suffix tree is used. Suffix tress often comes with a large constant space overhead, making them undesirable in practice in some cases. \cite{Sakamoto2005416} gave another algorithm for solving \cref{compression:problem:minimum-slp} which also actives the $O(\log{\frac{n}{g^*}})$ approximation factor, but does it based on the RE-PAIR encoding scheme, which can be made to work without using a suffix tree. The reason for not implementing this approach, is that I find the LZ-factorization approach more intuitive, and that by experiments \todo{ref} it was found that the suffix-tree was not the limiting space consumer.
+For computing the LZ-factorization a suffix tree is used. Suffix tress often comes with a large constant space overhead, making them undesirable in practice in some cases. \cite{Sakamoto2005416} gave another algorithm for solving \cref{compression:problem:minimum-slp} which also actives the $O(\log{\frac{n}{g^*}})$ approximation factor, but does it based on the RE-PAIR encoding scheme, which can be made to work without using a suffix tree. The reason for not implementing this approach, is that I find the LZ-factorization approach more intuitive, and that the biggest space consumer in the implemented algorithm is not the suffix tree, but the representation of the SLP itself and its annotations used in the edit distance algorithm.
 
 In other areas of lossless compression, ex. bzip2 compression, the input string is encoded using a Burrows-Wheeler transform (BWT) \cite{BurrowsWheeler}. The intuition that the BWT works, is that it permutes the string in such a way that highly repetitive parts of the string are group together, making them easier to compress. However building the SLP over the BWT of the input string will not work because the BTW permutes the string, such that productions of the SLP does not corresponds to a continuous area in the input string. I have not been able to find any articles able to take advantage of the BWT for SLP based compression.
 
-In lossless compression there exists Entropy-based encoding schemes. Such schemes uses the frequencies of the appearing alphabet symbols in the string to compress them to use as few bits as possible. This type of compression is not of significant interest in this context, since we are only interest in minimizing the number of productions in the resulting SLP. However, one thing to notice is that an absolute lower bound when losslessly encoding a string exists, which is given by its entropy.
+In lossless compression there exist Entropy-based encoding schemes. Such schemes uses the frequencies of the appearing alphabet symbols in the string to compress them to use as few bits as possible. This type of compression is not of significant interest in this context, since we are only interest in minimizing the number of productions in the resulting SLP. However, one thing to notice is that an absolute lower bound when losslessly encoding a string exists, which is given by its entropy.
 \todo{Talk about entropy, and relate to SLP?}
 
 \paragraph{Notes about size}
@@ -1137,7 +1137,7 @@ The horizontal merge will be carried out by means of a vertical merge. In order 
   \[
     P_{B,A}(m + n - i, m + n - j) = P_{A,B}(i, j).
   \]
-  Notice that the transformed permutation matrix $P_{B,A}$ can easily be computed in linear time by a sweep over its rows.
+  Notice that the transformed permutation matrix $P_{B,A}$ can easily be computed in linear time by a sweep over the rows of $P_{A,B}$.
   \begin{proof}
     It is needed to show that the $H$-table corresponding to the permutation matrix $P_{B,A}$ conforms to \cref{claim:H_string_switch_relation}.
     \begin{align*}
@@ -1423,12 +1423,31 @@ This section will benchmark the compression based edit distance algorithm. Both 
 In this section the distance product operations on unit-Monge matrices will be benchmarked and optimized for later use.
 
 \subsubsection{Minimum distance product}
-In order to get the best possible performance for the minimum distance product computation, the size of the base case of the algorithm described in \cref{sec:algorithm:min-mult-two-unit-monge} should be determined.
+In order to get the best possible performance for the minimum distance product computation, the size of the base case of the algorithm described in \cref{sec:algorithm:min-mult-two-unit-monge} should be determined. Notice that when benchmarking the algorithm, the same amount of work should be done no matter the input. Therefore the running time should not depend on the content of the input, but only on its size. Therefore, all the benchmarks of the minimum distance product algorithms have been done with random permutation matrices of a specific size.
 
-\todo{Plot of simple vs recursive algorithm.}
-\todo{Verification of theoretical running time.}
+\Cref{fig:benchmark:min-distance:bc} plots the running time normalized by $n\log{n}$ of the algorithm when varying the base case size. The general form of the plot is as expected: A small base case size leads to a larger running time, and a too large base case size will also yield a larger running time. The best compromise seems to be around base case size $k \approx 20$. For all the following measurements in this report a base case size of $k = 20$ has been used.
+
+Another thing to notice about \cref{fig:benchmark:min-distance:bc} is that it looks like, for a fixed base case size, that the normalized running time converges to a constant. This suggests that the theoretical running time is also satisfied in practice.
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=10cm]{distance-mult/min-dist-mult-bc}
+  \caption{Normalized running time of the minimum distance product algorithm for varying base case sizes.}
+  \label{fig:benchmark:min-distance:bc}
+\end{figure}
+
+Notice that the normalized running times for the base case size of $50$ experience periodic peaks. These are due to the actual base case size when running the algorithm. In every step the algorithm splits the input size by $2$ until the input size gets smaller than the base case size. Therefore assuming that the input size is always divisible by $2$, the number of times the input is split becomes $x = \lceil \log{\frac{N}{k}} \rceil$ where $k$ is the base case size. That is, the actual instance size when the base case is hit becomes $\frac{N}{2^x}$. As can be seen on \cref{fig:benchmark:min-distance:bc50} this correlates very nicely with the running time of the algorithm. The reason these jumps are not seen for smaller base case sizes is that the simple unfolding approach is fast for small base case sizes.
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=10cm]{distance-mult/min-dist-mult-bc50}
+  \caption{Examination of the jumps occurring when the base case size is 50.}
+  \label{fig:benchmark:min-distance:bc50}
+\end{figure}
 
 \subsubsection{Maximum distance product}
+This section will examine if the maximum distance product algorithm runs within the theoretical running time, and its running time will be compared to a simple unfolding algorithm.
+
 \todo{Verify theoretical running time, and compare with simple unfolding algorithm?}
 
 \subsection{Combined algorithm}

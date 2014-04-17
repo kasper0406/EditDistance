@@ -7,7 +7,7 @@
 #include <iostream>
 #include <iomanip>
 
-#include "../benchmark/benchmarker.hpp"
+#include "../benchmark/utils.hpp"
 
 namespace Simple {
   using namespace std;

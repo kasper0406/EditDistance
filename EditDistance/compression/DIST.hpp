@@ -6,6 +6,8 @@
 #include <iterator>
 #include <memory>
 
+#include "../simple/simple.hpp"
+
 #include "../utils/matrix.hpp"
 #include "../utils/math.hpp"
 #include "../utils/unionfind.hpp"
@@ -18,6 +20,8 @@ namespace Compression {
     using namespace std;
     using namespace ::Compression::SLP;
     using namespace ::Utils::Math;
+    
+    using namespace ::Simple;
     
     class EditDistanceDISTTable {
     public:
@@ -1194,11 +1198,10 @@ namespace Compression {
         return "PermutationLCSMerger";
       }
       
-    private:
       static unique_ptr<PermutationDISTTable> minmultiply(const PermutationDISTTable* A,
-                                                          const PermutationDISTTable* B)
+                                                          const PermutationDISTTable* B,
+                                                          const int64_t base_case_switch_size = 20)
       {
-        constexpr int64_t base_case_switch_size = 20;
         assert(A->size() == B->size());
         
         vector<int64_t> id;
@@ -1262,8 +1265,9 @@ namespace Compression {
         };
         
         function<unique_ptr<PermutationDISTTable>(vector<int64_t>,vector<int64_t>,vector<int64_t>,vector<int64_t>)> compute;
-        compute = [&compute,&base_case,A,B](vector<int64_t> A_row_indices, vector<int64_t> A_col_indices,
-                                            vector<int64_t> B_row_indices, vector<int64_t> B_col_indices)
+        compute = [&compute,&base_case,A,B,base_case_switch_size]
+          (vector<int64_t> A_row_indices, vector<int64_t> A_col_indices,
+           vector<int64_t> B_row_indices, vector<int64_t> B_col_indices)
                     -> unique_ptr<PermutationDISTTable>
         {
           assert(A_row_indices.size() == B_row_indices.size() &&

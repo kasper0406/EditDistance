@@ -12,7 +12,10 @@
 #include <sstream>
 #include <fstream>
 
+#include "utils.hpp"
+
 #include "../compression/SLP.hpp"
+#include "../compression/DIST.hpp"
 
 #ifdef IPCM
 #include "ipcm/cpucounters.h"
@@ -21,19 +24,7 @@
 using namespace std;
 using namespace std::chrono;
 
-namespace Benchmark {
-  struct Stats {
-    Stats() : A_derivedLength(0), B_derivedLength(0), A_productions(0), B_productions(0), A_x(0), A_y(0), result(0) { }
-    
-    uint64_t A_derivedLength;
-    uint64_t B_derivedLength;
-    uint64_t A_productions;
-    uint64_t B_productions;
-    uint64_t A_x;
-    uint64_t A_y;
-    uint64_t result;
-  };
-  
+namespace Benchmark {  
   struct Measurement {
     Measurement() : time(0), l2_cache_hits(0), l2_cache_misses(0),
                     l3_cache_hits(0), l3_cache_misses(0), instructions(0)
@@ -265,10 +256,10 @@ namespace Benchmark {
       unique_ptr<Compression::SLP::SLP> slp;
       vector<Measurement> measurements;
       
+      function<void()> compute = [&slp,input] () {
+        slp = Compression::SLP::LZSLPBuilder::build(input);
+      };
       for (uint64_t trial = 0; trial < trials; ++trial) {
-        function<void()> compute = [&slp,input] () {
-          slp = Compression::SLP::LZSLPBuilder::build(input);
-        };
         measurements.push_back(time(compute));
       }
       
@@ -297,6 +288,82 @@ namespace Benchmark {
 #endif
       
       output << endl;
+    }
+    
+    output.close();
+  }
+  
+  void benchmark_min_multiply(uint16_t trials) {
+    using namespace Compression::DIST;
+    
+    ofstream output("min-multiply.dat", ofstream::out);
+    
+    output << left;
+    output << setw(10) << "bcs" << setw(15) << "N" << setw(15) << "min" << setw(15) << "lower" << setw(15) << "median" << setw(15) << "upper"
+           << setw(15) << "max";
+    
+#ifdef IPCM
+    output << setw(15) << "L2_hits" << setw(15) << "L2_miss"
+           << setw(15) << "L3_hits" << setw(15) << "L3_miss"
+           << setw(15) << "instructions";
+#endif
+    output << endl;
+    
+    // vector<uint16_t> base_case_sizes = { 1, 10, 14, 17, 20, 24, 50 };
+    vector<uint16_t> base_case_sizes = { 50 };
+    // for (uint16_t bcs = 1; bcs < 50; ++bcs) {
+    for (auto bcs : base_case_sizes) {
+      cout << "Testing bcs = " << bcs << endl;
+      
+      for (uint64_t N = 1; N < 1000000; N = max(N + 1, (uint64_t)ceil(1.7 * N))) {
+        cout << "Testing N = " << N << endl;
+        
+        vector<int64_t> A_rows(N, 0);
+        vector<int64_t> B_rows(N, 0);
+        
+        for (int64_t i = 0; i < N; ++i) {
+          A_rows[i] = i;
+          B_rows[i] = i;
+        }
+        random_shuffle(A_rows.begin(), A_rows.end());
+        random_shuffle(B_rows.begin(), B_rows.end());
+        
+        unique_ptr<PermutationDISTTable> A(new PermutationDISTTable(0, 0, A_rows));
+        unique_ptr<PermutationDISTTable> B(new PermutationDISTTable(0, 0, B_rows));
+        
+        function<void()> compute = [&A,&B,bcs] () {
+          auto result = PermutationLCSMerger::minmultiply(A.get(), B.get(), bcs);
+        };
+        vector<Measurement> measurements;
+        for (uint64_t trial = 0; trial < trials; ++trial) {
+          measurements.push_back(time(compute));
+        }
+        
+        sort(measurements.begin(), measurements.end());
+        const uint16_t iMin = 0;
+        const uint16_t iMax = trials - 1;
+        const uint16_t iLower = iMax / 4;
+        const uint16_t iUpper = (3 * iMax) / 4;
+        const uint16_t iMedian = trials / 2;
+        
+        output << setw(10) << bcs
+               << setw(15) << N
+               << setw(15) << measurements[iMin].time
+               << setw(15) << measurements[iLower].time
+               << setw(15) << measurements[iMedian].time
+               << setw(15) << measurements[iUpper].time
+               << setw(15) << measurements[iMax].time;
+        
+#ifdef IPCM
+        output << setw(15) << measurements[iMedian].l2_cache_hits
+               << setw(15) << measurements[iMedian].l2_cache_misses
+               << setw(15) << measurements[iMedian].l3_cache_hits
+               << setw(15) << measurements[iMedian].l3_cache_misses
+               << setw(15) << measurements[iMedian].instructions;
+#endif
+        
+        output << endl;
+      }
     }
     
     output.close();

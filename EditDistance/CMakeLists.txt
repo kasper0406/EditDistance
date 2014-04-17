@@ -40,7 +40,7 @@ set(ROOT_SRCS "main.cpp")
 set(SIMPLE_SRCS "simple/simple.hpp")
 set(COMPRESSION_SRCS "compression/SLP.hpp" "compression/DIST.hpp" "compression/slpalign.hpp" "compression/maxmultiply.hpp")
 set(UTILS_SRCS "utils/allocator.hpp" "utils/matrix.hpp" "utils/math.hpp" "utils/unionfind.hpp")
-set(BENCHMARK_SRCS "benchmark/benchmarker.hpp")
+set(BENCHMARK_SRCS "benchmark/utils.hpp" "benchmark/benchmarker.hpp")
 set(TEST_SRCS "test/tests.hpp")
 
 option(USE_COUNTING_ALLOCATOR "Use allocator counting memory consumption." ON)
