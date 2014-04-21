@@ -369,6 +369,134 @@ namespace Benchmark {
     output.close();
   }
   
+  void benchmark_max_multiply(uint16_t trials) {
+    using namespace Compression::DIST;
+    
+    ofstream output("max-multiply.dat", ofstream::out);
+    
+    output << left;
+    output << setw(15) << "N" << setw(15) << "min" << setw(15) << "lower" << setw(15) << "median" << setw(15) << "upper"
+           << setw(15) << "max";
+    
+#ifdef IPCM
+    output << setw(15) << "L2_hits" << setw(15) << "L2_miss"
+           << setw(15) << "L3_hits" << setw(15) << "L3_miss"
+           << setw(15) << "instructions";
+#endif
+    output << endl;
+    
+    for (uint64_t N = 1; N < 1000000; N = max(N + 1, (uint64_t)ceil(1.7 * N))) {
+      cout << "Testing N = " << N << endl;
+      
+      vector<int64_t> vec(N, 0);
+      for (int64_t i = 0; i < N; ++i) vec[i] = i;
+      random_shuffle(vec.begin(), vec.end());
+      
+      vector<int64_t> perm_rows(N, 0);
+      for (int64_t i = 0; i < N; ++i) perm_rows[i] = i;
+      random_shuffle(perm_rows.begin(), perm_rows.end());
+      unique_ptr<PermutationDISTTable> perm(new PermutationDISTTable(0, 0, perm_rows));
+      
+      function<void()> compute = [&vec,&perm] () {
+        auto result = PermutationDISTTable::maxmultiply(vec, perm.get());
+      };
+      vector<Measurement> measurements;
+      for (uint64_t trial = 0; trial < trials; ++trial) {
+        measurements.push_back(time(compute));
+      }
+      
+      sort(measurements.begin(), measurements.end());
+      const uint16_t iMin = 0;
+      const uint16_t iMax = trials - 1;
+      const uint16_t iLower = iMax / 4;
+      const uint16_t iUpper = (3 * iMax) / 4;
+      const uint16_t iMedian = trials / 2;
+      
+      output << setw(15) << N
+             << setw(15) << measurements[iMin].time
+             << setw(15) << measurements[iLower].time
+             << setw(15) << measurements[iMedian].time
+             << setw(15) << measurements[iUpper].time
+             << setw(15) << measurements[iMax].time;
+      
+#ifdef IPCM
+      output << setw(15) << measurements[iMedian].l2_cache_hits
+             << setw(15) << measurements[iMedian].l2_cache_misses
+             << setw(15) << measurements[iMedian].l3_cache_hits
+             << setw(15) << measurements[iMedian].l3_cache_misses
+             << setw(15) << measurements[iMedian].instructions;
+#endif
+      
+      output << endl;
+    }
+    
+    output.close();
+  }
+  
+  void benchmark_slow_max_multiply(uint16_t trials) {
+    using namespace Compression::DIST;
+    
+    ofstream output("slow-max-multiply.dat", ofstream::out);
+    
+    output << left;
+    output << setw(15) << "N" << setw(15) << "min" << setw(15) << "lower" << setw(15) << "median" << setw(15) << "upper"
+    << setw(15) << "max";
+    
+#ifdef IPCM
+    output << setw(15) << "L2_hits" << setw(15) << "L2_miss"
+    << setw(15) << "L3_hits" << setw(15) << "L3_miss"
+    << setw(15) << "instructions";
+#endif
+    output << endl;
+    
+    for (uint64_t N = 1; N < 1000000; N = max(N + 1, (uint64_t)ceil(1.7 * N))) {
+      cout << "Testing N = " << N << endl;
+      
+      vector<int64_t> vec(N, 0);
+      for (int64_t i = 0; i < N; ++i) vec[i] = i;
+      random_shuffle(vec.begin(), vec.end());
+      
+      vector<int64_t> perm_rows(N, 0);
+      for (int64_t i = 0; i < N; ++i) perm_rows[i] = i;
+      random_shuffle(perm_rows.begin(), perm_rows.end());
+      unique_ptr<PermutationDISTTable> perm(new PermutationDISTTable(0, 0, perm_rows));
+      
+      function<void()> compute = [&vec,&perm] () {
+        auto result = PermutationDISTTable::maxmultiply_slow(vec, perm.get());
+      };
+      vector<Measurement> measurements;
+      for (uint64_t trial = 0; trial < trials; ++trial) {
+        measurements.push_back(time(compute));
+      }
+      
+      sort(measurements.begin(), measurements.end());
+      const uint16_t iMin = 0;
+      const uint16_t iMax = trials - 1;
+      const uint16_t iLower = iMax / 4;
+      const uint16_t iUpper = (3 * iMax) / 4;
+      const uint16_t iMedian = trials / 2;
+      
+      output << setw(15) << N
+      << setw(15) << measurements[iMin].time
+      << setw(15) << measurements[iLower].time
+      << setw(15) << measurements[iMedian].time
+      << setw(15) << measurements[iUpper].time
+      << setw(15) << measurements[iMax].time;
+      
+#ifdef IPCM
+      output << setw(15) << measurements[iMedian].l2_cache_hits
+      << setw(15) << measurements[iMedian].l2_cache_misses
+      << setw(15) << measurements[iMedian].l3_cache_hits
+      << setw(15) << measurements[iMedian].l3_cache_misses
+      << setw(15) << measurements[iMedian].instructions;
+#endif
+      
+      output << endl;
+    }
+    
+    output.close();
+  }
+  
   template <class Implementation>
   void run_benchmark(uint16_t trials, const double xfactor) {
     cout << "#Testing: " << Implementation::name() << endl;

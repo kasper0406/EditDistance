@@ -326,10 +326,6 @@ namespace Compression {
         return "PermutationDISTTable";
       }
       
-    private:
-      int64_t rows_, cols_;
-      vector<int64_t> row_map_, column_map_;
-      
       struct MaxInfo {
         MaxInfo(int64_t value, int64_t pos) : value(value), pos(pos) { }
         int64_t value, pos;
@@ -338,6 +334,29 @@ namespace Compression {
           return value == other.value && pos == other.pos;
         }
       };
+      
+      static vector<MaxInfo> maxmultiply_slow(vector<int64_t> v, const PermutationDISTTable* dist) {
+        assert(v.size() == dist->size() + 1);
+        const int64_t x = v.size();
+        
+        vector<MaxInfo> result; result.reserve(x);
+        
+        const auto& H = dist->unfoldH();
+        for (int64_t j = 0; j < x; ++j) {
+          MaxInfo maximum(numeric_limits<int64_t>::min(), -1);
+          for (int64_t i = 0; i < x; ++i) {
+            const int64_t candidate = v[i] + H(i, j);
+            if (maximum.value < candidate) {
+              maximum.value = candidate;
+              maximum.pos = i;
+            }
+          }
+          
+          result.push_back(maximum);
+        }
+        
+        return result;
+      }
       
       static vector<MaxInfo> maxmultiply(vector<int64_t> v, const PermutationDISTTable* dist) {
         assert(v.size() == dist->size() + 1);
@@ -382,7 +401,7 @@ namespace Compression {
           for (int64_t j = 1; j < x; ++j) {
             const int64_t k = dist->getRow(j - 1);
             const auto pos = interval.Find(k);
-
+            
             // Find the rightmost element with pos <= k
             list<MaxInfo>::iterator t;
             if (pos == k) {
@@ -439,11 +458,11 @@ namespace Compression {
              cout << endl << endl;
              };
              
-            print_t(j);
-            cout << "Candidates: " << endl;
-            for (auto iter = candidates.rbegin(); iter != candidates.rend(); ++iter) {
-              cout << "Value: " << iter->value << ", Pos: " << iter->pos << endl;
-            }
+             print_t(j);
+             cout << "Candidates: " << endl;
+             for (auto iter = candidates.rbegin(); iter != candidates.rend(); ++iter) {
+             cout << "Value: " << iter->value << ", Pos: " << iter->pos << endl;
+             }
              */
             
             // Max is in end of candidate list
@@ -473,6 +492,10 @@ namespace Compression {
         
         return result;
       }
+      
+    private:
+      int64_t rows_, cols_;
+      vector<int64_t> row_map_, column_map_;
     };
     
     bool operator==(const PermutationDISTTable& permDIST, const SimpleLCSDISTTable& simpleDIST) {

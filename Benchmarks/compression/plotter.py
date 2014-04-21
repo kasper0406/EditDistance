@@ -42,22 +42,6 @@ ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), fancybox=True, shadow
 plt.savefig('fib.pdf')
 
 
-# DNA Plots
-plt.figure()
-plt.xscale('log', basex=2)
-plt.ylabel('Compression ratio')
-plt.xlabel('Prefix length')
-
-genome1 = pd.read_csv("compression_fasta_genome1.dat", delim_whitespace=True)
-genome2 = pd.read_csv("compression_fasta_genome2.dat", delim_whitespace=True)
-
-plt.plot(genome1['N'], genome1['compression'], label="Genome 1")
-plt.plot(genome2['N'], genome2['compression'], label="Genome 2")
-
-plt.legend()
-plt.savefig('dna.pdf')
-
-
 # Random string plots
 plt.figure()
 plt.title("Compression quality")
@@ -73,6 +57,23 @@ plt.plot(random['N'], random['compression'], label="Random string")
 
 plt.legend()
 plt.savefig('random.pdf')
+
+
+# DNA Plots
+plt.figure()
+plt.xscale('log', basex=2)
+plt.ylabel('Compression ratio')
+plt.xlabel('Prefix length')
+
+genome1 = pd.read_csv("compression_fasta_genome1.dat", delim_whitespace=True)
+genome2 = pd.read_csv("compression_fasta_genome2.dat", delim_whitespace=True)
+
+plt.plot(genome1['N'], genome1['compression'], label="Genome 1")
+plt.plot(genome2['N'], genome2['compression'], label="Genome 2")
+plt.plot(random['N'], random['compression'], label="Random")
+
+plt.legend()
+plt.savefig('dna.pdf')
 
 
 # Running time plots

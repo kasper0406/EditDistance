@@ -51,7 +51,10 @@ int main(int argc, char* argv[])
     Benchmark::benchmark_compression(trials, Benchmark::UniformRandomInput(max_len));
      */
     
-    Benchmark::benchmark_min_multiply(trials);
+    // Benchmark::benchmark_min_multiply(trials);
+    
+    Benchmark::benchmark_max_multiply(trials);
+    Benchmark::benchmark_slow_max_multiply(trials);
     
     // Benchmark::run_benchmark<Simple::EditDistance>(trials, xfactor);
     // Benchmark::run_benchmark<Compression::LCSBlowUpAligner<SLP::LZSLPBuilder, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>>>(trials, xfactor);
