@@ -1498,6 +1498,7 @@ Notice that the normalized running times for the base case size of $50$ experien
 This section will examine if the maximum distance product algorithm runs within the theoretical running time, and its running time will be compared to a simple unfolding algorithm.
 
 This algorithm is a bit more input sensitive than the one for computing the minimum distance product, since a list of candidates is maintained, where the length of this may influence the running time of the instance. It has been chosen to verify the running time using randomly generated input. This choice is not directly related to the context where it will be used later, however the input should be fine to test if the theoretical running time is satisfied.
+\todo{Consider input data.}
 
 \Cref{fig:benchmark:max-distance} plots the normalized running time of both the naive $O(n^2)$ algorithm, and the efficient $O(n)$ algorithm of \cite{Gawrychowski:2012:FAC:2422024.2422048}. It can be seen that efficient algorithm is always superior to the naive, hence the efficient algorithm is used for all input sizes.
 
@@ -1509,8 +1510,6 @@ Moreover \cref{fig:benchmark:max-distance} indicates that the normalized running
   \caption{Running time of the efficient and naive algorithms for computing the maximum distance product of a permutation matrix and a vector.}
   \label{fig:benchmark:max-distance}
 \end{figure}
-
-\todo{Verify theoretical running time, and compare with simple unfolding algorithm?}
 
 \subsection{Combined algorithm}
 \todo{Verification of theoretical running time for DIST/grid.}
