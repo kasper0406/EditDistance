@@ -497,8 +497,8 @@ namespace Benchmark {
     output.close();
   }
   
-  template <class Implementation>
-  void run_benchmark(uint16_t trials, const double xfactor) {
+  template <class Implementation, class InputGenerator>
+  void run_benchmark(uint16_t trials, const double xfactor, InputGenerator generator1, InputGenerator generator2) {
     cout << "#Testing: " << Implementation::name() << endl;
     
     const auto& stages = Implementation::run({ "a", "b", 1 });
@@ -509,9 +509,9 @@ namespace Benchmark {
     // Output files
     vector<ofstream> outputs; outputs.reserve(stages.size() + 1);
     for (auto& stage : stages) {
-      outputs.push_back(ofstream(Implementation::short_name() + "_" + stage.first + ".dat", ofstream::out));
+      outputs.push_back(ofstream(Implementation::short_name() + "_" + generator1.name() + "_" + generator2.name() + "_" + stage.first + ".dat", ofstream::out));
     }
-    outputs.push_back(ofstream(Implementation::short_name() + "_total.dat", ofstream::out));
+    outputs.push_back(ofstream(Implementation::short_name() + "_" + generator1.name() + "_" + generator2.name() + "_total.dat", ofstream::out));
     
     // Output headers
     for (auto& output : outputs) {
@@ -526,7 +526,7 @@ namespace Benchmark {
        */
       
       output << left;
-      output << setw(15) << "N" << setw(15) << "min" << setw(15) << "lower" << setw(15) << "median" << setw(15) << "upper"
+      output << setw(15) << "iteration" << setw(15) << "A_len" << setw(15) << "B_len" << setw(15) << "min" << setw(15) << "lower" << setw(15) << "median" << setw(15) << "upper"
              << setw(15) << "max" << setw(15) << "mean" << setw(10) << "%RSD"
              << setw(10) << "A_prod" << setw(10) << "B_prod" << setw(10) << "A_x" << setw(10) << "B_x";
       
@@ -539,20 +539,16 @@ namespace Benchmark {
       output << endl;
     }
     
-    const uint64_t maxN = 1000;
-    for (uint64_t n = 10; n <= maxN; n = 1.7 * n) {
-      cout << left << "Testing n = " << setw(8) << n << flush;
+    string a = "";
+    string b = "";
+    
+    for (uint64_t iteration = 1; generator1.hasNext() || generator2.hasNext(); ++iteration) {
+      cout << "Running iteration: " << iteration << endl;
       
-      string a = read_seqs_from_files({ "genome1.fa" })[0].substr(0, n);
-      string b = read_seqs_from_files({ "genome2.fa" })[0].substr(0, n);
-      
-      /*
-       string a = generate_string(1000, { 'a' });
-       string b = generate_string(1000, { 'a' });
-       */
-      
-      // string a = fib_string(n);
-      // string b = fib_string(n);
+      if (generator1.hasNext())
+        a = generator1.next();
+      if (generator2.hasNext())
+        b = generator2.next();
       
       vector<pair<vector<Measurement>, Statistics>> measurements(stages.size(), pair<vector<Measurement>, Statistics>());
       
@@ -600,7 +596,9 @@ namespace Benchmark {
       double total_median_time = 0;
       uint64_t l2_misses = 0, l2_hits = 0, l3_misses = 0, l3_hits = 0, instructions = 0;
       for (uint16_t stage = 0; stage < stages.size(); ++stage) {
-        outputs[stage] << setw(15) << n
+        outputs[stage] << setw(15) << iteration
+                       << setw(15) << a.length()
+                       << setw(15) << b.length()
                        << setw(15) << measurements[stage].first[iMin].time
                        << setw(15) << measurements[stage].first[iLower].time
                        << setw(15) << measurements[stage].first[iMedian].time
@@ -631,7 +629,9 @@ namespace Benchmark {
         l3_hits += measurements[stage].first[iMedian].l3_cache_hits;
         instructions += measurements[stage].first[iMedian].instructions;
       }
-      outputs[stages.size()] << setw(15) << (stats.A_derivedLength + stats.B_derivedLength)
+      outputs[stages.size()] << setw(15) << iteration
+                             << setw(15) << a.length()
+                             << setw(15) << b.length()
                              << setw(15) << 0
                              << setw(15) << 0
                              << setw(15) << total_median_time

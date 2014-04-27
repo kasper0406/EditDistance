@@ -36,22 +36,9 @@ namespace Test {
         
         { "Verify result of sample using LCS blow up LZ-SLP and merging DIST.", test_slp_compression_align<LCSBlowUpAligner<SLP::LZSLPBuilder, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>>> },
         
-        { "Partition generation with trivial SLP.", test_partition_generation<SLP::SimpleSLPBuilder> },
-        { "Partition generation with simple compression SLP.", test_partition_generation<SLP::SimpleCompressionSLPBuilder> },
-        { "Test simple horizontal DIST merge.", test_horizontal_merge<DIST::SimpleDISTRepository<DIST::EditDistanceDISTTable>, DIST::SimpleMerger> },
-        { "Test simple vertical DIST merge.", test_vertical_merge<DIST::SimpleDISTRepository<DIST::EditDistanceDISTTable>, DIST::SimpleMerger> },
-        { "Test construction of DIST tables using simple merging.", test_dist_repository<DIST::SimpleDISTRepository<DIST::EditDistanceDISTTable>, DIST::MergingDISTRepository<DIST::EditDistanceDISTTable, DIST::SimpleMerger>, SLP::SimpleCompressionSLPBuilder> },
-        { "Verify result of sample using simple compression SLP and simple DIST.", test_slp_compression_align<EditDistanceAligner<SLP::SimpleCompressionSLPBuilder, DIST::SimpleDISTRepository<DIST::EditDistanceDISTTable>>> },
         { "Verify result of sample using simple compression SLP and simple merging DIST.", test_slp_compression_align<EditDistanceAligner<SLP::SimpleCompressionSLPBuilder, DIST::MergingDISTRepository<DIST::EditDistanceDISTTable, DIST::SimpleMerger>>> },
         { "Test blow-up method for computing edit-distance from LCS.", test_blow_up_method },
-        { "Test LCS vertical simple DIST merge.", test_vertical_merge<DIST::LCSDISTRepository<DIST::SimpleLCSDISTTable>, DIST::SimpleLCSDISTMerger> },
-        { "Test LCS horizontal simple DIST merge.", test_horizontal_merge<DIST::LCSDISTRepository<DIST::SimpleLCSDISTTable>, DIST::SimpleLCSDISTMerger> },
-        { "Test construction of DIST tables using simple merging LCS DIST", test_dist_repository<DIST::LCSDISTRepository<DIST::SimpleLCSDISTTable>, DIST::MergingDISTRepository<DIST::SimpleLCSDISTTable, DIST::SimpleLCSDISTMerger>> },
-        { "Verify result of sample using LCS blow up SLP and simple DIST.", test_slp_compression_align<LCSBlowUpAligner<SLP::SimpleCompressionSLPBuilder, DIST::LCSDISTRepository<DIST::SimpleLCSDISTTable>>> },        
         { "Verify result of sample using LCS blow up SLP and simple merging DIST.", test_slp_compression_align<LCSBlowUpAligner<SLP::SimpleCompressionSLPBuilder, DIST::MergingDISTRepository<DIST::SimpleLCSDISTTable, DIST::SimpleLCSDISTMerger>>> },
-        { "Test merging permutation LCS DIST builder.", test_dist_repository<DIST::LCSDISTRepository<DIST::SimpleLCSDISTTable>, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>> },
-        
-        { "Partition generation with LZ SLP.", test_partition_generation<SLP::LZSLPBuilder> },
         { "Test LZ SLP builder", test_slp_builder<SLP::LZSLPBuilder> }
       };
       
@@ -85,41 +72,6 @@ namespace Test {
         assert(tree->derivedLength() == input.length());
         if (SLP::StringDeriver::getDerivedString(tree->root()) != input)
           return false;
-      }
-      
-      return true;
-    }
-    
-    template <class SLPBuilder>
-    static bool test_partition_generation() {
-      for (int64_t length = 10; length < 1000; length = max((int64_t)((double)length * 1.4), length + 1)) {
-        string input = Benchmark::generate_string(length, { 'a', 'b', 'c' });
-        
-        for (int64_t x = 5; x < input.size(); x = max((int64_t)((double)x * 4), x + 1)) {
-          unique_ptr<SLP::SLP> slp = SLPBuilder::build(input);
-          
-          /*
-           if (x == 1) {
-           cout << SLP::SLPUnfoldedPrinter::toDot(slp) << endl;
-           cout << SLP::SLPFoldedPrinter::toDot(slp) << endl;
-           }
-           */
-          
-          auto partition = get<0>(SLP::Partitioner::partition(*slp, x));
-          stringstream partitionString;
-          for (auto block : partition) {
-            // cout << "X" << dynamic_cast<SLP::NonTerminal*>(block)->name() << "\t" << block->associatedString << endl;
-            partitionString << block->associatedString;
-          }
-          
-          // cout << length << "\t" << x << "\t" << partitionString.str() << endl;
-          if (partitionString.str() != input) {
-            cout << "Was: " << partitionString.str() << endl;
-            cout << "Should be: " << input << endl;
-            
-            return false;
-          }
-        }
       }
       
       return true;

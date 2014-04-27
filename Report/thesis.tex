@@ -754,7 +754,7 @@ A different way of describing the LCS between these prefix-suffix pairs, is by t
   \]
   where $? \not\in \Sigma$ denotes a wildcard character matching all other symbols.
 \end{mydef}
-The first case in the $H_{A,B}$ definition is introduced because of the entries in the corresponding $\DIST$ table that are not well-defined. The $H$-table entries corresponding to these undefined $\DIST$ entries is simply chosen to make everything work out as they should in able to make the $H$-tables easy representable. In almost all the following calculations is has been chosen not to include this case as it is straight forward that the choice will work.
+The first case in the $H_{A,B}$ definition is introduced because of the entries in the corresponding $\DIST$ table that are not well-defined. The $H$-table entries corresponding to these undefined $\DIST$ entries are simply chosen to make everything work out as they should in order to make the $H$-tables easy representable. In almost all the following calculations it has been chosen not to include this case as it is straight forward that the choice will work. This is due to the definition of the $\Sigma$-operator and that unit-Monge matrices are closed under minimum distance multiplication.
 
 The precise correspondence between the $H$-table of \cref{def:H-table} and the $\DIST$ tables, is given by the following lemma.
 \begin{lemma}[\refbook{p.-48}{mentioned but not proved}]
@@ -1512,11 +1512,49 @@ Moreover \cref{fig:benchmark:max-distance} indicates that the normalized running
 \end{figure}
 
 \subsection{Combined algorithm}
+This section will present and discuss measurements on the implementation following together with this thesis. First it will be examined that the two main parts satisfies their theoretical running time, and the time distribution between the two steps will be examined.
+
+In the end it will be checked that all the steps combined into the complete algorithm satisfies the theoretical running time, and the running time will be compared to the running time of the simple algorithm on the same inputs.
+
+\subsubsection{DIST Repository and grid computation}
 \todo{Verification of theoretical running time for DIST/grid.}
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=10cm]{combined/dist_runningtime}
+  \caption{Plot of the normalized running time for building the DIST repository.}
+  \label{fig:benchmark:dist-repo-time}
+\end{figure}
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=10cm]{combined/grid_runningtime}
+  \caption{Plot of the normalized running time for filling out the grid.}
+  \label{fig:benchmark:fill-grid-time}
+\end{figure}
+
+\subsubsection{Total combined running time}
+It can be seen on \cref{fig:benchmark:total-time-combined} that each of the input types converges to a constant as the length of the input grows. One thing to note is that the constant for the random data and genome data is substantially higher than for the Fibonacci input \todo{give exact reason and argue why it is okay.}. Therefore the plots suggest that the combination of all the different parts of the implementation also satisfies the theoretical running time.
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=10cm]{combined/total_runningtime}
+  \caption{Plot of the normalized total running time of the combined algorithm.}
+  \label{fig:benchmark:total-time-combined}
+\end{figure}
+
 \todo{Plots of time distribution of compression/DIST/grid, ex a pie chart or stacked plot.}
-\todo{Plots of theoretical running time for combined algorithm.}
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=10cm]{combined/fib_area_plot}
+  \caption{Plot of the relative running time of the different parts of the algorithm on Fibonacci input.}
+  \label{fig:benchmark:relative-runningtime-fib}
+\end{figure}
+
+\subsubsection{Comparison with simple algorithms}
 \todo{Plots of performance compared to simple algorithm / implementation.}
 
+\todo{Mention that simple algorithm can achieve a factor 4-16 speedup by using 4-Russian approach.}
+
+\subsubsection{Notes to self}
 From the benchmark section of the string compression chapter (\cref{sec:compression:benchmarks}), it was found that almost all "real-world" strings, was only compressible by a constant factor (up to the trivial repetition of the string due to the fixed alphabet size \todo{experiment / comment on this?} \todo{Argue that this effect is negligible in practice (empirically determined on DNA input), and that the $\sqrt{\log{\frac{N}{n}}}$ parts eats most of the advantage}). That is, for all realistic DNA related applications it has empirically been found that $n = cN$ for some $c \in \mathbb{R}$. In this case, the running times of the algorithm is
 \[
   O\left( nN\sqrt{\log{\frac{N}{n}}} \right) = O\left( c \cdot N^2 \sqrt{\log{\frac{N}{cN}}} \right) = O(N^2),

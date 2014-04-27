@@ -97,7 +97,7 @@ namespace Compression {
       
       int64_t Bpos = 0;
       for (auto b : this->partitionB_) {
-        const int64_t b_len = b->associatedString.size();
+        const int64_t b_len = b->associatedStringLen;
         
         vector<int64_t> block_row(b_len + 1, 0);
         for (int64_t i = 0; i <= b_len; i++)
@@ -105,7 +105,7 @@ namespace Compression {
         
         int64_t Apos = 0;
         for (auto a : this->partitionA_) {
-          const int64_t a_len = a->associatedString.size();
+          const int64_t a_len = a->associatedStringLen;
           assert(block_row[0] == prev_column[Apos]);
           
           // Build inputs to block
@@ -212,12 +212,12 @@ namespace Compression {
       
       int64_t Bpos = 0;
       for (auto b : this->partitionB_) {
-        const int64_t b_len = b->associatedString.size();
+        const int64_t b_len = b->associatedStringLen;
         vector<int64_t> block_row(b_len + 1, 0);
         
         int64_t Apos = 0;
         for (auto a : this->partitionA_) {
-          const int64_t a_len = a->associatedString.size();
+          const int64_t a_len = a->associatedStringLen;
           assert(block_row[0] == prev_column[Apos]);
           
           // Build inputs to block
@@ -303,7 +303,7 @@ namespace Compression {
        */
       
       auto findX = [this] (SLP::SLP* slp) -> int64_t {
-        return min((int64_t)5, slp->derivedLength());
+        // return min((int64_t)5, slp->derivedLength());
         
         const int64_t f = max((int64_t)2, slp->derivedLength() / slp->productions());
         const int64_t x = max(f / (int64_t)sqrt(log2(f)), min((int64_t)5, slp->derivedLength()));

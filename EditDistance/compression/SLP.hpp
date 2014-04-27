@@ -32,7 +32,7 @@ namespace Compression {
       
       Production(int64_t height) : Production(0, 1) { }
       
-      Production(int64_t height, int64_t lzlen) : associatedString(""), derivedStringLength(0), isAddedInPartition(false), DISTTableIndex(-1), TYPE2_next(nullptr), lzbuilder_length(lzlen), reclaimCount_(0), height_(height) { }
+      Production(int64_t height, int64_t lzlen) : associatedStringLen(0), derivedStringLength(0), isAddedInPartition(false), DISTTableIndex(-1), TYPE2_next(nullptr), lzbuilder_length(lzlen), reclaimCount_(0), height_(height) { }
       
       virtual ~Production() { };
       virtual void accept(Visitor* visitor) = 0;
@@ -41,7 +41,8 @@ namespace Compression {
        * Information used for x-partition.
        * Consider refactoring this!
        */
-      string associatedString;
+      // string associatedString;
+      uint64_t associatedStringLen;
       int64_t derivedStringLength;
       
       bool isAddedInPartition;
@@ -911,9 +912,10 @@ namespace Compression {
     class Partitioner : public Visitor {
     public:
       void visit(Terminal* terminal) {
-        assert(terminal->associatedString.empty() || terminal->associatedString == string(1, terminal->symbol()));
+        // assert(terminal->associatedString.empty() || terminal->associatedString == string(1, terminal->symbol()));
         terminal->derivedStringLength = 1;
-        terminal->associatedString = string(1, terminal->symbol());
+        // terminal->associatedString = string(1, terminal->symbol());
+        terminal->associatedStringLen = 1;
         
         if (x_ == 1) {
           addKeyProduction(terminal);
@@ -925,7 +927,7 @@ namespace Compression {
           if (nonTerminal->derivedStringLength >= x_ &&
               nonTerminal->left()->derivedStringLength < x_ && nonTerminal->right()->derivedStringLength < x_) {
             assert(nonTerminal->derivedStringLength < 2 * x_);
-            assert(nonTerminal->associatedString.size() == nonTerminal->derivedStringLength);
+            assert(nonTerminal->associatedStringLen == nonTerminal->derivedStringLength);
             
             addKeyProduction(nonTerminal);
             return; // We are done with the subtree
@@ -944,11 +946,12 @@ namespace Compression {
         rightLen = nonTerminal->right()->derivedStringLength;
         nonTerminal->derivedStringLength = leftLen + rightLen;
         if (leftLen < x_ && rightLen < x_) {
-          stringstream ss;
-          ss << nonTerminal->left()->associatedString << nonTerminal->right()->associatedString;
+          // stringstream ss;
+          // ss << nonTerminal->left()->associatedString << nonTerminal->right()->associatedString;
           
-          assert(nonTerminal->associatedString.empty() || nonTerminal->associatedString == ss.str());
-          nonTerminal->associatedString = ss.str();
+          // assert(nonTerminal->associatedString.empty() || nonTerminal->associatedString == ss.str());
+          // nonTerminal->associatedString = ss.str();
+          nonTerminal->associatedStringLen = nonTerminal->left()->associatedStringLen + nonTerminal->right()->associatedStringLen;
           
           if (leftLen + rightLen >= x_) {
             addKeyProduction(nonTerminal);
@@ -1000,16 +1003,18 @@ namespace Compression {
         NonTerminal* cur = parentIterator->second; ++parentIterator;
         Production* prev = start;
         while (cur != stop) {
-          string S = "";
+          // string S = "";
+          int64_t S_len = 0;
           Production* prev_selected = nullptr;
           // Production* prev_added_to_partition = nullptr;
           
-          while (S.size() < x_ && cur != stop) {
+          while (S_len < x_ && cur != stop) {
             if (cur->right() != prev) {
-              assert(!cur->right()->associatedString.empty());
-              assert(cur->right()->associatedString.length() < x_);
+              assert(cur->right()->associatedStringLen != 0);
+              assert(cur->right()->associatedStringLen < x_);
               
-              S += cur->right()->associatedString;
+              // S += cur->right()->associatedString;
+              S_len += cur->right()->associatedStringLen;
               
               /*
               stringstream ss;
@@ -1031,13 +1036,13 @@ namespace Compression {
             }
           }
           
-          if (!S.empty()) {
-            assert(prev_selected->associatedString.empty() || prev_selected->associatedString == S);
+          if (S_len != 0) {
+            // assert(prev_selected->associatedString.empty() || prev_selected->associatedString == S);
             
             // prev_selected->TYPE2_next = prev_added_to_partition;
             // prev_added_to_partition = prev_selected;
             
-            prev_selected->associatedString = S;
+            prev_selected->associatedStringLen = S_len;
             addToPartition(prev_selected, LEFT);
           }
         }
@@ -1050,18 +1055,22 @@ namespace Compression {
         NonTerminal* cur = parentIterator->second; ++parentIterator;
         Production* prev = start;
         while (cur != stop) {
-          string S = "";
+          // string S = "";
+          int64_t S_len = 0;
           Production* prev_selected = nullptr;
           // Production* prev_added_to_partition = nullptr;
           
-          while (S.size() < x_ && cur != stop) {
+          while (S_len < x_ && cur != stop) {
             if (cur->left() != prev) {
-              assert(!cur->left()->associatedString.empty());
-              assert(cur->left()->associatedString.length() < x_);
+              assert(cur->left()->associatedStringLen != 0);
+              assert(cur->left()->associatedStringLen < x_);
               
+              /*
               stringstream ss;
               ss << cur->left()->associatedString << S;
               S = ss.str();
+               */
+              S_len += cur->left()->associatedStringLen;
               
               cur->TYPE2_next = prev_selected;
               cur->type = RIGHT;
@@ -1077,13 +1086,14 @@ namespace Compression {
             }
           }
           
-          if (!S.empty()) {
-            assert(prev_selected->associatedString.empty() || prev_selected->associatedString == S);
+          if (S_len != 0) {
+            // assert(prev_selected->associatedString.empty() || prev_selected->associatedString == S);
             
             // prev_selected->TYPE2_next = prev_added_to_partition;
             // prev_added_to_partition = prev_selected;
             
-            prev_selected->associatedString = S;
+            // prev_selected->associatedString = S;
+            prev_selected->associatedStringLen = S_len;
             addToPartition(prev_selected, RIGHT);
           }
         }
@@ -1103,15 +1113,15 @@ namespace Compression {
       }
       
       void addToPartition(Production* production, ProductionType type) {
-        assert(!production->associatedString.empty());
-        assert(production->associatedString.size() == production->derivedStringLength || type != KEY);
+        assert(production->associatedStringLen != 0);
+        assert(production->associatedStringLen == production->derivedStringLength || type != KEY);
         
         partition_.push_back(production);
         if (!production->isAddedInPartition) {
           if (type == LEFT)
-            assert(!((NonTerminal*)production)->right()->associatedString.empty());
+            assert(((NonTerminal*)production)->right()->associatedStringLen != 0);
           if (type == RIGHT)
-            assert(!((NonTerminal*)production)->left()->associatedString.empty());
+            assert(((NonTerminal*)production)->left()->associatedStringLen != 0);
           
           production->isAddedInPartition = true;
           production->type = type;

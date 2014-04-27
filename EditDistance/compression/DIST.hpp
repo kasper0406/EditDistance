@@ -506,186 +506,6 @@ namespace Compression {
       return !(permDIST == simpleDIST);
     }
     
-    template <class DISTTable>
-    class SimpleDISTRepository {
-    public:
-      SimpleDISTRepository(const StraightLineProgram& slpA,
-                           const StraightLineProgram& slpB)
-      { }
-      
-      /**
-       * Constructs DIST repository given blocks in both strings.
-       */
-      void build(const vector<Production*>& A,
-                 const vector<Production*>& B) {
-        repo_.reserve(A.size());
-        
-        for (auto a : A) {
-          vector<DISTTable> row;
-          row.reserve(B.size());
-          assert(a->DISTTableIndex == -1);
-          a->DISTTableIndex = repo_.size();
-          
-          for (auto& b : B) {
-            assert(b->DISTTableIndex == -1 || row.size() == b->DISTTableIndex);
-            b->DISTTableIndex = row.size();
-            
-            const int64_t m = a->associatedString.size();
-            const int64_t n = b->associatedString.size();
-            Matrix<int64_t> matrix(m + n + 1, m + n + 1, numeric_limits<int64_t>::max());
-            
-            // Fill up the DIST matrix
-            for (int64_t in = 0; in <= m + n; in++) {
-              for (int64_t out = 0; out <= m + n; out++) {
-                const int64_t a_start = max(m - in, (int64_t)0);
-                const int64_t a_stop = min((m + n) - out, m);
-                if (a_start > a_stop) continue; // Invalid substring
-                
-                const int64_t b_start = max(in - (m), (int64_t)0);
-                const int64_t b_stop = min(out, n);
-                if (b_start > b_stop) continue; // Invalid substring
-                
-                /*
-                 cout << "(in, out) = (" << in << ", " << out << ")" << endl;
-                 cout << a_start << " -> " << a_stop << ": " << a->associatedString.substr(a_start, a_stop - a_start) << endl;
-                 cout << b_start << " -> " << b_stop << ": " << b->associatedString.substr(b_start, b_stop - b_start) << endl;
-                 */
-                
-                ::Simple::EditDistance calculator(a->associatedString.substr(a_start, a_stop - a_start),
-                                                  b->associatedString.substr(b_start, b_stop - b_start));
-                // cout << "Res: " << calculator.edit_distance() << endl;
-                matrix(in, out) = calculator.calculate();
-              }
-            }
-            
-            /*
-             cout << a->associatedString << endl << b->associatedString << endl;
-             cout << matrix << endl << endl;
-             */
-            
-            DISTTable table = { m, n, move(matrix) };
-            row.push_back(move(table));
-          }
-          
-          repo_.push_back(move(row));
-        }
-      }
-      
-      /**
-       * Given two productions A, B and input I, return the output of applying the DIST table identified to A, B to I.
-       */
-      vector<int64_t> apply(Production* A, Production* B, const vector<int64_t>& I) {
-        assert(A->DISTTableIndex != -1 && B->DISTTableIndex != -1);
-        assert(A->associatedString.size() + B->associatedString.size() + 1 == I.size());
-        
-        /*
-         cout << "A: " << A->associatedString << endl << "B: " << B->associatedString << endl;
-         cout << "Associated DIST:" << endl << repo_[A->DISTTableIndex][B->DISTTableIndex] << endl << endl;
-         */
-        
-        return (*this)(A, B).apply(I);
-      }
-      
-      const DISTTable& operator()(Production* a, Production* b) const {
-        const int64_t i = a->DISTTableIndex;
-        const int64_t j = b->DISTTableIndex;
-        
-        assert(i != -1 && j != -1 && i < repo_.size() && j < repo_[i].size());
-        return repo_[i][j];
-      }
-      
-      static string name() {
-        return "SimpleDIST";
-      }
-      
-    private:
-      vector<vector<DISTTable>> repo_;
-    };
-    
-    template <class DISTTable>
-    class LCSDISTRepository {
-    public:
-      LCSDISTRepository(const StraightLineProgram& slpA,
-                        const StraightLineProgram& slpB)
-      { }
-      
-      /**
-       * Constructs DIST repository given blocks in both strings.
-       */
-      void build(const vector<Production*>& A,
-                 const vector<Production*>& B) {
-        repo_.reserve(A.size());
-        
-        for (auto a : A) {
-          vector<DISTTable> row;
-          row.reserve(B.size());
-          assert(a->DISTTableIndex == -1);
-          a->DISTTableIndex = repo_.size();
-          
-          for (auto& b : B) {
-            assert(b->DISTTableIndex == -1 || row.size() == b->DISTTableIndex);
-            b->DISTTableIndex = row.size();
-            
-            const int64_t m = a->associatedString.size();
-            const int64_t n = b->associatedString.size();
-            Matrix<int64_t> matrix(m + n + 1, m + n + 1, numeric_limits<int64_t>::max());
-            
-            string b_padded = string(m, '*') + b->associatedString + string(m, '*');
-            // Fill up the DIST matrix
-            for (int64_t in = 0; in <= m + n; in++) {
-              for (int64_t out = 0; out <= m + n; out++) {
-                // if (out < in - (m + n) / 2) {
-                if (out < in - m) {
-                  // matrix(in, out) = out - in + (m + n) / 2;
-                  matrix(in ,out) = out - (in - m);
-                } else {
-                  const uint64_t iStart = in;
-                  const uint64_t iStop = out + m;
-                  ::Simple::LCS lcs_calculator(a->associatedString, b_padded.substr(iStart, iStop - iStart));
-                  matrix(in, out) = lcs_calculator.calculate();
-                }
-              }
-            }
-            
-            /*
-             cout << a->associatedString << endl << b->associatedString << endl;
-             cout << matrix << endl << endl;
-             */
-            
-            DISTTable table = { m, n, move(matrix) };
-            row.push_back(move(table));
-          }
-          
-          repo_.push_back(move(row));
-        }
-      }
-      
-      /**
-       * Given two productions A, B and input I, return the output of applying the DIST table identified to A, B to I.
-       */
-      vector<int64_t> apply(Production* A, Production* B, const vector<int64_t>& I) {
-        assert(A->DISTTableIndex != -1 && B->DISTTableIndex != -1);
-        assert(A->associatedString.size() + B->associatedString.size() + 1 == I.size());
-        
-        return (*this)(A, B).apply(I);
-      }
-      
-      const DISTTable& operator()(Production* a, Production* b) const {
-        const int64_t i = a->DISTTableIndex;
-        const int64_t j = b->DISTTableIndex;
-        
-        assert(i != -1 && j != -1 && i < repo_.size() && j < repo_[i].size());
-        return repo_[i][j];
-      }
-      
-      static string name() {
-        return "PermutationDIST";
-      }
-      
-    private:
-      vector<vector<DISTTable>> repo_;
-    };
-    
     template <class DISTTable, class Merger>
     class MergingDISTRepository {
     public:
@@ -719,11 +539,11 @@ namespace Compression {
         // Handle case where productions derive exactly the associated string
         for (auto a : A) {
           for (auto b : B) {
-            assert(!a->associatedString.empty());
-            assert(!b->associatedString.empty());
+            assert(a->associatedStringLen != 0);
+            assert(b->associatedStringLen != 0);
             build(a, b);
             
-            assert((*this)(a, b).size() == a->associatedString.size() + b->associatedString.size());
+            assert((*this)(a, b).size() == a->associatedStringLen + b->associatedStringLen);
           }
         }
       }
@@ -733,7 +553,7 @@ namespace Compression {
        */
       vector<int64_t> apply(Production* A, Production* B, const vector<int64_t>& I) {
         assert(A->DISTTableIndex != -1 && B->DISTTableIndex != -1);
-        assert(A->associatedString.size() + B->associatedString.size() + 1 == I.size());
+        assert(A->associatedStringLen + B->associatedStringLen + 1 == I.size());
         
         return (*this)(A, B).apply(I);
       }
@@ -763,7 +583,7 @@ namespace Compression {
       shared_ptr<DISTTable> build(NonTerminal* a, const Terminal* b)
       {
         // cout << "NonTerm - Term" << endl;
-        const bool a_type1 = a->associatedString.size() == a->derivedStringLength;
+        const bool a_type1 = a->associatedStringLen == a->derivedStringLength;
         
         Production *a_left, *a_right;
         if (a_type1) {
@@ -797,7 +617,7 @@ namespace Compression {
       shared_ptr<DISTTable> build(Terminal* a, NonTerminal* b)
       {
         // cout << "Term - NonTerm" << endl;
-        const bool b_type1 = b->associatedString.size() == b->derivedStringLength;
+        const bool b_type1 = b->associatedStringLen == b->derivedStringLength;
         
         Production *b_left, *b_right;
         if (b_type1) {
@@ -832,8 +652,8 @@ namespace Compression {
       {
         // cout << "NonTerm - NonTerm" << endl;
         
-        const bool a_type1 = a->associatedString.size() == a->derivedStringLength;
-        const bool b_type1 = b->associatedString.size() == b->derivedStringLength;
+        const bool a_type1 = a->associatedStringLen == a->derivedStringLength;
+        const bool b_type1 = b->associatedStringLen == b->derivedStringLength;
         
         // Determine things to merge
         Production *a_left, *a_right, *b_left, *b_right;
