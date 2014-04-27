@@ -1549,8 +1549,25 @@ It can be seen on \cref{fig:benchmark:total-time-combined} that each of the inpu
   \label{fig:benchmark:relative-runningtime-fib}
 \end{figure}
 
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=10cm]{combined/random_area_plot}
+  \caption{Plot of the relative running time of the different parts of the algorithm on random strings as input.}
+  \label{fig:benchmark:relative-runningtime-random}
+\end{figure}
+
 \subsubsection{Comparison with simple algorithms}
 \todo{Plots of performance compared to simple algorithm / implementation.}
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=10cm]{combined/simple_vs_lcs}
+  \caption{Plot of the running time improvement of the LCS Blow-up algorithm compared to the Simple algorithm.}
+  \label{fig:benchmark:relative-runningtime-random}
+\end{figure}
+
+Fibonacci input is compressed such that $n = O(\log{N})$. This means that for Fibonacci input the total running time of the algorithm becomes $O\left( N\log{N} \sqrt{\log{\frac{N}{\log{N}}}} \right) = O(N\log{N}\sqrt{\log{N}})$. Therefore running time of the LCS Blow-up method should improve by a factor $O\left( \frac{N}{\log^{\frac{3}{2}}{N}} \right)$ \todo{Does this correspond to the slope?}.
+
+It can be seen that the LCS Blow up method is only faster for Fibonacci strings longer than $\approx 20000$ symbols.
 
 \todo{Mention that simple algorithm can achieve a factor 4-16 speedup by using 4-Russian approach.}
 

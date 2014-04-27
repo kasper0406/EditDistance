@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
   Test::TestSuite::run_tests();
   
   {
-    const double xfactor = 3;
+    const double xfactor = 2;
     const uint16_t trials = 1;
     
     /*
@@ -55,7 +55,7 @@ int main(int argc, char* argv[])
     // Benchmark::benchmark_max_multiply(trials);
     // Benchmark::benchmark_slow_max_multiply(trials);
     
-    const uint64_t max_seq_len = 50000;
+    const uint64_t max_seq_len = 30000;
     const uint64_t fib_len = 30;
     
     cout << "DNA sequences" << endl;
