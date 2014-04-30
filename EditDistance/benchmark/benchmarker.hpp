@@ -390,7 +390,7 @@ namespace Benchmark {
       
       vector<int64_t> vec(N, 0);
       for (int64_t i = 0; i < N; ++i) vec[i] = i;
-      random_shuffle(vec.begin(), vec.end());
+      // random_shuffle(vec.begin(), vec.end());
       
       vector<int64_t> perm_rows(N, 0);
       for (int64_t i = 0; i < N; ++i) perm_rows[i] = i;
@@ -449,7 +449,7 @@ namespace Benchmark {
 #endif
     output << endl;
     
-    for (uint64_t N = 1; N < 1000000; N = max(N + 1, (uint64_t)ceil(1.7 * N))) {
+    for (uint64_t N = 1; N < 5000; N = max(N + 1, (uint64_t)ceil(1.7 * N))) {
       cout << "Testing N = " << N << endl;
       
       vector<int64_t> vec(N, 0);

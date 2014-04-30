@@ -27,6 +27,7 @@ plt.xscale('log', basex=2)
 #plt.yscale('log', basey=2)
 plt.ylabel('Normalized running time')
 plt.xlabel('N')
+plt.ticklabel_format(style='sci', axis='y', scilimits=(-1,2))
 
 mult = pd.read_csv("max-multiply.dat", delim_whitespace=True)
 slow_mult = pd.read_csv("slow-max-multiply.dat", delim_whitespace=True).head(7)

@@ -41,7 +41,17 @@ int main(int argc, char* argv[])
   
   {
     const double xfactor = 2;
-    const uint16_t trials = 1;
+    const uint16_t trials = 5;
+    // const uint64_t max_len = 4000000;
+    const uint64_t max_len = 10000;
+    
+    /*
+    Benchmark::benchmark_compression(trials, Benchmark::FibonacciInput(30));
+    Benchmark::benchmark_compression(trials, Benchmark::FastaInput("hg_repetitive.fa", max_len));
+    Benchmark::benchmark_compression(trials, Benchmark::FastaInput("hg_nonrepetitive.fa", max_len));
+    Benchmark::benchmark_compression(trials, Benchmark::FastaInput("hg_combined.fa", max_len));
+    Benchmark::benchmark_compression(trials, Benchmark::UniformRandomInput(max_len));
+     */
     
     /*
     Benchmark::benchmark_compression(trials, Benchmark::FastaInput("genome1.fa", max_len));
@@ -50,21 +60,32 @@ int main(int argc, char* argv[])
     Benchmark::benchmark_compression(trials, Benchmark::UniformRandomInput(max_len));
      */
     
-    // Benchmark::benchmark_min_multiply(trials);
+    /*
+    Benchmark::benchmark_min_multiply(trials);
+    Benchmark::benchmark_max_multiply(trials);
+    Benchmark::benchmark_slow_max_multiply(trials);
+     */
     
-    // Benchmark::benchmark_max_multiply(trials);
-    // Benchmark::benchmark_slow_max_multiply(trials);
-    
-    const uint64_t max_seq_len = 30000;
+    const uint64_t max_seq_len = 13000;
     const uint64_t fib_len = 30;
     
-    cout << "DNA sequences" << endl;
-    Benchmark::run_benchmark<Simple::EditDistance>(trials, xfactor, Benchmark::FastaInput("genome1.fa", max_seq_len), Benchmark::FastaInput("genome2.fa", max_seq_len));
+    cout << "HG repetitive" << endl;
+    Benchmark::run_benchmark<Simple::EditDistance>(trials, xfactor, Benchmark::FastaInput("hg_repetitive.fa", max_seq_len), Benchmark::FastaInput("hg_repetitive.fa", max_seq_len));
     Benchmark::run_benchmark<Compression::LCSBlowUpAligner<SLP::LZSLPBuilder, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>>>
-      (trials, xfactor, Benchmark::FastaInput("genome1.fa", max_seq_len), Benchmark::FastaInput("genome2.fa", max_seq_len));
-     
+      (trials, xfactor, Benchmark::FastaInput("hg_repetitive.fa", max_seq_len), Benchmark::FastaInput("hg_repetitive.fa", max_seq_len));
+    
+    cout << "HG nonrepetitive" << endl;
+    Benchmark::run_benchmark<Simple::EditDistance>(trials, xfactor, Benchmark::FastaInput("hg_nonrepetitive.fa", max_seq_len), Benchmark::FastaInput("hg_nonrepetitive.fa", max_seq_len));
+    Benchmark::run_benchmark<Compression::LCSBlowUpAligner<SLP::LZSLPBuilder, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>>>
+    (trials, xfactor, Benchmark::FastaInput("hg_nonrepetitive.fa", max_seq_len), Benchmark::FastaInput("hg_nonrepetitive.fa", max_seq_len));
+    
+    cout << "HG combined" << endl;
+    Benchmark::run_benchmark<Simple::EditDistance>(trials, xfactor, Benchmark::FastaInput("hg_combined.fa", max_seq_len), Benchmark::FastaInput("hg_combined.fa", max_seq_len));
+    Benchmark::run_benchmark<Compression::LCSBlowUpAligner<SLP::LZSLPBuilder, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>>>
+    (trials, xfactor, Benchmark::FastaInput("hg_combined.fa", max_seq_len), Benchmark::FastaInput("hg_combined.fa", max_seq_len));
+    
     cout << "Fibonacci" << endl;
-    Benchmark::run_benchmark<Simple::EditDistance>(trials, xfactor, Benchmark::FibonacciInput(fib_len - 10), Benchmark::FibonacciInput(fib_len - 10));
+    Benchmark::run_benchmark<Simple::EditDistance>(trials, xfactor, Benchmark::FibonacciInput(fib_len - 6), Benchmark::FibonacciInput(fib_len - 6));
     Benchmark::run_benchmark<Compression::LCSBlowUpAligner<SLP::LZSLPBuilder, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>>>
       (trials, xfactor, Benchmark::FibonacciInput(fib_len), Benchmark::FibonacciInput(fib_len));
 
@@ -73,6 +94,8 @@ int main(int argc, char* argv[])
     Benchmark::run_benchmark<Compression::LCSBlowUpAligner<SLP::LZSLPBuilder, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>>>
       (trials, xfactor, Benchmark::UniformRandomInput(max_seq_len), Benchmark::UniformRandomInput(max_seq_len));
     
+     
+     
     // Benchmark::run_benchmark<Compression::LCSBlowUpAligner<SLP::SimpleCompressionSLPBuilder, DIST::MergingDISTRepository<DIST::SimpleLCSDISTTable, DIST::SimpleLCSDISTMerger>>>(trials, x);
     
     /*

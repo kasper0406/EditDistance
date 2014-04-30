@@ -42,6 +42,25 @@ plt.plot(random_dist['A_len'] + random_dist['B_len'], normalize_dist(random_dist
 plt.legend()
 plt.savefig('dist_runningtime.pdf')
 
+# Instruction count and cache misses for DIST repository computation
+plt.figure()
+plt.title("Running time of DIST Repository computation")
+ax1 = plt.subplot(111)
+plt.xscale('log', basex=2)
+plt.ylabel('Normalized instruction count')
+plt.xlabel('N')
+
+ax2 = ax1.twinx()
+ax2.set_ylabel('L2 cache miss percentage')
+
+ax1.plot(random_dist['A_len'] + random_dist['B_len'], normalize_dist(random_dist, 'instructions'), label="Random")
+ax1.plot(genome_dist['A_len'] + genome_dist['B_len'], normalize_dist(genome_dist, 'instructions'), label="Genome")
+
+ax2.plot(random_dist['A_len'] + random_dist['B_len'], (random_dist['L2_miss'] * 100) / (random_dist['L2_hits'] + random_dist['L2_miss']), label="Fibonacci", ls='dashed')
+ax2.plot(genome_dist['A_len'] + genome_dist['B_len'], (genome_dist['L2_miss'] * 100) / (genome_dist['L2_hits'] + genome_dist['L2_miss']), label="Genome", ls='dashed')
+
+ax1.legend()
+plt.savefig('dist_runningtime_cpu.pdf')
 
 # Plot to verify the theoretical running time for filling out the grid
 def normalize_grid(df, to_normalize = 'median'):
@@ -54,6 +73,7 @@ plt.title("Running time for the grid computation")
 plt.xscale('log', basex=2)
 plt.ylabel('Normalized running time')
 plt.xlabel('N')
+plt.ticklabel_format(style='sci', axis='y', scilimits=(-1,2))
 
 fibonacci_grid = pd.read_csv("data/lcs_blowup_fib_fib_grid.dat", delim_whitespace=True)
 genome_grid = pd.read_csv("data/lcs_blowup_fasta_genome1_fasta_genome2_grid.dat", delim_whitespace=True)

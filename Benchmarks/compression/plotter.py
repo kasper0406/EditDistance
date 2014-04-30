@@ -76,6 +76,26 @@ plt.legend()
 plt.savefig('dna.pdf')
 
 
+# Human genome plots
+plt.figure()
+plt.title("Compressibility of the human genome to a SLP")
+plt.xscale('log', basex=2)
+plt.ylabel('Compression ratio')
+plt.xlabel('Prefix length')
+
+hg_repetitive = pd.read_csv("compression_fasta_hg_repetitive.dat", delim_whitespace=True)
+hg_nonrepetitive = pd.read_csv("compression_fasta_hg_nonrepetitive.dat", delim_whitespace=True)
+hg_combined = pd.read_csv("compression_fasta_hg_combined.dat", delim_whitespace=True)
+
+plt.plot(hg_repetitive['N'], hg_repetitive['compression'], label="HG Repetitive")
+plt.plot(hg_nonrepetitive['N'], hg_nonrepetitive['compression'], label="HG Nonrepetitive")
+plt.plot(hg_combined['N'], hg_combined['compression'], label="HG Combined")
+plt.plot(random['N'], random['compression'], label="Random string")
+
+plt.legend()
+plt.savefig('hg.pdf')
+
+
 # Running time plots
 plt.figure()
 ax1 = plt.subplot(111)
@@ -83,16 +103,21 @@ plt.title("Runing time for compression")
 plt.xscale('log', basex=2)
 ax1.set_ylabel('Normalized running time')
 plt.xlabel('Length')
+plt.ticklabel_format(style='sci', axis='y', scilimits=(-1,2))
 
 clipped_random = random.tail(12)
 clipped_genome1 = genome1.tail(12)
 clipped_genome2 = genome2.tail(12)
+clipped_hg_repetitive = hg_repetitive.tail(14)
+clipped_hg_nonrepetitive = hg_nonrepetitive.tail(14)
+clipped_hg_combined = hg_combined.tail(14)
 clipped_fib = fib.tail(15)
 
 ax1.plot(clipped_fib['N'], clipped_fib['median'] / (clipped_fib['N'] * np.log2(clipped_fib['N'])), label="Fibonacci")
-ax1.plot(clipped_genome1['N'], clipped_genome1['median'] / (clipped_genome1['N'] * np.log2(clipped_genome1['N'])), label="Genome 1")
-ax1.plot(clipped_genome2['N'], clipped_genome2['median'] / (clipped_genome2['N'] * np.log2(clipped_genome2['N'])), label="Genome 2")
-ax1.plot(clipped_random['N'], clipped_random['median'] / (clipped_random['N'] * np.log2(clipped_random['N'])), label="Random")
+ax1.plot(clipped_hg_repetitive['N'], clipped_hg_repetitive['median'] / (clipped_hg_repetitive['N'] * np.log2(clipped_hg_repetitive['N'])), label="HG Repetitive")
+ax1.plot(clipped_hg_nonrepetitive['N'], clipped_hg_nonrepetitive['median'] / (clipped_hg_nonrepetitive['N'] * np.log2(clipped_hg_nonrepetitive['N'])), label="HG Nonrepetitive")
+ax1.plot(clipped_hg_combined['N'], clipped_hg_combined['median'] / (clipped_hg_combined['N'] * np.log2(clipped_hg_combined['N'])), label="HG Combined")
+ax1.plot(clipped_random['N'], clipped_random['median'] / (clipped_random['N'] * np.log2(clipped_random['N'])), label="Random", color='k')
 
 ax1.legend()
 

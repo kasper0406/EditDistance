@@ -3,6 +3,7 @@
 \usepackage[utf8]{inputenc}
 \usepackage[american]{babel}
 \usepackage{a4}
+\usepackage{hyperref}
 \usepackage{natbib}
 \usepackage{latexsym}
 \usepackage{mathtools}
@@ -103,6 +104,7 @@
 % \end{flushright}
 
 \tableofcontents
+\clearpage
 \pagenumbering{arabic}
 \setcounter{secnumdepth}{2}
 
@@ -110,36 +112,45 @@
 
 \chapter{Introduction}
 \label{ch:intro}
+Edit distance is a measure of how similar or dissimilar two string are. The edit distance measure is used in a wide range of practical problems, for example automatic spelling correction and DNA/Protein alignment. This thesis will examine if compressing the input strings to straight-line programs (SLPs, see \cref{def:slp}) can speed up the edit distance computation.
 
-This report will focus on the computation of edit distance in compressed strings. The edit distance is a measure of how similar or dissimilar two string are. More precisely,
-\begin{problem}
-  \label{problem:edit-distance}
-  The edit distance between two strings $\str{A}{0}{m}$ and $\str{B}{0}{n}$ counts the minimum number of operations needed to transform $A$ into $B$. The set of the available operations are to: insert a character, delete a character or to substitute a character by another. Each of the operations is associated with a cost. Throughout the thesis the Levenshtein distance will be used, where the cost of a substitution is 0 on a match and 1 otherwise. Insert and delete operations have cost 1.
-\end{problem}
+The main focus of this thesis is based on the algorithm described in \cite{Gawrychowski:2012:FAC:2422024.2422048} which builds on top of the approaches described in \cite{DBLP:journals/corr/abs-1004-1194} and \cite{DBLP:journals/corr/abs-0707-3619}. To this date, this is the asymptotically best known algorithm in the RAM for computation of edit distance in strings encoded by SLPs. Given two input strings $A$ and $B$ of length respectively $k$ and $l$, the algorithm runs in time $O(n N \sqrt{\log{\frac{N}{n}}})$, where $N = k + l$ and $n$ is the sum of sizes of the compressed strings (a formal definition on how $n$ is measured is given in \cref{ch:compressing-strings}). It is a open problem if the running time can be reduced to $O(nN)$. This is a bit further discussed in \cref{sec:conclusion:further-work}.
 
-The scores could be generalized to other constants, but also to arbitrary functions. Different choices may result in more complicated algorithms with worse asymptotic running time and space consumption, even if the cost function is assumed to be computable in constant time. However, this thesis will only focus on the edit distance problem as defined in \cref{problem:edit-distance}, and how fast this can be computed in compressed strings.
+This thesis has a two-fold objective. First and foremost to implement the algorithm and benchmark it to see how the technique performs in practice. The second objective is to give a coherent description of the algorithm and argue that it is correct. The proof in order to establish the correctness follow the ones presented in \cite{DBLP:journals/corr/abs-0707-3619}, \cite{Gawrychowski:2012:FAC:2422024.2422048} and \cite{Tiskin:2010:FDM:1873601.1873704}. The proofs supplied in this report are in many cases more thorough, detailed and is a bit closer to the actual implementation.
 
-\section{Work contribution}
-The main focus of this thesis is based on the algorithm described in \cite{Gawrychowski:2012:FAC:2422024.2422048} which builds on top of the approach described in \cite{DBLP:journals/corr/abs-1004-1194} and \cite{DBLP:journals/corr/abs-0707-3619}. To this date, this is the asymptotically best known algorithm in the RAM for computation of edit distance in strings encoded by straight-line programs (SLPs). Given two input strings $\str{A}{0}{k}$ and $\str{B}{0}{l}$ the algorithm runs in time $O(n N \sqrt{\log{\frac{N}{n}}})$, where $N = k + l$ and $n$ is the sum of the number of productions in the SLP representation of the input strings (see \cref{ch:compressing-strings}). It is a open problem if the running time can be reduced to $O(nN)$, which is a bit further discussed in \cref{sec:conclusion:further-work}.
+The algorithm for speeding up the edit distance computation using compressed strings, can be divided into two major steps. The first is compressing the input strings, which is described in \cref{ch:compressing-strings} and the second step is the actual edit distance computation which uses the compressed strings as input. The algorithm for the actual computation is described in \cref{ch:algorithm}.
 
-This thesis has a two-fold objective. First and foremost to implement the algorithm and benchmark it to see how the technique performs in practice. The second objective is to give a coherent description of the algorithm and prove that it works. The proofs follow the ones presented in \cite{DBLP:journals/corr/abs-0707-3619} \todo{give range on proofs?}, but the proofs supplied in this report are in many cases more thorough and detailed.
+Both of the chapters are finished by presenting benchmarks. The benchmark section of \cref{ch:compressing-strings} describes how well different types of strings compresses and verifies the theoretical running time of the compression algorithm. Especially the compressibility of different types of inputs is of great interest since it bounds the speedup of the computation. The benchmark section of \cref{ch:algorithm} verifies the theoretical running time of the algorithm, compares how well the compression based algorithm performs to a simple edit distance algorithm and lastly examines the time usage by the different steps (see \cref{sec:edit-dist-on-slps-steps}) of the compression based algorithm.
 
-The following list of algorithms has been implemented in order to test the algorithm in practice:
-\todo{Consider if this should be moved until a point where terminology is defined.}
+\section{Overview}
+This section is intended to give an overview of the implemented algorithms, how the proofs of correctness relates and the main steps of the algorithm.
+
+The main steps of the implemented algorithm based on string compression are the following:
 \begin{itemize}
-  \item The SLP construction algorithm of \cite{Rytter2003211}. The algorithm is further described in \cref{ch:compressing-strings}.
-  \item Algorithm as described in \cite{DBLP:journals/corr/abs-1004-1194} for dividing the input strings into blocks of size $O(x)$ for some $x$, corresponding to productions in the SLP. The algorithm is described in \cref{sec:algorithm:select-productions}.
-  \item Algorithm from \cite{DBLP:journals/corr/abs-1004-1194} for building DIST tables based on the input string partitions. Described in \cref{sec:algorithm:building-DISTs-overview}.
+  \item Compress the input strings $A$ and $B$ to straight-line programs (SLPs) (defined in \cref{def:slp}).
+  \item Divide the input strings into blocks of a certain size based on their SLP representation.
+  \item Compute a structure called a DIST repository. This is a structure that for every pair of blocks in the two SLPs contains whats known as a DIST table. A DIST table is a representation of how the two blocks compares wrt. the computation.
+  \item Compute the actual result by utilizing the DIST repository.
+\end{itemize}
+In order to gain the speedup a succinct representation of the DIST repository is used. This representation encodes a DIST table as a permutation of the identity matrix and theoretically turns out to facilitate both fast construction and usage of the DIST repository.
+
+The algorithm relies on the following list of sub-algorithms which all have been implemented as part of writing this thesis:
+\begin{itemize}
+  \item The SLP construction algorithm of \cite{Rytter2003211}. Described in \cref{ch:compressing-strings}.
+  \item Algorithm from \cite{DBLP:journals/corr/abs-1004-1194} for dividing the input strings into blocks of size $O(x)$ for some $x$, corresponding to productions in the SLP. Described in \cref{sec:algorithm:select-productions}.
+  \item Algorithm from \cite{DBLP:journals/corr/abs-1004-1194} for building the DIST repository based on the blocks of the input string. Described in \cref{sec:algorithm:building-DISTs-overview}.
     \begin{itemize}
-      \item This algorithm requires the ability to min-multiply two simple unit-Monge matrices given by \cite{Tiskin:2010:FDM:1873601.1873704}. This algorithm is described in \cref{sec:algorithm:min-mult-two-unit-monge}.
+      \item This algorithm requires the ability to compute the minimum distance product (see \cref{def:minimum-distance-product}) of two simple unit-Monge matrices (see \cref{def:simple} and \cref{def:unit-monge}) given by \cite{Tiskin:2010:FDM:1873601.1873704}. Described in \cref{sec:algorithm:min-mult-two-unit-monge}.
     \end{itemize}
-  \item Algorithm for filling out the dynamic programming table using the DISTs, see \cref{sec:algorithm:filling-grid-overview}.
+  \item Algorithm for computing the actual result by using the DIST repository. This algorithm is only superficially described in \cite{Gawrychowski:2012:FAC:2422024.2422048} and \cite{DBLP:journals/corr/abs-0707-3619}. \Cref{sec:algorithm:filling-grid-overview} describes the details of this computation. The algorithm relies on:
     \begin{itemize}
-      \item An algorithm for max-multiplying a DIST with an arbitrary vector from \cite{Gawrychowski:2012:FAC:2422024.2422048} running in linear time. This algorithm is described in \cref{sec:algorithm:max-mult-H-table-with-vector}.
-      \item The max-multiply algorithm further relies on an interval union find data-structure from \cite{Itai06lineartime}. Described in \cref{sec:algorithm:interval-union-find}.
+      \item An algorithm from \cite{Gawrychowski:2012:FAC:2422024.2422048} for computing the maximum distance product of a DIST table with an arbitrary vector. Described in \cref{sec:algorithm:max-mult-H-table-with-vector}.
+      \item The maximum distance product algorithm further relies on an interval union find data-structure from \cite{Itai06lineartime}. Described in \cref{sec:algorithm:interval-union-find}.
     \end{itemize}
 \end{itemize}
-The algorithm for constructing the SLP encoding of the input strings requires a suffix tree. In order to have a succinct and efficient suffix tree, it has been chosen to use a suffix tree implementation in the Succinct Data Structure Library (SDSL) \cite{SDSL} based on \cite{OHL:FIS:GOG:2010}.
+The algorithm for constructing the SLP representation of the input strings requires a suffix tree. In order to have a succinct and efficient suffix tree, it has been chosen to use a suffix tree implementation in the Succinct Data Structure Library (SDSL) \cite{SDSL} based on \cite{OHL:FIS:GOG:2010}.
+
+In order to understand and prove the correctness of the algorithm a collection of proofs is described. \Cref{fig:proof-overview} gives an overview of how the main definitions, lemmas and theorems of this thesis relates. Also the figure points to the origin in the literature and is color coded by how much detail is added in this thesis compared to the literature.
 
 \setlength{\tabcolsep}{3pt}
 \tikzstyle{block} = [draw, rectangle, align=left]
@@ -151,8 +162,8 @@ The algorithm for constructing the SLP encoding of the input strings requires a 
   \end{tabular}
 }%
 
-\begin{figure}
-  \begin{tikzpicture}[font=\tiny\sffamily,node distance=1.3cm]
+\begin{figure}[h!]
+  \begin{tikzpicture}[font=\tiny\sffamily,node distance=5cm]
     \node[block](simple-classification){
       \nodecontent{Characterization of simple matrices}
                   {\Cref{claim:simple-matrix-characterization}}
@@ -189,6 +200,47 @@ The algorithm for constructing the SLP encoding of the input strings requires a 
   \label{fig:proof-overview}
 \end{figure}
 
+\section{Notation and definition of edit-distance}
+A string $\str{A}{0}{m}$ denotes a sequence of $m$ characters with random access, where the first is inclusive and the last is exclusive. That is, for $i \in \{0, \dots, m - 1\}$ the $i$'th character in the string can be accessed by $A[i] \in \Sigma$. Throughout this report it is assumed that the alphabet $\Sigma$ is finite.
+
+The substring of a string $\str{A}{0}{m}$ is denoted by $\substr{A}{i}{j} = A[i]A[i+1]\dots A[j - 1]$ where $i, j \in \{0, \dots, m\}$. If $j \leq i$ then $\substr{A}{i}{j}$ denotes the empty string.
+
+\todo{Introduce matrix notation.}
+
+The edit distance problem can now be defined more formally:
+\begin{problem}
+  \label{problem:edit-distance}
+  The edit distance between two strings $\str{A}{0}{m}$ and $\str{B}{0}{n}$ counts the minimum number of operations needed to transform $A$ into $B$. The set of the available operations are to: insert a character, delete a character or to substitute a character by another. Each of the operations is associated with a cost. Throughout the thesis the Levenshtein distance will be used, where the cost of a substitution is 0 on a match and 1 otherwise. Insert and delete operations have cost 1.
+\end{problem}
+The scores could be generalized to other constants, but also to arbitrary functions. Different choices may result in more complicated algorithms with worse asymptotic running time and space consumption, even if the cost function is assumed to be computable in constant time. However, this thesis will only focus on the edit distance problem as defined in \cref{problem:edit-distance}, and how fast this can be computed in compressed strings.
+
+\section{Test data}
+\label{sec:intro:test-data}
+In order to test the algorithms, some test data needs to be selected. As the algorithm relies on compression of the input, it is natural to choose test input with different compressibility characteristics. It is also worth noticing that the alphabet size does not directly influence the running time of the algorithm, however a smaller alphabet will result in less compressibility of the strings.
+
+The following inputs have been chosen for benchmarking:
+\begin{description}
+  \item[Fibonacci strings] A Fibonacci string is a string over the alphabet $\Sigma = \{a,b\}$. The $n$'th Fibonacci string $F_n$ is given by the following recurrence:
+    \begin{align*}
+      F_1 &= \text{a} \\
+      F_2 &= \text{ab} \\
+      F_{n} &= F_{n - 2} F_{n - 1} \quad\quad \text{for } n \geq 3
+    \end{align*}
+    It follows from the definition that these strings are very repetitive, and is therefore expected to compress very well. In \cref{sec:compressing-Fibonacci-strings} it is argued that there exists a SLP of size $O(\log{n})$ generating $F_n$.
+  \item[Human genome] The human genome is from the perspective of this thesis a very long DNA sequence over the alphabet $\Sigma = \{A,G,C,T\}$. For practical purposes the human genome, or similar DNA sequences, may be the most realistic type of input. Furthermore DNA are said to contain a lot of repetitions which may result in a smaller SLP generating the string.
+
+   The used human genome is \textbf{hg38} from \cite{HumanGenome}. The genome is divided into two categories: Repeating areas and non-repeating areas. The benchmarks in this report will use the following configurations for testing
+  \begin{itemize}
+    \item Repeating areas masked out from the genome (\texttt{hg\_repeating})
+    \item Non-repeating areas masked out from the genome (\texttt{hg\_nonrepeating})
+    \item The entire genome (\texttt{hg\_entire})
+  \end{itemize}
+  It is expected that this type of input will be less compressible than Fibonacci strings, but better compressible than random strings due to the repetitive structure of DNA.
+
+  \item[Uniformly random strings] This type of strings are generated by sampling every character in the string uniformly random from the alphabet $\Sigma = \{A,G,C,T\}$. This means that all characters are independent from each other, and should therefore be very incompressible in nature. Therefore this type of input should represent worst-case input for the algorithm, since it heavily relies on compression to obtain a speedup.
+\end{description}
+In \cref{sec:compression:benchmarks} the actual compressibility of all the above input types are investigated. \Cref{sec:algorithm:benchmarks} test how fast the compression based algorithm is able to handle the different input types.
+
 \section{Implementation and test setup}
 All measurements presented in this report were performed on a computer with an Intel i5-4258U CPU with the following technical specifications:
 \begin{itemize}
@@ -199,19 +251,22 @@ The main memory size of the machine is 16 Gb. The computer was running Mac OS X 
 
 Before doing the actual measurements, a small warm-up round was performed, ensuring that the code was in the CPU cache etc. This helped to greatly reduce the variance of the running time measurements yielding more consistent results.
 
-All running times was measured as wall-time, and all tests was repeated 5 times where the measurement with the median running times is the one used for data-analysis in this report. The reason for choosing the median measurement, is that an unexpected amount of machine activity in one of the trials should not penalize the result, but at the same time, some tasks done by the operating system may be needed for the algorithm to function, which is why the minimum time was not selected. However, the variation between the trails was found to be very small \todo{check this, and report RSD?}.
+All running times was measured as wall-time, and all tests was repeated 5 times where the measurement with the median running times is the one used for data-analysis in this report. The reason for choosing the median measurement, is that an unexpected amount of machine activity in one of the trials should not penalize the result, but at the same time, some tasks done by the operating system may be needed for the algorithm to function, which is why the minimum time was not selected. However, for larger inputs the relative standard deviation was less than $1.5\%$ \todo{Check with final measurements}, meaning that the measurements in each trails are close to each other.
 
 All the tested input sizes have been grown by a factor of $1.7$. This has been chosen to have a exponential growth with a reasonable step size that is not a power of $2$. The reason for not choosing a power of $2$ is that this could give worse measurement results than would be seen for other input sizes, primarily due to cache associativity. Since inputs in practice are typically not strict powers of $2$ the artifacts by cache associativity is not desired.
 
 \subsubsection{Correctness}
-In order to verify the correctness of the implementation, the result has been checked up against the simple algorithm described in \cref{sec:intro:simple}. Also, unit tests have been made to individually test parts of the algorithm, and during debugging and testing a lot of consistency checks are performed on every run. There are no known bugs in the implementation. 
+In order to verify the correctness of the implementation, the result has been checked up against the simple algorithm described in \cref{sec:intro:simple}. Also, unit tests have been made to individually test parts of the algorithm, and during debugging and testing a lot of consistency checks are performed on every run. There are no known bugs in the implementation.
+
+\chapter{Edit Distance approaches}
+There are multiple different ways to compute the edit distance between two strings. Some of the relevant contributions with respect to this thesis is mentioned in this chapter.
 
 \section{Simple algorithm}
 \label{sec:intro:simple}
-A standard dynamic programming algorithm for solving the edit distance problem, here denoted the simple algorithm\todo{Credit someone?}. It is given two string $\str{A}{1}{m}$ and $\str{B}{1}{n}$ for which the edit distance should be computed, and fills out a matrix of size $m \times n$ where a given entry $(i, j)$ corresponds to the edit distance between $\str{A}{1}{i}$ and $\str{B}{1}{j}$. The rules for filling out a table entry follows directly from the definition of edit distance when extending a string, and are as follows:
+A standard dynamic programming algorithm for solving the edit distance problem, here denoted the simple algorithm\todo{Credit someone?}. It is given two string $\str{A}{0}{m}$ and $\str{B}{0}{n}$ for which the edit distance should be computed, and fills out a matrix of size $m \times n$ where a given entry $(i, j)$ corresponds to the edit distance between $\str{A}{0}{i}$ and $\str{B}{0}{j}$. The rules for filling out a table entry follows directly from the definition of edit distance when extending a string, and are as follows:
 \[
   T[i, j] = \max \left\{ \begin{array}{lll}
-              T[i - 1, j - 1] + \delta(A[i], A[j]) & \text{if } i, j \geq 1 & \text{Match} \\
+              T[i - 1, j - 1] + \delta(A[i - 1], A[j - 1]) & \text{if } i, j \geq 1 & \text{Match} \\
               T[i - 1, j] + 1       & \text{if } i \geq 1, j \geq 0       & \text{Insert} \\
               T[i, j - 1] + 1       & \text{if } i \geq 0, j \geq 1       & \text{Delete}
             \end{array} \right.
@@ -260,6 +315,7 @@ This approach was not originally presented as a compression based algorithm, but
 \end{itemize}
 
 \subsection{Compression based on straight-line programs}
+\label{sec:edit-dist-on-slps-steps}
 This section gives a very brief overview of the algorithm given by \cite{Gawrychowski:2012:FAC:2422024.2422048}, which is the main focus of this thesis. A more detailed description of each of the steps of the algorithm will be given later in this report. 
 
 Another way of compressing a string, is to compress it to what is known as a straight-line program (SLP). A more formal definition of a SLP will be given in \cref{ch:compressing-strings}, for now it is sufficient to note that a SLP is a restricted context-free grammar.
@@ -279,25 +335,13 @@ The algorithm can be seen as a generalization of the 4-Russian approach, where t
   \item The dynamical programming table is filled up by using the partition and the precomputed $\DIST$ tables. This step takes time $O\left(\left(\frac{N}{x}\right)^2 \cdot AP(x)\right)$ where $AP(x)$ is the time to apply a DIST table. Using the succinct representation, \cite{Gawrychowski:2012:FAC:2422024.2422048} shows how to make $AP(x) = O(x)$, leading to a total running time of $O(\frac{N^2}{x})$. This step is described in \cref{sec:algorithm:filling-grid-overview}.
 \end{itemize}
 
-\section{Test data}
-\label{sec:intro:test-data}
-In order to test the algorithms, some test data needs to be selected. As the algorithm relies on compression of the input, it is natural to choose test input with different compressibility characteristics. This has led to the following choices of input.
-\begin{description}
-  \item[Fibonacci strings] These strings are very regular, and compresses very well in the SLP world. The definition of the Fibonacci strings directly gives a SLP for $fib(n)$ using $n$ productions. This is a compression to $O(\log{n})$ of the original length.
-  \item[Highly repetitive strings] Include this?
-  \item[DNA sequences] These sequences represent in almost any use cases very realistic input data to the algorithm. DNA sequences contains coding regions that are very similar and non coding regions that are almost uniformly random distributed \todo{cite}. Therefore this type of input should be able to facilitate at least some compression in the SLP compression model.
-
-  The DNA sequences chosen for benchmarking are two sequences from the machine learning in bioinformatics course. \todo{Consider if this should be changed!}
-  \item[Uniformly random strings] This type of strings are generated by sampling every character in the string uniformly random from $\Sigma$. This means that all characters are independent from each other, and should therefore be very incompressible in nature. Therefore this type of input should represent worst-case input for the algorithm, since it heavily relies on compression to obtain a speedup.
-\end{description}
-In \cref{sec:compression:benchmarks} the actual compressibility of all the above input types are investigated. \Cref{sec:algorithm:benchmarks} test how fast the compression based algorithm is able to handle the different input types.
-
 \chapter{Compressing input strings}
 \label{ch:compressing-strings}
-There exist are large number of compression schemes for compressing strings, spanning both lossy and lossless schemes. Since it is desired that the edit distance algorithm always gives the correct result, only lossless compression schemes are considered.
+There exist a large number of compression schemes for compressing strings, spanning both lossy and lossless schemes. Since it is desired that the edit distance algorithm always gives the correct result, only lossless compression schemes are considered.
 
-The algorithm examined in this thesis is working over straight-line programs (SLPs), whereby only compression to these formats are considered.
+The algorithm examined in this thesis is working over straight-line programs (SLPs), whereby only compression to this encoding is considered.
 \begin{mydef}
+  \label{def:slp}
   A straight-line program (SLP) is a restricted context-free grammar $G = (V, T, R, S)$, where
   \begin{itemize}
     \item $V = \{ S_1, \dots, S_n\}$ is a ordered set of non-terminals
@@ -316,7 +360,7 @@ It is known \cite[p. 212]{Rytter2003211} that this problem is NP-complete, hence
 
 A small theoretical improvement was given in \cite{Rytter2003211}, reducing the approximation factor to $O(\log{\frac{n}{g^*}})$ where $g^*$ denotes the size of the minimal SLP compression. As suggested by \cite{Rytter2003211} the improvement is mostly cosmetic, and from the description of the approach, I \todo{be sure} find it very likely that the approach will significantly increase the constant in front of the big-$O$ notation. Therefore, I have not chosen to implemented this theoretical improvement.
 
-For computing the LZ-factorization a suffix tree is used. Suffix tress often comes with a large constant space overhead, making them undesirable in practice in some cases. \cite{Sakamoto2005416} gave another algorithm for solving \cref{compression:problem:minimum-slp} which also actives the $O(\log{\frac{n}{g^*}})$ approximation factor, but does it based on the RE-PAIR encoding scheme, which can be made to work without using a suffix tree. The reason for not implementing this approach, is that I find the LZ-factorization approach more intuitive, and that the biggest space consumer in the implemented algorithm is not the suffix tree, but the representation of the SLP itself and its annotations used in the edit distance algorithm.
+For computing the LZ-factorization a suffix tree is used. Suffix tress often comes with a large constant space overhead, making them undesirable in practice in some cases. \cite{Sakamoto2005416} gave another algorithm for solving \cref{compression:problem:minimum-slp} which also actives the $O(\log{\frac{n}{g^*}})$ approximation factor, but does it based on the RE-PAIR encoding scheme, which can be made to work without using a suffix tree. The reason for not implementing this approach, is that I find the LZ-factorization approach more intuitive, and that for my tests the space consumption of the suffix tree has not been a problem.
 
 In other areas of lossless compression, ex. bzip2 compression, the input string is encoded using a Burrows-Wheeler transform (BWT) \cite{BurrowsWheeler}. The intuition that the BWT works, is that it permutes the string in such a way that highly repetitive parts of the string are group together, making them easier to compress. However building the SLP over the BWT of the input string will not work because the BTW permutes the string, such that productions of the SLP does not corresponds to a continuous area in the input string. I have not been able to find any articles able to take advantage of the BWT for SLP based compression.
 
@@ -409,6 +453,7 @@ This section will examine how well different types of string can be compressed t
 First the quality of the compressions is examined for the different type of inputs as described in \cref{sec:intro:test-data}.
 
 \subsubsection{Fibonacci strings}
+\label{sec:compressing-Fibonacci-strings}
 When evaluating the quality of compressed Fibonacci strings, it is useful to consider how well they can be compressed to a SLP. For this reason recall the definition of Fibonacci strings:
 \begin{align*}
   F_1 &= \text{a} \\
@@ -446,15 +491,15 @@ It can be seen on \cref{fig:compression:quality:random} that the compression rat
 \subsubsection{DNA sequences}
 It has been chosen to adopt the same way of benchmarking compressibility as for the random strings. That is, a prefix of the DNA sequences has been selected and tested for compressibility. The choice of always selecting a prefix may be a bit misleading for small prefix lengths since non-coding regions have a more random distribution than coding regions \todo{cite}. However, as the selected prefixes gets longer this should even out, and the actual compressibility of the string should be accurately measured.
 
-It can be seen on \cref{fig:compression:quality:dna} that only a small improvement in the compressibility of the input strings are gained by using the DNA sequences of \cref{sec:intro:test-data} instead of random strings. \todo{Consider using DNA sequences that are more repetitive.}
+It can be seen on \cref{fig:compression:quality:hg} that only a small improvement in the compressibility of the input strings are gained by using the human genome \cref{sec:intro:test-data} instead of random strings. \todo{Consider using DNA sequences that are more repetitive.}
 
-Since random strings should not compress very well, it is not desirable that the DNA sequences only compresses a little better. However, the compression factor is still around $0.6$ for large input, and therefore there is still hope that the edit distance algorithm may still perform better than the simple.
+Since random strings should not compress very well, it is not desirable that the DNA sequences only compresses a little better. However, the compression factor is still around $0.5$ for large input, and therefore there is still hope that the edit distance algorithm may still perform better than the simple.
 
 \begin{figure}[h!]
   \centering
-  \includegraphics[width=10cm]{compression/dna}
-  \caption{Plot of how well the DNA sequences of \cref{sec:intro:test-data} compresses compared to a random string.}
-  \label{fig:compression:quality:dna}
+  \includegraphics[width=10cm]{compression/hg}
+  \caption{Plot of how well the human genome of \cref{sec:intro:test-data} compresses compared to a random string.}
+  \label{fig:compression:quality:hg}
 \end{figure}
 
 \subsection{Running time}
@@ -538,6 +583,7 @@ The distribution and density operators always have the useful relation stated by
 \end{claim}
 If the operators are applied in the opposite order, it will not always describe a identity transformation. A class of matrices with this property is defined.
 \begin{mydef}[\reftiskin{p. 1288}{Definition 2.1}]
+  \label{def:simple}
   A matrix $A$ is called simple if $(A^{\Box})^\Sigma = A$.
 \end{mydef}
 The set of simple matrices can be classified by the following claim.
@@ -571,6 +617,7 @@ The set of simple matrices can be classified by the following claim.
   A matrix $A$ is called Monge if $A^{\Box}$ is non-negative.
 \end{mydef}
 \begin{mydef}[\reftiskin{p. 1288}{Definition 2.6}]
+  \label{def:unit-monge}
   A square matrix $A$ is called unit-Monge if $A^{\Box}$ is a permutation matrix.
 \end{mydef}
 It follows clearly that any unit-Monge matrix is also Monge since the identity matrix has no negative entries. The following lemma characterizes the unit-Monge matrices.
@@ -631,10 +678,12 @@ An important observation required for the algorithm described in \cref{sec:algor
 \end{lemma}
 
 \begin{mydef}[\reftiskin{p. 1289}{Definition 3.1}]
+  \label{def:minimum-distance-product}
   Given two matrices $A, B$ both of size $n \times n$ the minimum distance product of the two matrices is
   \[
     (A \odot B)(i, j) = \min_{k \in \{ 0, \dots, n - 1 \}} \left( A(i, k) + B(k, j) \right)
   \]
+  The maximum distance product is defined analogously but where the $\min$ is replaced by $\max$.
 \end{mydef}
 The algorithm crucially relies on the following claim, which implies the minimum distance product of two simple unit-Monge can be succinctly represented by a permutation matrix.
 \begin{claim}[\refbook{p. 16}{Theorem 3.4}]
@@ -1518,11 +1567,21 @@ In the end it will be checked that all the steps combined into the complete algo
 
 \subsubsection{DIST Repository and grid computation}
 \todo{Verification of theoretical running time for DIST/grid.}
+
+The increase in the normalized running time for building the DIST repository in the interval $[2^3,2^11]$ can be contributed to a large number of L2 cache misses. \Cref{fig:benchmark:dist-repo-cpu} plots the normalized number of instructions, which in the RAM should be directly correlated to the running time. The normalized instructions converges very quickly towards a constant, meaning that the number of retired instructions are as expected wrt. the theoretical running time. \Cref{fig:benchmark:dist-repo-cpu} also plots the L2 cache miss percentage, and it can be seen that the percentage of L2 cache misses is high when the running time of the algorithm increases more than expected. Therefore the increase in wall time can be explained by the hierarchical memory layout of a modern computer.
+
 \begin{figure}[h!]
   \centering
   \includegraphics[width=10cm]{combined/dist_runningtime}
   \caption{Plot of the normalized running time for building the DIST repository.}
   \label{fig:benchmark:dist-repo-time}
+\end{figure}
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=10cm]{combined/dist_runningtime_cpu}
+  \caption{Normalized number of retired instructions and percentage of L2 cache misses when building the DIST repository. The instructions are solid lines and the L2 cache miss percentage are dashed.}
+  \label{fig:benchmark:dist-repo-cpu}
 \end{figure}
 
 \begin{figure}[h!]
@@ -1541,12 +1600,18 @@ It can be seen on \cref{fig:benchmark:total-time-combined} that each of the inpu
   \label{fig:benchmark:total-time-combined}
 \end{figure}
 
-\todo{Plots of time distribution of compression/DIST/grid, ex a pie chart or stacked plot.}
 \begin{figure}[h!]
   \centering
   \includegraphics[width=10cm]{combined/fib_area_plot}
   \caption{Plot of the relative running time of the different parts of the algorithm on Fibonacci input.}
   \label{fig:benchmark:relative-runningtime-fib}
+\end{figure}
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=10cm]{combined/genome_area_plot}
+  \caption{Plot of the relative running time of the different parts of the algorithm on DNA sequences as input.}
+  \label{fig:benchmark:relative-runningtime-genome}
 \end{figure}
 
 \begin{figure}[h!]
@@ -1562,7 +1627,7 @@ It can be seen on \cref{fig:benchmark:total-time-combined} that each of the inpu
   \centering
   \includegraphics[width=10cm]{combined/simple_vs_lcs}
   \caption{Plot of the running time improvement of the LCS Blow-up algorithm compared to the Simple algorithm.}
-  \label{fig:benchmark:relative-runningtime-random}
+  \label{fig:benchmark:simple-vs-lcsblowup}
 \end{figure}
 
 Fibonacci input is compressed such that $n = O(\log{N})$. This means that for Fibonacci input the total running time of the algorithm becomes $O\left( N\log{N} \sqrt{\log{\frac{N}{\log{N}}}} \right) = O(N\log{N}\sqrt{\log{N}})$. Therefore running time of the LCS Blow-up method should improve by a factor $O\left( \frac{N}{\log^{\frac{3}{2}}{N}} \right)$ \todo{Does this correspond to the slope?}.
