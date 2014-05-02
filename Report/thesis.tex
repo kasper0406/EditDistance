@@ -789,21 +789,23 @@ One technical detail to notice for the above approach to work directly, is that 
 
 \subsection{Building DIST repository}
 \label{sec:algorithm:building-DISTs-overview}
-From the precious step 
+In the previous step the productions for which the DIST repository should be build for. This section will focus on how the DIST repository is constructed. More specifically the DIST repository contains a DIST table for every pair of selected in the two SLPs. More formally, let $P_\mathcal{A}$ and $P_\mathcal{B}$ denotes the selected productions in respectively the SLPs $\mathcal{A}$ and $\mathcal{B}$. Then the dist repository contains a DIST table $\DIST[a, b]$ for all $a \in P_\mathcal{A}, b \in P_{\mathcal{B}}$.
+
+The $\DIST$ tables will be construct by means of recursively merging $\DIST$ tables for sub-productions of the selected productions. The base case for a pair of terminals is not explicitly described in this section, but is deferred to when the concrete representation of the $\DIST$ tables have been described \todo{ref}.
 
 Build by recursively merging DIST tables for sub-productions of the selected productions. Notice that generating DIST tables for a pair of terminals is trivial.
 \begin{description}
-  \item[Productions associated with entires string the derive] This is the case for all key productions. Say a DIST table needs to be constructed for two non-terminals $a$ and $b$. Call the left and right child of the productions respectively $a_L$, $a_R$, $b_L$ and $b_R$. The DIST table is constructed by first recursively constructing the DIST tables for all combinations of the children, ie. $(a_L, b_L), (a_L, b_R), (a_R, b_L)$ and $(a_R, b_R)$. Then the DIST from $a$ and $b$ can be obtained by merging as shown in Figure~\ref{fig:compression:dist:merge}.
-  \begin{figure}
+  \item[Key productions] This is the case for all key productions. Say a DIST table needs to be constructed for two non-terminals $a$ and $b$. Call the left and right child of the productions respectively $a_L$, $a_R$, $b_L$ and $b_R$. The DIST table is constructed by first recursively constructing the DIST tables for all combinations of the children, ie. $(a_L, b_L), (a_L, b_R), (a_R, b_L)$ and $(a_R, b_R)$. Then the DIST from $a$ and $b$ can be obtained by merging as shown in Figure~\ref{fig:compression:dist:merge}.
+  \begin{figure}[h!]
     \centering
     \includegraphics{images/dist_merge}
     \caption{Merging phases of DIST tables from the children to obtain the DIST for the concatenated strings.}
     \label{fig:compression:dist:merge}
   \end{figure}
 
-  \item[Productions associated with substring] For this type of productions a merging approach is also employed. Depending on what side of the path the node was selected, its left/right child is chosen accordantly, and then they are recursively solved and merged together as in the previous case.
+  \item[Second type of selected productions] For this type of productions a merging approach is also employed. Depending on what side of the path the node was selected, its left/right child is chosen accordantly, and then they are recursively solved and merged together as in the previous case.
 \end{description}
-Since the number of productions is bounded by $O(n^2)$, the time for constructing the dist repository can be build in time $O(n^2 M(x))$ using memorization, where $M(x)$ denotes the time for merging two DIST tables, which for a rational scoring function and the succinct DIST representation takes time $O(x \log{x})$. In total $O(n^2x\log{x})$ time is spend.
+Since the number of productions is bounded by $O(n^2)$, the time for constructing the dist repository can be build in time $O(n^2 M(x))$ using memorization, where $M(x)$ denotes the time for merging two DIST tables. As will be seen in \todo{ref} $M(x) = O(n\log{n})$ leading to a total running time of $O(n^2x\log{x})$ for computing the DIST repository.
 
 \subsection{Filling out the dynamical programming table}
 \label{sec:algorithm:filling-grid-overview}
@@ -814,7 +816,20 @@ The dynamical programming table is filled from top to bottom, left to right. Thi
 \end{equation}
 since the DIST table stores the shortest path from input $i$ to output $j$. Evaluating the above formula directly for every input takes $O(x^2)$ time, which is too much.
 
-If an explicit representation of the DIST tables is used, then this can be evaluated in time $O(x)$ using the SMAWK algorithm (however, this would increase the time needed for constructing the DIST tables).
+However, by representing the $\DIST$ tables in a clever way, the time required to evaluate \cref{eqn:dist-application} is bounded by $O(x)$. This algorithm is described in \cref{sec:applying-a-dist-table}. Using this algorithm, the total time for filling out the grid becomes $O\left( \frac{N^2}{x^2}x \right) = O\left( \frac{N^2}{x} \right)$.
+
+\subsection{Combining the two steps}
+In order to reduce the running time, the idea is to asymptotically balance the time used to compute the DIST repository and to fill out the grid. In order to do this, define $f = \frac{N}{n}$, which is the compression ratio of the input strings.
+
+The size of the DIST tables $x$ is defined to be $x = \frac{f}{\sqrt{\log{f}}}$. This choice of $x$ results in the $\DIST$ repository taking \todo{Insert calculations}
+\[
+  O(n^2 x\log{x}) = \dots = O\left( Nn\sqrt{\log{\frac{N}{n}}} \right)
+\]
+time to build. The grid can be filled in time
+\[
+  O\left(\frac{N^2}{x}\right) = \dots = O\left( Nn\sqrt{\log{\frac{N}{n}}} \right).
+\]
+Since the SLP construction algorithm requires less time asymptotically, the combined running time for the entire combined algorithm becomes $O\left( Nn\sqrt{\log{\frac{N}{n}}} \right)$. In big-O notation this running time is always superior to $O(N^2)$ which is the time required by the simple algorithm.
 
 \section{Representation of $\DIST$s}
 As mentioned in the previous section, representing the $\DIST$s in a succinct way is crucial in order to obtain the desired running time \todo{some more trash talk?}.
@@ -1296,7 +1311,8 @@ The horizontal merge will be carried out by means of a vertical merge. In order 
 %
 Following \cref{lemma:swap_strings} a horizontal merge can be carried out by first swapping the strings, then performing a vertical merge, and then swapping the strings of the merged $\DIST$ table again. Since swapping the strings runs in time $O(x)$, the total time of a horizontal merge is bounded by the time of the vertical merging. Hence, the total time of either of the merge routines is bounded by $O(x\log{x})$.
 
-\subsection{Application of $\DIST$ tables}
+\subsection{Applying a $\DIST$ tables}
+\label{sec:applying-a-dist-table}
 When filling out a block in the grid with input $I$, the output is given by \cref{eqn:dist-application} which can be re-written as follows:
 \begin{align*}
   O[j] &= \max_i \left\{ I[i] + \DIST[i, j] \right\} \\
