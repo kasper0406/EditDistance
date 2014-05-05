@@ -619,7 +619,6 @@ The set of simple matrices can be classified by the following claim.
         &= A(i, j) - A(n, j) - A(i, 0).
     \end{align*}
     Therefore a matrix is simple iff $\forall i, j: A(i, 0) = -A(n, j)$ iff $\forall i, j: A(i, 0) = A(n, j) = 0$.
-    \todo{Should the last iff be more detailed?}
   \end{proof}
 \end{claim}
 %
@@ -709,7 +708,7 @@ The algorithm crucially relies on the following claim, which implies the minimum
 \end{mydef}
 
 \section{Algorithm}
-The algorithm follows the steps of \todo{ref}, however instead of directly computing the edit distance between the two input SLPs, the longest common subsequence (LCS) between the two SLPs will be computed. This is done because it turns out that it is easier to succinctly represent the DIST tables for the LCS problem, in such a way that computations can efficiently be performed.
+The algorithm follows the steps of \cref{sec:edit-dist-on-slps-steps}, however instead of directly computing the edit distance between the two input SLPs, the longest common subsequence (LCS) between the two SLPs will be computed. This is done because it turns out that it is easier to succinctly represent the structures needed for the LCS computation, in such a way that it can be computed efficiently.
 
 \begin{mydef}
   The longest common subsequence (LCS) problem is given two input strings (or SLPs) $\str{A}{0}{m}$ and $\str{B}{0}{n}$. The result is the longest substring occurring in both strings.
@@ -721,11 +720,13 @@ The LCS problem can up to a simple transformation of the result be seen as the e
 \]
 and follows since the above expression counts the number of unmatched symbols, which is the only cost in the edit distance when substitutions are not allowed. As described later in this section, it is possible to simulate the substitution operation by modifying the input strings.
 
-The simple algorithm for calculating the LCS between two strings is almost the same as the simple algorithm for computing the edit distance given in \cref{sec:intro:simple}. Therefore, the same terminology with the dynamic programming grid is still valid. From this point on the dynamic programming grid will always refer to the one in the LCS problem. 
+The simple algorithm for calculating the LCS between two strings is almost the same as the simple algorithm for computing the edit distance given in \cref{sec:intro:simple}. Therefore, the same terminology with the dynamic programming grid is still valid. From this point on the dynamic programming grid will always refer to the one in the LCS problem.
+
+The following definition describes how the dynamic programming table will be split into blocks that can be reused for similar productions.
 
 \begin{mydef}
   \label{defn:dist-table}
-  A $\DIST$ table between two strings $\str{A'}{0}{m}$ and $\str{B'}{0}{n}$ stores for all prefix-suffix pairs of $A'$ and $B'$ the longest common substring between them. More specifically for input and outputs $i, o \in \{0, \dots, m + n\}$ where $i \leq o + m$ and $o \leq i + n$ the $\DIST$ tables stores
+  A $\DIST$ table between two strings $\str{A'}{0}{m}$ and $\str{B'}{0}{n}$ (or two SLP productions) stores for all prefix-suffix pairs of $A'$ and $B'$ the longest common substring between them. More specifically for input and outputs $i, o \in \{0, \dots, m + n\}$ where $i \leq o + m$ and $o \leq i + n$ the $\DIST$ tables stores
   \[
     \DIST_{A',B'}[i, o] = \left\{
     \begin{array}{ll}
@@ -797,7 +798,14 @@ Both of the SLPs will be blocked in the same way. The blocking process consists 
 
 The key productions are identified by traversing the unfolded SLP bottom up. If the string derived by the current production has length less than $x$ it is annotated with an associated string, which in this case is the string it derives\footnote{In practice the actual associated string is not needed, but only the length of the associated string. Hence in the code only the length of the associated string is stored.}. If the length is greater than $x$ and both its children have length less than x, then the production is marked as a key production and its associated string is also set to the string it derives. Otherwise no other action is taken.
 
-All the selected key productions covers some part of the string. In order to cover the rest of the input strings extra productions needs to be added, which are called the second type of productions. In order to find these, the path between two adjacent key productions is traversed. This is done by first finding the lowest common ancestor of the two key productions, and then traversing the paths from both of the key productions to the lowest common ancestor bottom up. Notice that all productions hanging off the traversed paths (\todo{figure}) must all have derived strings with length less than $x$ since they would be marked as key productions otherwise which is a contradiction with the current choice of the key productions.
+All the selected key productions covers some part of the string. In order to cover the rest of the input strings extra productions needs to be added, which are called the second type of productions. In order to find these, the path between two adjacent key productions is traversed. This is done by first finding the lowest common ancestor of the two key productions, and then traversing the paths from both of the key productions to the lowest common ancestor bottom up. Notice that all productions hanging from the traversed paths must all have derived strings with length less than $x$ since they would be marked as key productions otherwise which is a contradiction with the current choice of the key productions. See \cref{fig:slp-2nd-type} for an illustration.
+
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=10cm]{images/slp-2nd-type}
+  \caption{An illustration of how production of the second type relates to the key productions. The productions inside the green areas spans the part of the string that is not covered by the key productions. And the collect productions of the second type are labeled by $l_0, \dots, l_{k_l}$ and $r_0, \dots, r_{k_r}$.}
+  \label{fig:slp-2nd-type}
+\end{figure}
 
 When traversing up the left path, the strings derived by the productions hanging of to the right are associated to the production on the path. These strings are merged bottom up in such a way that they have length less than $2x$. Every time a string of length greater than $x$ is generated, the production generating it is selected, and its associated string is the merged string on the path. This process is done analogously for the right path.
 
