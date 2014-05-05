@@ -708,14 +708,27 @@ The algorithm follows the steps of \todo{ref}, however instead of directly compu
 
 The LCS problem can up to a simple transformation of the result be seen as the edit distance, but where substitutions are not allowed. This transformation is given by
 \[
-  \EditDist(A, B) = n + m - 2 \cdot lcs(A, B)
+  \EditDist'(A, B) = n + m - 2 \cdot lcs(A, B)
 \]
-and follows since the above expression counts the number of unmatched symbols, which is the only cost in the edit distance when substitutions are not allowed.
+and follows since the above expression counts the number of unmatched symbols, which is the only cost in the edit distance when substitutions are not allowed. As described later in this section, it is possible to simulate the substitution operation by modifying the input strings.
 
-The simple algorithm for calculating the LCS between two strings is almost the same as the simple algorithm for computing the edit distance given in \cref{sec:intro:simple}. Therefore, the same terminology with the dynamic programming grid. From this point on the dynamic programming grid will always refer to the ones in the LCS problem. 
+The simple algorithm for calculating the LCS between two strings is almost the same as the simple algorithm for computing the edit distance given in \cref{sec:intro:simple}. Therefore, the same terminology with the dynamic programming grid is still valid. From this point on the dynamic programming grid will always refer to the one in the LCS problem. 
 
 \begin{mydef}
-  A $\DIST$ table between two substrings $A'$ and $B'$ of respectively the input strings $A$ and $B$, can be viewed as hollow box in the dynamic programming grid, with inputs and outputs along the border. The inputs and outputs are numbered from the bottom left corner. An illustration of a $\DIST$ table and how they are applied is given in \cref{fig:defn-dist-table}.
+  \label{defn:dist-table}
+  A $\DIST$ table between two strings $\str{A'}{0}{m}$ and $\str{B'}{0}{n}$ stores for all prefix-suffix pairs of $A'$ and $B'$ the longest common substring between them. More specifically for input and outputs $i, o \in \{0, \dots, m + n\}$ where $i \leq o + m$ and $o \leq i + n$ the $\DIST$ tables stores
+  \[
+    \DIST_{A',B'}[i, o] = \left\{
+    \begin{array}{ll}
+      lcs(\substr{A'}{m - i}{m}, \substr{B'}{0}{o})             & \text{if } i < m, o < n \\
+      lcs(A', \substr{B'}{i - m}{o})                            & \text{if } i \geq m, o < n \\
+      lcs(\substr{A'}{m - i}{m - (o - n)}, B')                  & \text{if } i < m, o \geq n \\
+      lcs(\substr{A'}{0}{m - (o - n)}, \substr{B'}{i - m}{n})   & \text{if } i \geq m, o \geq n
+    \end{array}
+  \right. .
+  \]
+
+  More importantly intuition wise, the $\DIST$ table can be viewed as a hollow box in the dynamical programming grid, where input and output are numbered along the border from the bottom left corner. An illustration of a $\DIST$ table is given in \cref{fig:defn-dist-table}.
 
   \begin{figure}[h!]
     \centering
@@ -769,7 +782,7 @@ This approach results in the strings becoming a factor of $2$ longer. For a simp
 
 \subsection{Selection of productions}
 \label{sec:algorithm:select-productions}
-In order to be able to save time, the idea is to pre-compute DIST tables based on the productions in the SLPs, such that reused productions means that less DIST tables have to be precomputed. Obviously there is not enough time to precompute DIST tables for all productions, as this would directly compute the longest common subsequence by looking at the result in the root node of the SLPs. Instead, the SLPs will be chopped into blocks deriving strings of length $O(x)$ for some $x \in \mathbb{N}$, and then the DIST tables will precomputed for these blocks.
+In order to be able to save time, the idea is to pre-compute DIST tables based on the productions in the SLPs, such that reused productions means that less DIST tables have to be precomputed. Obviously there is not enough time to compute DIST tables for all productions, as this would directly compute the longest common subsequence by looking at the result in the root node of the SLPs. Instead, the SLPs will be chopped into blocks deriving strings of length $O(x)$ for some $x \in \mathbb{N}$, and then the DIST tables will precomputed for these blocks.
 
 Both of the SLPs will be blocked in the same way. The blocking process consists of two steps. First what will be known as \textit{key productions} are selected and then productions in between the key productions are selected.
 
@@ -789,23 +802,41 @@ One technical detail to notice for the above approach to work directly, is that 
 
 \subsection{Building DIST repository}
 \label{sec:algorithm:building-DISTs-overview}
-In the previous step the productions for which the DIST repository should be build for. This section will focus on how the DIST repository is constructed. More specifically the DIST repository contains a DIST table for every pair of selected in the two SLPs. More formally, let $P_\mathcal{A}$ and $P_\mathcal{B}$ denotes the selected productions in respectively the SLPs $\mathcal{A}$ and $\mathcal{B}$. Then the dist repository contains a DIST table $\DIST[a, b]$ for all $a \in P_\mathcal{A}, b \in P_{\mathcal{B}}$.
+In the previous step the productions for which the DIST repository should be build for. This section will focus on how the DIST repository is constructed. More specifically the DIST repository contains a DIST table for every pair of selected in the two SLPs. In other words, let $P_\mathcal{A}$ and $P_\mathcal{B}$ denotes the selected productions in respectively the SLPs $\mathcal{A}$ and $\mathcal{B}$. Then the dist repository contains a DIST table $\DIST_{a,b}$ for all $a \in P_\mathcal{A}, b \in P_{\mathcal{B}}$. The $\DIST$ tables was only defined for strings in \cref{defn:dist-table}, however it is easy to generalize to productions of a SLP by using the associated string of the production.
 
-The $\DIST$ tables will be construct by means of recursively merging $\DIST$ tables for sub-productions of the selected productions. The base case for a pair of terminals is not explicitly described in this section, but is deferred to when the concrete representation of the $\DIST$ tables have been described \todo{ref}.
+The $\DIST$ tables will be constructed by means of recursively merging $\DIST$ tables for sub-productions of the selected productions. The base case for a pair of terminals is not explicitly described in this section, but is deferred to when the concrete representation of the $\DIST$ tables have been described \todo{ref}.
 
-Build by recursively merging DIST tables for sub-productions of the selected productions. Notice that generating DIST tables for a pair of terminals is trivial.
+The previously described production selection process divides the the selected productions into two types. The following describes how to handle the two cases.
 \begin{description}
-  \item[Key productions] This is the case for all key productions. Say a DIST table needs to be constructed for two non-terminals $a$ and $b$. Call the left and right child of the productions respectively $a_L$, $a_R$, $b_L$ and $b_R$. The DIST table is constructed by first recursively constructing the DIST tables for all combinations of the children, ie. $(a_L, b_L), (a_L, b_R), (a_R, b_L)$ and $(a_R, b_R)$. Then the DIST from $a$ and $b$ can be obtained by merging as shown in Figure~\ref{fig:compression:dist:merge}.
+  \item[Key productions] A key production is always associated with the string that the production derives. Therefore assume the DIST table for two key productions $a \in P_{\mathcal{A}}$ and $b \in P_{\mathcal{B}}$ should be built. Name the children of the two productions by $a_L, a_R$ and $b_L, b_R$ as illustrated on \cref{fig:distrepo-key}.
+  
   \begin{figure}[h!]
     \centering
-    \includegraphics{images/dist_merge}
+    \includegraphics[width=8cm]{images/distrepo-key}
+    \caption{Illustration of a key production.}
+    \label{fig:distrepo-key}
+  \end{figure}
+  
+  The DIST table is constructed by first recursively constructing the DIST tables for all combinations of the children, ie. $(a_L, b_L), (a_L, b_R), (a_R, b_L)$ and $(a_R, b_R)$. Then the DIST from $a$ and $b$ can be obtained by merging as shown in Figure~\ref{fig:compression:dist:merge}. For now merging of $\DIST$ tables will be assumed to be a black box. The details of the merging process will be given in \cref{sec:merging-dists}.
+  \begin{figure}[h!]
+    \centering
+    \includegraphics[width=10cm]{images/dist_merge}
     \caption{Merging phases of DIST tables from the children to obtain the DIST for the concatenated strings.}
     \label{fig:compression:dist:merge}
   \end{figure}
 
-  \item[Second type of selected productions] For this type of productions a merging approach is also employed. Depending on what side of the path the node was selected, its left/right child is chosen accordantly, and then they are recursively solved and merged together as in the previous case.
+  \item[Second type of selected productions] For this type of productions the associated string is not the string that the production derives. Instead the associated string is the right (or left) child, possibly combined with the right (or left) child of its left (or right) child. A graphical illustration is given on \cref{fig:distrepo-2nd} where the production is on a left path. The right path case is symmetric and is not included.
+
+  \begin{figure}[h!]
+    \centering
+    \includegraphics[width=5cm]{images/distrepo-2nd}
+    \caption{Illustration of how a production of the second type is handled.}
+    \label{fig:distrepo-2nd}
+  \end{figure}
+
+  By adopting the notation of $a_L$ and $a_R$ from \cref{fig:distrepo-key}, and using the appropriate definitions of $b_L, b_R$ from the type of the $b$ production, the merging process of \cref{fig:compression:dist:merge} gives the desired result.
 \end{description}
-Since the number of productions is bounded by $O(n^2)$, the time for constructing the dist repository can be build in time $O(n^2 M(x))$ using memorization, where $M(x)$ denotes the time for merging two DIST tables. As will be seen in \todo{ref} $M(x) = O(n\log{n})$ leading to a total running time of $O(n^2x\log{x})$ for computing the DIST repository.
+Since the number of productions is bounded by $O(n^2)$, memorization can be used in combination with the above procedure to construct the dist repository in time $O(n^2 M(x))$, where $M(x)$ denotes the time for merging two DIST tables. As will be seen in \cref{sec:merging-dists}, the merging can be done in time $M(x) = O(n\log{n})$, leading to a total running time of $O(n^2x\log{x})$ for computing the DIST repository.
 
 \subsection{Filling out the dynamical programming table}
 \label{sec:algorithm:filling-grid-overview}
@@ -971,6 +1002,7 @@ An important property of the $H$-table is that it is almost simple unit-Monge.
 What remains is to ensure that the merge and apply operations operations on the $\DIST$ table can be computed efficiently using only the permutation matrix representation.
 
 \subsection{Merging of $\DIST$ tables}
+\label{sec:merging-dists}
 The following definition will come in handy:
 \begin{mydef}
   Let $P_{A'}$ and $P_{A''}$ be permutation matrices describing the $\DIST$ tables for the strings $\str{A'}{0}{m'}$ and $\str{A''}{0}{m''}$ respectively. Then define the following index change matrices
