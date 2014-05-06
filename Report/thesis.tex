@@ -305,6 +305,7 @@ There exists other approaches for speeding up the computation of the edit distan
 One approach for speeding up the computation of edit distance, is to compress the input strings, and then in some way do the edit distance computation using the compressed strings, which for many cases will be shorter than the original input.
 
 \subsection{The Four Russian Algorithm}
+\label{sec:4-russian}
 This approach was not originally presented as a compression based algorithm, but using that each entry in the dynamic programming matrix is changing at most 1 from an adjacent entry, and that the alphabet is finite, it is possible to encode blocks of the dynamic programming table efficiently and pre-compute all of them. That is, for all different sub-strings and possible inputs to compute the relative outputs when applying the block. Due to that values can change by no more than $1$ between two entries, the representation can be succinctly represented and efficiently looked up. The pre-computed tables are then used to fill out the original dynamic programming matrix block-by-block.
 \todo{Describe details and analyze time complexity?.}
 
@@ -486,10 +487,9 @@ By the proof in \cite{Rytter2003211} this overhead should be bounded by $O(\log{
 \subsubsection{Random strings}
 In these benchmarks the compressibility as function of sequence length has been examined by selecting prefixes of the input string, and then measured how much a prefix of a certain length is able to be compressed. For random input this should be alright, since the starting position does not affect the distribution.
 
-Random strings contains no systematic patterns, and will by design maximize the average information rate \todo{describe/reference?}, which by information theory should make them very hard to compress. The only type of compression in this type of string is expected to come since the alphabet has a finite size and the strings are of arbitrary length.
+Random strings contains no systematic patterns, and will by design maximize the average information rate \todo{describe/reference?}, which by information theory should make them very hard to compress. The only type of compression in this type of string occurs since the alphabet has a finite size and the strings are of arbitrary length.
 
-It can be seen on \cref{fig:compression:quality:random} that the compression ratio of the string is decreasing as the input size gets larger. This is also expected due to the fixed alphabet size, and this is also why the Four Russian approach sketched in \todo{ref} works.
-\todo{Comment on slope, and relate to theory?}
+It can be seen on \cref{fig:compression:quality:random} that the compression ratio of the string is decreasing as the input size gets larger. This is also expected due to the fixed alphabet size, and this is also why the Four Russian approach sketched in \cref{sec:4-russian} works.
 %
 \begin{figure}[h!]
   \centering
@@ -498,12 +498,14 @@ It can be seen on \cref{fig:compression:quality:random} that the compression rat
   \label{fig:compression:quality:random}
 \end{figure}
 
-\subsubsection{DNA sequences}
-It has been chosen to adopt the same way of benchmarking compressibility as for the random strings. That is, a prefix of the DNA sequences has been selected and tested for compressibility. The choice of always selecting a prefix may be a bit misleading for small prefix lengths since non-coding regions have a more random distribution than coding regions \todo{cite}. However, as the selected prefixes gets longer this should even out, and the actual compressibility of the string should be accurately measured.
+\subsubsection{Human Genome}
+It has been chosen to adopt the same way of benchmarking compressibility as for the random strings. That is, prefixes of the human genome sequences have been selected and tested for compressibility. The choice of always selecting a prefix may be a bit misleading for small prefix lengths since the distribution of nucleotides may be different in the beginning of the string than in other parts. However, as the selected prefixes gets longer this should even out, and the actual compressibility of the string should be accurately measured.
 
-It can be seen on \cref{fig:compression:quality:hg} that only a small improvement in the compressibility of the input strings are gained by using the human genome \cref{sec:intro:test-data} instead of random strings. \todo{Consider using DNA sequences that are more repetitive.}
+\Cref{fig:compression:quality:hg} shows a plot of the compression ratios for the human genome data sets. It can be seen that the non-repetitive part of the human genome is close to the compression ratio of a random string. It drops somewhat below the compression ratio for random string around $N = 2^{18}$, however as the string size grows, it seems to converge to the compression ratio for the random string again.
 
-Since random strings should not compress very well, it is not desirable that the DNA sequences only compresses a little better. However, the compression factor is still around $0.5$ for large input, and therefore there is still hope that the edit distance algorithm may still perform better than the simple.
+The combined and repetitive compression ratio is exactly the same until around $N = 2^{10}$. This is because the first part of the combined human genome is a repetitive region, hence the first prefixes of these strings are the same. In the beginning the repetitive string compresses significantly better than random strings, but as the prefix length grows the compression ratio is only a bit below the compression ratio for random strings.
+
+Since random strings should not compress very well, it is not desirable that the human genome, which is considered to be a realistic type of input, only compresses a little better. However, the compression factor is still $\approx 0.4$ for large input, and therefore there is still hope that the edit distance algorithm may still perform better than the simple.
 
 \begin{figure}[h!]
   \centering
@@ -513,21 +515,30 @@ Since random strings should not compress very well, it is not desirable that the
 \end{figure}
 
 \subsection{Running time}
-The running time of the algorithm should be bounded by $O(n\log{n})$ since the LZ-factorization can be found in linear time, and the concatenation and search steps all can be done in $O(\log{n} |f_i|)$ for each factor $f_i$. Since $f_1 + \dots + f_k = n$ the running time follows.
+The running time of the algorithm should be bounded by $O(n\log{n})$ since the LZ-factorization can be found in linear time, and the concatenation and search steps all can be done in $O(\log{n} |f_i|)$ for each factor $f_i$. Because $f_1 + \dots + f_k = n$ the running time follows.
 
-\Cref{fig:compression:runningtime} shows the normalized running time for constructing the compressed SLP. It can be seen that the upper line seems to converge to a constant, which indicates that the theoretical bound is also satisfied in practice.
+\Cref{fig:compression:runningtime} shows the normalized running time for constructing the SLP. From the plot it can be seen that the normalized running time for the different types of input more or less converges to a constant. For the longest input sizes especially the human genome test cases seems to increase. \Cref{fig:compression:instructions} shows that the normalized instruction count does not have this increase, but that the L2 cache misses increases. Therefore the extra increase can be explained by the hierarchical memory layout of a modern computer.
 
-An interesting thing to notice, is that the constant in the running time for the random strings is higher than for the other strings. Before actually concluding that the theoretical running time is satisfied, it is needed to argue that there does not exist another type of input that behaves even worse than the random strings running time wise.
+An interesting thing to notice that is not explained by the theoretical running time bound, is that the constants the normalized running times are stabilizing at differs across the different input types. Before concluding that the theoretical running time seems to be satisfied up to the hierarchical memory layout, it is needed to argue that there does not exist types of input that results in arbitrarily large constants.
 
-The uniform random input will expected make the fragments that are reusable in the SLP be as small as possible. Therefore the random input will lead to many small insertions in the SLP, which will be balanced by rotations. This big amount of rotations is probably the cause of the increased constant, and since it is expected that no input will behave worse than the uniformly random distributed. This combined with \cref{fig:compression:runningtime} indicates that the running time is satisfied.
+From the algorithm, the places where the running time may significantly differ for different types of inputs is when building the suffix tree and balancing the SLP. This matches well with \cref{fig:compression:runningtime} that suggests that input with a less repeating structure has a higher constant. When less of the input repeats more insertions are made into the SLP and more balancing is needed, which leads to a larger constant.
 
-This also means that this step should not be the bottleneck of the algorithm, since it is asymptotically dominated by the other part of the algorithm doing the actual edit distance computation.
+Because it is known that there can not exist input that performs too many tree rotations in the AVL tree, it is concluded that the running time in the implementation does satisfy the theoretical running time.
+
+Therefore the construction of the SLP should not be the bottleneck of the combined edit distance algorithm, since it is asymptotically dominated by the other part of the algorithm doing the actual edit distance computation.
 %
-\begin{figure}[h!]
+\begin{figure}[htb]
   \centering
   \includegraphics[width=10cm]{compression/runningtime}
   \caption{Normalized running time for construction of compressed SLP.}
   \label{fig:compression:runningtime}
+\end{figure}
+
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=10cm]{compression/instructions}
+  \caption{Normalized instruction counts and L2 cache misses for construction of SLP. Solid lines are instructions, dashed lines are L2 cache misses.}
+  \label{fig:compression:instructions}
 \end{figure}
 
 \chapter{SLP based edit distance algorithm}
