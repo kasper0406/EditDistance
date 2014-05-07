@@ -105,7 +105,7 @@ ax1.set_ylabel('Normalized running time')
 plt.xlabel('Length')
 plt.ticklabel_format(style='sci', axis='y', scilimits=(-1,2))
 
-clipped_random = random.tail(12)
+clipped_random = random.tail(14)
 clipped_genome1 = genome1.tail(12)
 clipped_genome2 = genome2.tail(12)
 clipped_hg_repetitive = hg_repetitive.tail(14)
@@ -128,3 +128,26 @@ ax1.legend()
 
 plt.legend()
 plt.savefig('runningtime.pdf')
+
+
+# Instruction / cache miss plots
+plt.figure()
+ax1 = plt.subplot(111)
+plt.title("Instructions and cache misses")
+plt.xscale('log', basex=2)
+ax1.set_ylabel('Normalized instruction count')
+plt.xlabel('Length')
+
+ax2 = ax1.twinx()
+ax2.set_ylabel('Normalized L2 cache misses')
+
+ax1.plot(clipped_fib['N'], clipped_fib['instructions'] / (clipped_fib['N'] * np.log2(clipped_fib['N'])), label="Fibonacci")
+ax1.plot(clipped_hg_repetitive['N'], clipped_hg_repetitive['instructions'] / (clipped_hg_repetitive['N'] * np.log2(clipped_hg_repetitive['N'])), label="HG Repetitive")
+ax1.plot(clipped_random['N'], clipped_random['instructions'] / (clipped_random['N'] * np.log2(clipped_random['N'])), label="Random")
+
+ax2.plot(clipped_fib['N'], clipped_fib['L2_miss'] / (clipped_fib['N'] * np.log2(clipped_fib['N'])), ls='dashed', label="Fibonacci")
+ax2.plot(clipped_hg_repetitive['N'], clipped_hg_repetitive['L2_miss'] / (clipped_hg_repetitive['N'] * np.log2(clipped_hg_repetitive['N'])), ls='dashed', label="HG Repetitive")
+ax2.plot(clipped_random['N'], clipped_random['L2_miss'] / (clipped_random['N'] * np.log2(clipped_random['N'])), ls='dashed', label="HG Repetitive")
+
+ax1.legend()
+plt.savefig('instructions.pdf')

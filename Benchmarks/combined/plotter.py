@@ -32,12 +32,16 @@ plt.ylabel('Normalized running time')
 plt.xlabel('N')
 
 fibonacci_dist = pd.read_csv("data/lcs_blowup_fib_fib_DIST.dat", delim_whitespace=True)
-genome_dist = pd.read_csv("data/lcs_blowup_fasta_genome1_fasta_genome2_DIST.dat", delim_whitespace=True)
+hg_repetitive_dist = pd.read_csv("data/lcs_blowup_fasta_hg_repetitive_fasta_hg_repetitive_DIST.dat", delim_whitespace=True)
+hg_nonrepetitive_dist = pd.read_csv("data/lcs_blowup_fasta_hg_nonrepetitive_fasta_hg_nonrepetitive_DIST.dat", delim_whitespace=True)
+hg_combined_dist = pd.read_csv("data/lcs_blowup_fasta_hg_combined_fasta_hg_combined_DIST.dat", delim_whitespace=True)
 random_dist = pd.read_csv("data/lcs_blowup_random_random_DIST.dat", delim_whitespace=True)
 
 plt.plot(fibonacci_dist['A_len'] + fibonacci_dist['B_len'], normalize_dist(fibonacci_dist), label="Fibonacci")
-plt.plot(genome_dist['A_len'] + genome_dist['B_len'], normalize_dist(genome_dist), label="Genome 1 - 2")
-plt.plot(random_dist['A_len'] + random_dist['B_len'], normalize_dist(random_dist), label="Random")
+plt.plot(hg_repetitive_dist['A_len'] + hg_repetitive_dist['B_len'], normalize_dist(hg_repetitive_dist), label="HG Repetitive")
+plt.plot(hg_nonrepetitive_dist['A_len'] + hg_nonrepetitive_dist['B_len'], normalize_dist(hg_nonrepetitive_dist), label="HG Non-repetitive")
+plt.plot(hg_combined_dist['A_len'] + hg_combined_dist['B_len'], normalize_dist(hg_combined_dist), label="HG Combined")
+plt.plot(random_dist['A_len'] + random_dist['B_len'], normalize_dist(random_dist), color='k', label="Random")
 
 plt.legend()
 plt.savefig('dist_runningtime.pdf')
@@ -53,11 +57,16 @@ plt.xlabel('N')
 ax2 = ax1.twinx()
 ax2.set_ylabel('L2 cache miss percentage')
 
-ax1.plot(random_dist['A_len'] + random_dist['B_len'], normalize_dist(random_dist, 'instructions'), label="Random")
-ax1.plot(genome_dist['A_len'] + genome_dist['B_len'], normalize_dist(genome_dist, 'instructions'), label="Genome")
+# ax1.plot(fibonacci_dist['A_len'] + fibonacci_dist['B_len'], normalize_dist(fibonacci_dist, 'instructions'), label="Fibonacci")
+ax1.plot(random_dist['A_len'] + random_dist['B_len'], normalize_dist(random_dist, 'instructions'), color='k', label="Random")
+ax1.plot(hg_repetitive_dist['A_len'] + hg_repetitive_dist['B_len'], normalize_dist(hg_repetitive_dist, 'instructions'), color='r', label="HG Repetitive")
+ax1.plot(hg_nonrepetitive_dist['A_len'] + hg_nonrepetitive_dist['B_len'], normalize_dist(hg_nonrepetitive_dist, 'instructions'), color='c', label="HG Non-repetitive")
+ax1.plot(hg_combined_dist['A_len'] + hg_combined_dist['B_len'], normalize_dist(hg_combined_dist, 'instructions'), color='m', label="HG Non-repetitive")
 
-ax2.plot(random_dist['A_len'] + random_dist['B_len'], (random_dist['L2_miss'] * 100) / (random_dist['L2_hits'] + random_dist['L2_miss']), label="Fibonacci", ls='dashed')
-ax2.plot(genome_dist['A_len'] + genome_dist['B_len'], (genome_dist['L2_miss'] * 100) / (genome_dist['L2_hits'] + genome_dist['L2_miss']), label="Genome", ls='dashed')
+ax2.plot(random_dist['A_len'] + random_dist['B_len'], (random_dist['L2_miss'] * 100) / (random_dist['L2_hits'] + random_dist['L2_miss']), label="Fibonacci", ls='dashed', color='k')
+ax2.plot(hg_repetitive_dist['A_len'] + hg_repetitive_dist['B_len'], (hg_repetitive_dist['L2_miss'] * 100) / (hg_repetitive_dist['L2_hits'] + hg_repetitive_dist['L2_miss']), label="HG Repetitive", color='r', ls='dashed')
+ax2.plot(hg_nonrepetitive_dist['A_len'] + hg_nonrepetitive_dist['B_len'], (hg_nonrepetitive_dist['L2_miss'] * 100) / (hg_nonrepetitive_dist['L2_hits'] + hg_nonrepetitive_dist['L2_miss']), label="HG Non-repetitive", color='c', ls='dashed')
+ax2.plot(hg_combined_dist['A_len'] + hg_combined_dist['B_len'], (hg_combined_dist['L2_miss'] * 100) / (hg_combined_dist['L2_hits'] + hg_combined_dist['L2_miss']), label="HG Combined", color='m', ls='dashed')
 
 ax1.legend()
 plt.savefig('dist_runningtime_cpu.pdf')
@@ -76,15 +85,41 @@ plt.xlabel('N')
 plt.ticklabel_format(style='sci', axis='y', scilimits=(-1,2))
 
 fibonacci_grid = pd.read_csv("data/lcs_blowup_fib_fib_grid.dat", delim_whitespace=True)
+# genome_grid = pd.read_csv("data/lcs_blowup_fasta_genome1_fasta_genome2_grid.dat", delim_whitespace=True)
+hg_repetitive_grid = pd.read_csv("data/lcs_blowup_fasta_hg_repetitive_fasta_hg_repetitive_grid.dat", delim_whitespace=True)
+hg_nonrepetitive_grid = pd.read_csv("data/lcs_blowup_fasta_hg_nonrepetitive_fasta_hg_nonrepetitive_grid.dat", delim_whitespace=True)
+hg_combined_grid = pd.read_csv("data/lcs_blowup_fasta_hg_combined_fasta_hg_combined_grid.dat", delim_whitespace=True)
 genome_grid = pd.read_csv("data/lcs_blowup_fasta_genome1_fasta_genome2_grid.dat", delim_whitespace=True)
 random_grid = pd.read_csv("data/lcs_blowup_random_random_grid.dat", delim_whitespace=True)
 
 plt.plot(fibonacci_grid['A_len'] + fibonacci_grid['B_len'], normalize_grid(fibonacci_grid), label="Fibonacci")
-plt.plot(genome_grid['A_len'] + genome_grid['B_len'], normalize_grid(genome_grid), label="Genome 1 - 2")
-plt.plot(random_grid['A_len'] + random_grid['B_len'], normalize_grid(random_grid), label="Random")
+# plt.plot(genome_grid['A_len'] + genome_grid['B_len'], normalize_grid(genome_grid), label="Genome 1 - 2")
+plt.plot(hg_repetitive_grid['A_len'] + hg_repetitive_grid['B_len'], normalize_grid(hg_repetitive_grid), label="HG Repetitive")
+plt.plot(hg_nonrepetitive_grid['A_len'] + hg_nonrepetitive_grid['B_len'], normalize_grid(hg_nonrepetitive_grid), label="HG Nonrepetitive")
+plt.plot(hg_combined_grid['A_len'] + hg_combined_grid['B_len'], normalize_grid(hg_combined_grid), label="HG Combined")
+plt.plot(random_grid['A_len'] + random_grid['B_len'], normalize_grid(random_grid), color='k', label="Random")
 
 plt.legend()
 plt.savefig('grid_runningtime.pdf')
+
+
+# CPU stats for grid computation
+plt.figure()
+plt.title("CPU statistics for the grid computation")
+plt.xscale('log', basex=2)
+plt.xlabel('N')
+plt.ticklabel_format(style='sci', axis='y', scilimits=(-1,2))
+
+ax1 = plt.subplot(111)
+ax1.set_ylabel('Normalized instruction count')
+ax2 = ax1.twinx()
+ax2.set_ylabel('Normalized L3 cache misses')
+
+ax1.plot((fibonacci_grid['A_len'] + fibonacci_grid['B_len']).tail(23), normalize_grid(fibonacci_grid, 'instructions').tail(23), color='b', label="Fibonacci")
+ax2.plot((fibonacci_grid['A_len'] + fibonacci_grid['B_len']).tail(23), normalize_grid(fibonacci_grid, 'L3_miss').tail(23), ls='dashed', color='b', label="Fibonacci")
+
+ax1.legend()
+plt.savefig('grid_runningtime_cpu.pdf')
 
 
 # Plot to verify theoretical running time of the combined algorithm
@@ -100,11 +135,16 @@ plt.xlabel('N')
 
 fibonacci_total = pd.read_csv("data/lcs_blowup_fib_fib_total.dat", delim_whitespace=True)
 random_total = pd.read_csv("data/lcs_blowup_random_random_total.dat", delim_whitespace=True)
+hg_repetitive_total = pd.read_csv("data/lcs_blowup_fasta_hg_repetitive_fasta_hg_repetitive_total.dat", delim_whitespace=True)
+hg_nonrepetitive_total = pd.read_csv("data/lcs_blowup_fasta_hg_nonrepetitive_fasta_hg_nonrepetitive_total.dat", delim_whitespace=True)
+hg_combined_total = pd.read_csv("data/lcs_blowup_fasta_hg_combined_fasta_hg_combined_total.dat", delim_whitespace=True)
 genome_total = pd.read_csv("data/lcs_blowup_fasta_genome1_fasta_genome2_total.dat", delim_whitespace=True)
 
 plt.plot(fibonacci_total['A_len'] + fibonacci_total['B_len'], normalize_total(fibonacci_total), label="Fibonacci")
-plt.plot(genome_total['A_len'] + genome_total['B_len'], normalize_total(genome_total), label="Genome 1 - 2")
-plt.plot(random_total['A_len'] + random_total['B_len'], normalize_total(random_total), label="Random")
+plt.plot(hg_repetitive_total['A_len'] + hg_repetitive_total['B_len'], normalize_total(hg_repetitive_total), label="HG Repetitive")
+plt.plot(hg_nonrepetitive_total['A_len'] + hg_nonrepetitive_total['B_len'], normalize_total(hg_nonrepetitive_total), label="HG Non-repetitive")
+plt.plot(hg_combined_total['A_len'] + hg_combined_total['B_len'], normalize_total(hg_combined_total), ls='dashed', label="HG Combined")
+plt.plot(random_total['A_len'] + random_total['B_len'], normalize_total(random_total), color='k', label="Random")
 
 plt.legend()
 plt.savefig('total_runningtime.pdf')
@@ -186,7 +226,7 @@ plt.xlabel('N')
 genome_slp = pd.read_csv("data/lcs_blowup_fasta_genome1_fasta_genome2_SLP.dat", delim_whitespace=True)
 N = (genome_total['A_len'] + genome_total['B_len']).values
 slp_time = ((genome_slp['median'] / genome_total['median']) * 100).values
-dist_time = ((genome_dist['median'] / genome_total['median']) * 100).values
+dist_time = ((hg_repetitive_dist['median'] / genome_total['median']) * 100).values
 grid_time = ((genome_grid['median'] / genome_total['median']) * 100).values
 
 y = np.row_stack((slp_time, dist_time, grid_time))
@@ -212,6 +252,9 @@ plt.savefig('genome_area_plot.pdf')
 # Running time of Simple vs LCSBlowup
 simple_fibonacci = pd.read_csv("data/simple_fib_fib_total.dat", delim_whitespace=True)
 simple_genome = pd.read_csv("data/simple_fasta_genome1_fasta_genome2_total.dat", delim_whitespace=True)
+simple_hg_repetitive = pd.read_csv("data/simple_fasta_hg_repetitive_fasta_hg_repetitive_total.dat", delim_whitespace=True)
+simple_hg_nonrepetitive = pd.read_csv("data/simple_fasta_hg_nonrepetitive_fasta_hg_nonrepetitive_total.dat", delim_whitespace=True)
+simple_hg_combined = pd.read_csv("data/simple_fasta_hg_combined_fasta_hg_combined_total.dat", delim_whitespace=True)
 simple_random = pd.read_csv("data/simple_random_random_total.dat", delim_whitespace=True)
 
 fig = plt.figure()
@@ -224,8 +267,11 @@ plt.xlabel('N')
 plt.ylabel('Speedup factor')
 
 plt.plot(fibonacci_total['A_len'] + fibonacci_total['B_len'], simple_fibonacci['median'] / fibonacci_total['median'], label="Fibonacci")
-plt.plot(genome_total['A_len'] + genome_total['B_len'], simple_genome['median'] / genome_total['median'], label="Genomre 1-2")
-plt.plot(random_total['A_len'] + random_total['B_len'], simple_random['median'] / random_total['median'], label="Random")
+# plt.plot(genome_total['A_len'] + genome_total['B_len'], simple_genome['median'] / genome_total['median'], label="Genomre 1-2")
+plt.plot(hg_repetitive_total['A_len'] + hg_repetitive_total['B_len'], simple_hg_repetitive['median'] / hg_repetitive_total['median'], label="HG Repetitive")
+plt.plot(hg_nonrepetitive_total['A_len'] + hg_nonrepetitive_total['B_len'], simple_hg_nonrepetitive['median'] / hg_nonrepetitive_total['median'], label="HG Non-repetitive")
+plt.plot(hg_combined_total['A_len'] + hg_combined_total['B_len'], simple_hg_combined['median'] / hg_combined_total['median'], label="HG Combined")
+plt.plot(random_total['A_len'] + random_total['B_len'], simple_random['median'] / random_total['median'], color='k', label="Random")
 
 box = ax1.get_position()
 ax1.set_position([box.x0, box.y0 + box.height * 0.2,

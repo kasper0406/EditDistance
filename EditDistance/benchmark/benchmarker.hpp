@@ -372,7 +372,7 @@ namespace Benchmark {
   void benchmark_max_multiply(uint16_t trials) {
     using namespace Compression::DIST;
     
-    ofstream output("max-multiply.dat", ofstream::out);
+    ofstream output("max-multiply-long.dat", ofstream::out);
     
     output << left;
     output << setw(15) << "N" << setw(15) << "min" << setw(15) << "lower" << setw(15) << "median" << setw(15) << "upper"
@@ -385,11 +385,11 @@ namespace Benchmark {
 #endif
     output << endl;
     
-    for (uint64_t N = 1; N < 1000000; N = max(N + 1, (uint64_t)ceil(1.7 * N))) {
+    for (uint64_t N = 1; N < 5000000; N = max(N + 1, (uint64_t)ceil(1.7 * N))) {
       cout << "Testing N = " << N << endl;
       
       vector<int64_t> vec(N, 0);
-      for (int64_t i = 0; i < N; ++i) vec[i] = i;
+      for (int64_t i = 0; i < N; ++i) vec[i] = 2 * (N - i);
       // random_shuffle(vec.begin(), vec.end());
       
       vector<int64_t> perm_rows(N, 0);

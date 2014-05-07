@@ -396,7 +396,7 @@ The $Concat$ process referenced in the code, is function almost the same way as 
 
 The factors iteratively added to the SLP are the LZ-factors of the input string $\str{A}{0}{m}$. The LZ-factors of a string is found by scanning the string from left to right. Assume that the current position is $i \in \{0, \dots, m - 1\}$, then the next LZ factor is found by finding the longest string starting at position $i$ that have occurred in the input string before position $i$. \Cref{fig:lz-factor} illustrates the situation.
 
-\begin{figure}[htb]
+\begin{figure}[!htb]
   \centering
   \includegraphics[width=8cm]{images/lz-factor}
   \caption{A graphical illustration of a LZ-factor.}
@@ -411,7 +411,7 @@ First the suffix tree for the input string is generated. Then every node $v$ in 
 
 Having the described suffix tree, the LZ-factorization can be found by scanning the input string and follow the corresponding path in the suffix tree. While the string has already occurred before the path is extended, and when it is not a new LZ factor is added and the search begins from the top of the suffix tree. Pseudo code for the algorithm is given in \cref{alg:compression:lz-factorization}. The algorithm could potentially be improved a bit by following an entire suffix tree edge in every iteration. However, since the SLP construction is not the time consuming part of the algorithm this has not been implemented as the gain will be almost non noticeable.
 
-\begin{algorithm}[htb]
+\begin{algorithm}[!htb]
   \label{alg:compression:lz-factorization}
   $LZFactors = \emptyset$\;
   $factorStart = 0$\;
@@ -527,14 +527,14 @@ Because it is known that there can not exist input that performs too many tree r
 
 Therefore the construction of the SLP should not be the bottleneck of the combined edit distance algorithm, since it is asymptotically dominated by the other part of the algorithm doing the actual edit distance computation.
 %
-\begin{figure}[htb]
+\begin{figure}[!htb]
   \centering
   \includegraphics[width=10cm]{compression/runningtime}
   \caption{Normalized running time for construction of compressed SLP.}
   \label{fig:compression:runningtime}
 \end{figure}
 
-\begin{figure}[htb]
+\begin{figure}[!htb]
   \centering
   \includegraphics[width=10cm]{compression/instructions}
   \caption{Normalized instruction counts and L2 cache misses for construction of SLP. Solid lines are instructions, dashed lines are L2 cache misses.}
@@ -755,7 +755,7 @@ The following definition describes how the dynamic programming table will be spl
     \centering
     \begin{subfigure}{0.45\textwidth}
       \includegraphics[width=\textwidth]{images/grid-dist}
-      \caption{Numbering of inputs and outputs of a $\DIST$-table.}
+      \caption{Numbering of inputs (green) and outputs (red) of a $\DIST$-table.}
     \end{subfigure}
     %
     \begin{subfigure}{0.45\textwidth}
@@ -811,7 +811,7 @@ The key productions are identified by traversing the unfolded SLP bottom up. If 
 
 All the selected key productions covers some part of the string. In order to cover the rest of the input strings extra productions needs to be added, which are called the second type of productions. In order to find these, the path between two adjacent key productions is traversed. This is done by first finding the lowest common ancestor of the two key productions, and then traversing the paths from both of the key productions to the lowest common ancestor bottom up. Notice that all productions hanging from the traversed paths must all have derived strings with length less than $x$ since they would be marked as key productions otherwise which is a contradiction with the current choice of the key productions. See \cref{fig:slp-2nd-type} for an illustration.
 
-\begin{figure}[htb]
+\begin{figure}[!htb]
   \centering
   \includegraphics[width=10cm]{images/slp-2nd-type}
   \caption{An illustration of how production of the second type relates to the key productions. The productions inside the green areas spans the part of the string that is not covered by the key productions. And the collect productions of the second type are labeled by $l_0, \dots, l_{k_l}$ and $r_0, \dots, r_{k_r}$.}
@@ -1524,7 +1524,14 @@ Summarizing the above cases, $P_C(i, j)$ should contain a $1$ iff one of the fol
 \end{align}
 The idea is to make it efficiently to check when one of the condition is satisfied. In order to do this, is is needed to be able to efficiently check if the $\delta$ function contains a number $< 0$ or $> 0$. If for a given $i, j$ this can be done in constant time, all the above $\delta$-constraints can be efficiently checked.
 
-In order to facilitate this, the $\delta$ function is viewed as a $n \times n$ matrix. From unit monotonicity the entries $< 0$ must be located in the top left part, and the entries $> 0$ must be in the bottom right path as illustrated by \todo{insert illustration}. Basically the idea now is to trace two separating paths, separating the entries $< 0$ and the ones $> 0$ from the rest. The separating bath for the entries $< 0$ are called $r_{hi}$ and the other is called $r_{low}$.
+In order to facilitate this, the $\delta$ function is viewed as a $n \times n$ matrix. From unit monotonicity the entries $< 0$ must be located in the top left part, and the entries $> 0$ must be in the bottom right path as illustrated by \cref{fig:delta-example}. Basically the idea now is to trace two separating paths, separating the entries $< 0$ and the ones $> 0$ from the rest. The separating bath for the entries $< 0$ are called $r_{hi}$ and the other is called $r_{lo}$.
+
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[width=5cm]{images/delta-matrix}
+  \caption{Example of the $\delta$-function written as a matrix with separating paths.}
+  \label{fig:delta-example}
+\end{figure}
 
 Each of these paths are of length exactly $2n$, and the idea is to represent a path, say $r_{hi}$ as an array $r_{hi}$ of length $2n$ such that an entry on the path is given by
 \[
@@ -1540,7 +1547,7 @@ Similarly if the path should go right, then set $r_{hi}(d + 1) = r_{hi}(d) + 1$ 
   \frac{r_{hi}(d + 1) - (d + 1)}{2} &= \frac{r_{hi}(d) + 1 - (d + 1)}{2} = \frac{r_{hi}(d) - d}{2} \quad \text{and} \\
   \frac{r_{hi}(d + 1) + (d + 1)}{2} &= \frac{r_{hi}(d) + 1 + (d + 1)}{2} = \frac{r_{hi}(d) - d}{2} + 1.
 \end{align*}
-Exactly the same encoding of the path is used for $r_{low}$. In order to actually trace the separating paths, it is required that a $\delta$ entry called the \textit{witness}, adjacent to the current position in the path can be queried in constant time. For the high path, the witness is the entry just above the current entry and for the low path it is the one immediately to the right of the current position. In order to compute the witness in constant time, the approach taken in \cref{lemma:simple-unit-monge-query-next} can be almost directly reused as the $\delta$ function is a combination of sums over two permutation matrices.
+Exactly the same encoding of the path is used for $r_{lo}$. In order to actually trace the separating paths, it is required that a $\delta$ entry called the \textit{witness}, adjacent to the current position in the path can be queried in constant time. For the high path, the witness is the entry just above the current entry and for the low path it is the one immediately to the right of the current position. In order to compute the witness in constant time, the approach taken in \cref{lemma:simple-unit-monge-query-next} can be almost directly reused as the $\delta$ function is a combination of sums over two permutation matrices.
 
 Since the witness can be computed in constant time, it takes $O(n)$ times to build the two separating paths. Now the $\delta$ checks can be simplified as follows:
 \begin{description}
@@ -1691,44 +1698,66 @@ Also, it can be seen that the algorithm behaves as expected wrt. to the input ty
 \end{figure}
 
 \subsection{Combined algorithm}
-This section will present and discuss measurements on the implementation following together with this thesis. First it will be examined that the two main parts satisfies their theoretical running time, and the time distribution between the two steps will be examined.
+This section will present and discuss measurements of the combined algorithm. First it will be examined that the two main steps of the algorithm (the DIST repository construction and grid computation) satisfies their theoretical running times. Also the time distribution between these two steps will be examined.
 
-In the end it will be checked that all the steps combined into the complete algorithm satisfies the theoretical running time, and the running time will be compared to the running time of the simple algorithm on the same inputs.
+In the end it will be checked that all the steps combined into the complete algorithm satisfies the theoretical running time and the running time will be compared to the running time of the simple algorithm on the same inputs.
 
 \subsubsection{DIST Repository and grid computation}
-\todo{Verification of theoretical running time for DIST/grid.}
+This section will present measurements on the two most time consuming parts of the algorithm. Namely construction of the DIST repository and the grid computation.
 
-The increase in the normalized running time for building the DIST repository in the interval $[2^3,2^11]$ can be contributed to a large number of L2 cache misses. \Cref{fig:benchmark:dist-repo-cpu} plots the normalized number of instructions, which in the RAM should be directly correlated to the running time. The normalized instructions converges very quickly towards a constant, meaning that the number of retired instructions are as expected wrt. the theoretical running time. \Cref{fig:benchmark:dist-repo-cpu} also plots the L2 cache miss percentage, and it can be seen that the percentage of L2 cache misses is high when the running time of the algorithm increases more than expected. Therefore the increase in wall time can be explained by the hierarchical memory layout of a modern computer.
+\paragraph{DIST repository}
+First the time taken to build the $\DIST$ repository will be examined. \Cref{fig:benchmark:dist-repo-time} shows the normalized running time for the different input types. For the Fibonacci input the normalized running time clearly seems to be bounded by a constant.
 
-\begin{figure}[h!]
+The increase in the normalized running time seen for the random input and human genome for building the DIST repository in the interval $[2^3,2^11]$ can be contributed to a large number of L2 cache misses. \Cref{fig:benchmark:dist-repo-cpu} plots the normalized number of instructions, which in the RAM should be directly correlated to the running time. The normalized instructions converges very quickly towards a constant, meaning that the number of retired instructions are as expected wrt. the theoretical running time. \Cref{fig:benchmark:dist-repo-cpu} also plots the L2 cache miss percentage and it can be seen that the percentage of L2 cache misses is high when the running time of the algorithm increases more than expected. Therefore the increase in wall time can be explained by the hierarchical memory layout of a modern computer.
+
+\begin{figure}[!htb]
   \centering
   \includegraphics[width=10cm]{combined/dist_runningtime}
   \caption{Plot of the normalized running time for building the DIST repository.}
   \label{fig:benchmark:dist-repo-time}
 \end{figure}
 
-\begin{figure}[h!]
+\begin{figure}[!htb]
   \centering
   \includegraphics[width=10cm]{combined/dist_runningtime_cpu}
   \caption{Normalized number of retired instructions and percentage of L2 cache misses when building the DIST repository. The instructions are solid lines and the L2 cache miss percentage are dashed.}
   \label{fig:benchmark:dist-repo-cpu}
 \end{figure}
 
-\begin{figure}[h!]
+\paragraph{Grid computation}
+It will not be verified that the time to fill out the dynamical programming grid satisfies the theoretical running time. \Cref{fig:benchmark:fill-grid-time} plots the normalized running time for the different types of input. It can be seen that all the normalized running times except the onces for the longest Fibonacci inputs seem to be bounded by a constant. \Cref{fig:benchmark:fill-grid-cpu} shows a plot indicating that the number of CPU instructions executed follows the theoretical bound, but an increase in L3 cache misses is seen when the running time begins to increase. Therefore this increase in running time can be explained by the hierarchical memory layout of a computer.
+
+Another interesting thing to notice about the plots in \cref{fig:benchmark:fill-grid-time} is that the normalized running time does not stabilize around a constant before $N \approx 2^7 = 128$ which is surprisingly long sequences. This behavior can be explained by the maximum distance multiplication from \cref{sec:algorithm:max-mult-H-table-with-vector} that relies on interval union-find and a candidate list which may have an overhead in setup time for small input sizes.
+
+\begin{figure}[!htb]
   \centering
   \includegraphics[width=10cm]{combined/grid_runningtime}
   \caption{Plot of the normalized running time for filling out the grid.}
   \label{fig:benchmark:fill-grid-time}
 \end{figure}
 
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[width=10cm]{combined/grid_runningtime_cpu}
+  \caption{Plot of the normalized instruction count (solid line) and normalized L3 cache misses (dashed line) for filling out the grid with Fibonacci input.}
+  \label{fig:benchmark:fill-grid-cpu}
+\end{figure}
+
 \subsubsection{Total combined running time}
-It can be seen on \cref{fig:benchmark:total-time-combined} that each of the input types converges to a constant as the length of the input grows. One thing to note is that the constant for the random data and genome data is substantially higher than for the Fibonacci input \todo{give exact reason and argue why it is okay.}. Therefore the plots suggest that the combination of all the different parts of the implementation also satisfies the theoretical running time.
+This section will present measurements on the combined algorithm. First it will be verified that the theoretical running time is satisfied when all the steps are combined. Notice that the running time for the Fibonacci input is likely to see an increasing at the end due to the measurements and reasons from the previous section.
+
+\Cref{fig:benchmark:total-time-combined} plots the normalized running time of the combined algorithm for the different inputs. The measurements indicates that the normalized running time for each type of input converges towards a constant.
+
+Notice that the repetitive and combined human genome test cases are completely overlapping. This is because the benchmarked prefix of the two files are the same. Another thing to notice is that the constant for the random data and the non-repetitive human genome is substantially higher than for the Fibonacci input. This is believed to be the case because the block size of the algorithm depends on the compression ratio of the input, whereby input that has different compression characteristics may have different constants. There should be no input performing significantly worse than random strings, and hence it is concluded that the combined implementation seems to satisfy the theoretical running time bound from theory.
 \begin{figure}[h!]
   \centering
   \includegraphics[width=10cm]{combined/total_runningtime}
   \caption{Plot of the normalized total running time of the combined algorithm.}
   \label{fig:benchmark:total-time-combined}
 \end{figure}
+
+\paragraph{Running time distribution}
+It will now be examined how much of the running time is spend on the different parts of the algorithm for different input types and sizes.
 
 \begin{figure}[h!]
   \centering
@@ -1752,8 +1781,9 @@ It can be seen on \cref{fig:benchmark:total-time-combined} that each of the inpu
 \end{figure}
 
 \subsubsection{Comparison with simple algorithms}
-\todo{Plots of performance compared to simple algorithm / implementation.}
-\begin{figure}[h!]
+This section will present measurements on how the algorithm performs compared to the simple algorithm. \Cref{fig:benchmark:simple-vs-lcsblowup} plots the speedup factor obtained over the simple algorithm.
+
+\begin{figure}[!htb]
   \centering
   \includegraphics[width=10cm]{combined/simple_vs_lcs}
   \caption{Plot of the running time improvement of the LCS Blow-up algorithm compared to the Simple algorithm.}
