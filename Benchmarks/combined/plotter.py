@@ -216,18 +216,18 @@ plt.legend([proxy1, proxy2, proxy3], ['SLP', 'DIST Repository', 'Fill out grid']
 plt.savefig('random_area_plot.pdf')
 
 
-# Plot of the relative time consumption between the different parts of the algorithm for genome input
+# Plot of the relative time consumption between the different parts of the algorithm for hg_repetitive input
 fig = plt.figure()
 plt.title("Time consumed by different steps of the algorithm")
 plt.xscale('log', basex=2)
 plt.ylabel('Relative time used')
 plt.xlabel('N')
 
-genome_slp = pd.read_csv("data/lcs_blowup_fasta_genome1_fasta_genome2_SLP.dat", delim_whitespace=True)
-N = (genome_total['A_len'] + genome_total['B_len']).values
-slp_time = ((genome_slp['median'] / genome_total['median']) * 100).values
-dist_time = ((hg_repetitive_dist['median'] / genome_total['median']) * 100).values
-grid_time = ((genome_grid['median'] / genome_total['median']) * 100).values
+hg_repetitive_slp = pd.read_csv("data/lcs_blowup_fasta_hg_repetitive_fasta_hg_repetitive_SLP.dat", delim_whitespace=True)
+N = (hg_repetitive_total['A_len'] + hg_repetitive_total['B_len']).values
+slp_time = ((hg_repetitive_slp['median'] / hg_repetitive_total['median']) * 100).values
+dist_time = ((hg_repetitive_dist['median'] / hg_repetitive_total['median']) * 100).values
+grid_time = ((hg_repetitive_grid['median'] / hg_repetitive_total['median']) * 100).values
 
 y = np.row_stack((slp_time, dist_time, grid_time))
 y_stack = np.cumsum(y, axis=0)
@@ -246,7 +246,73 @@ proxy2 = plt.Rectangle((0, 0), 1, 1, facecolor="#1DACD6")
 proxy3 = plt.Rectangle((0, 0), 1, 1, facecolor="#1DD6AC")
 plt.legend([proxy1, proxy2, proxy3], ['SLP', 'DIST Repository', 'Fill out grid'], loc='upper center', bbox_to_anchor=(0.5, -0.15), fancybox=True, shadow=True, ncol = 3)
 
-plt.savefig('genome_area_plot.pdf')
+plt.savefig('hg_repetitive_area_plot.pdf')
+
+
+# Plot of the relative time consumption between the different parts of the algorithm for hg_nonrepetitive input
+fig = plt.figure()
+plt.title("Time consumed by different steps of the algorithm")
+plt.xscale('log', basex=2)
+plt.ylabel('Relative time used')
+plt.xlabel('N')
+
+hg_nonrepetitive_slp = pd.read_csv("data/lcs_blowup_fasta_hg_nonrepetitive_fasta_hg_nonrepetitive_SLP.dat", delim_whitespace=True)
+N = (hg_nonrepetitive_total['A_len'] + hg_nonrepetitive_total['B_len']).values
+slp_time = ((hg_nonrepetitive_slp['median'] / hg_nonrepetitive_total['median']) * 100).values
+dist_time = ((hg_nonrepetitive_dist['median'] / hg_nonrepetitive_total['median']) * 100).values
+grid_time = ((hg_nonrepetitive_grid['median'] / hg_nonrepetitive_total['median']) * 100).values
+
+y = np.row_stack((slp_time, dist_time, grid_time))
+y_stack = np.cumsum(y, axis=0)
+
+ax1 = fig.add_subplot(111)
+ax1.fill_between(N, 0, y_stack[0,:], facecolor="#AC4040")
+ax1.fill_between(N, y_stack[0,:], y_stack[1,:], facecolor="#1DACD6")
+ax1.fill_between(N, y_stack[1,:], y_stack[2,:], facecolor="#1DD6AC")
+
+box = ax1.get_position()
+ax1.set_position([box.x0, box.y0 + box.height * 0.2,
+                  box.width, box.height * 0.85])
+
+proxy1 = plt.Rectangle((0, 0), 1, 1, facecolor="#AC4040")
+proxy2 = plt.Rectangle((0, 0), 1, 1, facecolor="#1DACD6")
+proxy3 = plt.Rectangle((0, 0), 1, 1, facecolor="#1DD6AC")
+plt.legend([proxy1, proxy2, proxy3], ['SLP', 'DIST Repository', 'Fill out grid'], loc='upper center', bbox_to_anchor=(0.5, -0.15), fancybox=True, shadow=True, ncol = 3)
+
+plt.savefig('hg_nonrepetitive_area_plot.pdf')
+
+
+# Plot of the relative time consumption between the different parts of the algorithm for hg_combined input
+fig = plt.figure()
+plt.title("Time consumed by different steps of the algorithm")
+plt.xscale('log', basex=2)
+plt.ylabel('Relative time used')
+plt.xlabel('N')
+
+hg_combined_slp = pd.read_csv("data/lcs_blowup_fasta_hg_combined_fasta_hg_combined_SLP.dat", delim_whitespace=True)
+N = (hg_combined_total['A_len'] + hg_combined_total['B_len']).values
+slp_time = ((hg_combined_slp['median'] / hg_combined_total['median']) * 100).values
+dist_time = ((hg_combined_dist['median'] / hg_combined_total['median']) * 100).values
+grid_time = ((hg_combined_grid['median'] / hg_combined_total['median']) * 100).values
+
+y = np.row_stack((slp_time, dist_time, grid_time))
+y_stack = np.cumsum(y, axis=0)
+
+ax1 = fig.add_subplot(111)
+ax1.fill_between(N, 0, y_stack[0,:], facecolor="#AC4040")
+ax1.fill_between(N, y_stack[0,:], y_stack[1,:], facecolor="#1DACD6")
+ax1.fill_between(N, y_stack[1,:], y_stack[2,:], facecolor="#1DD6AC")
+
+box = ax1.get_position()
+ax1.set_position([box.x0, box.y0 + box.height * 0.2,
+                  box.width, box.height * 0.85])
+
+proxy1 = plt.Rectangle((0, 0), 1, 1, facecolor="#AC4040")
+proxy2 = plt.Rectangle((0, 0), 1, 1, facecolor="#1DACD6")
+proxy3 = plt.Rectangle((0, 0), 1, 1, facecolor="#1DD6AC")
+plt.legend([proxy1, proxy2, proxy3], ['SLP', 'DIST Repository', 'Fill out grid'], loc='upper center', bbox_to_anchor=(0.5, -0.15), fancybox=True, shadow=True, ncol = 3)
+
+plt.savefig('hg_combined_area_plot.pdf')
 
 
 # Running time of Simple vs LCSBlowup

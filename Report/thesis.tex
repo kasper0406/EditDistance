@@ -232,9 +232,9 @@ The following inputs have been chosen for benchmarking:
 
    The used human genome is \textbf{hg38} from \cite{HumanGenome}. The genome is divided into two categories: Repeating areas and non-repeating areas. The benchmarks in this report will use the following configurations for testing
   \begin{itemize}
-    \item Repeating areas masked out from the genome (\texttt{hg\_repeating})
-    \item Non-repeating areas masked out from the genome (\texttt{hg\_nonrepeating})
-    \item The entire genome (\texttt{hg\_entire})
+    \item Repeating areas masked out from the genome (\texttt{HG Repeating})
+    \item Non-repeating areas masked out from the genome (\texttt{HG Non-repeating})
+    \item The entire genome (\texttt{HG Combined})
   \end{itemize}
   It is expected that this type of input will be less compressible than Fibonacci strings, but better compressible than random strings due to the repetitive structure of DNA.
 
@@ -1757,31 +1757,53 @@ Notice that the repetitive and combined human genome test cases are completely o
 \end{figure}
 
 \paragraph{Running time distribution}
-It will now be examined how much of the running time is spend on the different parts of the algorithm for different input types and sizes.
+It will now be examined how much of the running time is spend on the different parts of the algorithm for different input types and sizes. \Cref{fig:benchmark:relative-runningtime} shows how the relative time distribution is for the different input types.
 
-\begin{figure}[h!]
+\begin{figure}[!ht]
   \centering
-  \includegraphics[width=10cm]{combined/fib_area_plot}
-  \caption{Plot of the relative running time of the different parts of the algorithm on Fibonacci input.}
-  \label{fig:benchmark:relative-runningtime-fib}
-\end{figure}
+  \begin{subfigure}{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{combined/fib_area_plot}
+    \caption{Fibonacci input}
+    \label{fig:benchmark:relative-runningtime-fib}
+  \end{subfigure}
+  %
+  \begin{subfigure}{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{combined/random_area_plot}
+    \caption{Random input}
+    \label{fig:benchmark:relative-runningtime-random}
+  \end{subfigure}
 
-\begin{figure}[h!]
-  \centering
-  \includegraphics[width=10cm]{combined/genome_area_plot}
-  \caption{Plot of the relative running time of the different parts of the algorithm on DNA sequences as input.}
-  \label{fig:benchmark:relative-runningtime-genome}
-\end{figure}
-
-\begin{figure}[h!]
-  \centering
-  \includegraphics[width=10cm]{combined/random_area_plot}
-  \caption{Plot of the relative running time of the different parts of the algorithm on random strings as input.}
-  \label{fig:benchmark:relative-runningtime-random}
+  \begin{subfigure}{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{combined/hg_repetitive_area_plot}
+    \caption{HG Repetitive / HG Combined}
+    \label{fig:benchmark:relative-runningtime-hg-repetitive}
+  \end{subfigure}
+  %
+  \begin{subfigure}{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{combined/hg_nonrepetitive_area_plot}
+    \caption{HG Non-repetitive}
+    \label{fig:benchmark:relative-runningtime-hg-nonrepetitive}
+  \end{subfigure}
+  \caption{Relative time consumption for the different steps of the algorithm.}
+  \label{fig:benchmark:relative-runningtime}
 \end{figure}
 
 \subsubsection{Comparison with simple algorithms}
-This section will present measurements on how the algorithm performs compared to the simple algorithm. \Cref{fig:benchmark:simple-vs-lcsblowup} plots the speedup factor obtained over the simple algorithm.
+This section will present measurements on how the algorithm performs compared to the simple algorithm. \Cref{fig:benchmark:simple-vs-lcsblowup} plots the speedup factor obtained over the simple algorithm for the different inputs.
+
+For all the human genome inputs and the random inputs it can be seen that the algorithm performs $\approx 2^{10} = 1024$ times slow than the simple algorithm. This is a quite disappointing result from the perspective of using the algorithm for DNA alignment and comparison. One natural thought is if there is something in the code that is directly responsible for the large slow down, but no such areas in the code was found by profiling. It is probably the case that some parts of the implementation can be optimized\footnote{Possible optimizations include double-dispatching without dynamic casts and better memory control.}. However, these optimizations should not be able to speed up the computation nowhere near the measured slowdown.
+
+It is also worth noticing that the simple algorithm may be improved. \todo{cite} experimented with the Four Russian algorithm for sequence alignment, and found a speedup factor of $\approx 4-16$ depending on the used CPU. Therefore the algorithm implemented in this thesis is not feasible to use to align DNA sequences.
+
+The situation is different for Fibonacci input, which is compressed such that $n = O(\log{N})$. This means that the total running time of the algorithm for Fibonacci input becomes $O\left( N\log{N} \sqrt{\log{\frac{N}{\log{N}}}} \right) = O(N\log{N}\sqrt{\log{N}})$. Therefore running time of the LCS Blow-up method should improve by a factor $O\left( \frac{N}{\log^{\frac{3}{2}}{N}} \right)$.
+
+From \cref{fig:benchmark:simple-vs-lcsblowup} it can be seen that the speedup continues to improve as the length of the Fibonacci input grows. However, in order for the implementation to be faster than the simple algorithm, the length of the Fibonacci input should be longer than $\approx 2^{15} = 30000$.
+
+The benchmarks suggests that the algorithm is able to achieve a speedup in the edit distance computation for highly repetitive strings. However, in order to actually see any speedup the strings should be long. Moreover, it may be hard to think of practical input data that has fulfill the highly repeating structure. Therefore, the simple algorithm will for almost all practical purposes be a better choice.
 
 \begin{figure}[!htb]
   \centering
@@ -1789,12 +1811,6 @@ This section will present measurements on how the algorithm performs compared to
   \caption{Plot of the running time improvement of the LCS Blow-up algorithm compared to the Simple algorithm.}
   \label{fig:benchmark:simple-vs-lcsblowup}
 \end{figure}
-
-Fibonacci input is compressed such that $n = O(\log{N})$. This means that for Fibonacci input the total running time of the algorithm becomes $O\left( N\log{N} \sqrt{\log{\frac{N}{\log{N}}}} \right) = O(N\log{N}\sqrt{\log{N}})$. Therefore running time of the LCS Blow-up method should improve by a factor $O\left( \frac{N}{\log^{\frac{3}{2}}{N}} \right)$ \todo{Does this correspond to the slope?}.
-
-It can be seen that the LCS Blow up method is only faster for Fibonacci strings longer than $\approx 20000$ symbols.
-
-\todo{Mention that simple algorithm can achieve a factor 4-16 speedup by using Four Russian approach.}
 
 \subsubsection{Notes to self}
 From the benchmark section of the string compression chapter (\cref{sec:compression:benchmarks}), it was found that almost all "real-world" strings, was only compressible by a constant factor (up to the trivial repetition of the string due to the fixed alphabet size \todo{experiment / comment on this?} \todo{Argue that this effect is negligible in practice (empirically determined on DNA input), and that the $\sqrt{\log{\frac{N}{n}}}$ parts eats most of the advantage}). That is, for all realistic DNA related applications it has empirically been found that $n = cN$ for some $c \in \mathbb{R}$. In this case, the running times of the algorithm is
