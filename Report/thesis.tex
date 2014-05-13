@@ -206,8 +206,6 @@ A string $\str{A}{0}{m}$ denotes a sequence of $m$ characters with random access
 
 The substring of a string $\str{A}{0}{m}$ is denoted by $\substr{A}{i}{j} = A[i]A[i+1]\dots A[j - 1]$ where $i, j \in \{0, \dots, m\}$. If $j \leq i$ then $\substr{A}{i}{j}$ denotes the empty string.
 
-\todo{Introduce matrix notation.}
-
 The edit distance problem can now be defined more formally:
 \begin{problem}
   \label{problem:edit-distance}
@@ -285,19 +283,16 @@ The base case where a string is aligned to the empty string is trivially the len
 \subsection{Backtracking}
 If the actual alignment of the strings is desirable, it can be found by a standard back-tracking approach on the computed matrix.
 
-This however implies that the simple space optimization from before does not work, as all entries in the computed table potentially is needed for the backtracking. However, a divide-and-conquer algorithm was given by Hirshberg\todo{Cite} that reduces the space consumption of $O(\min\{n, m\})$ without asymptotically increasing the running time.\todo{Describe the approach?}
+This however implies that the simple space optimization from before does not work, as all entries in the computed table potentially is needed for the backtracking. However, a divide-and-conquer algorithm was given by Hirshberg\todo{Cite} that reduces the space consumption of $O(\min\{n, m\})$ without asymptotically increasing the running time.
 
 The same approach can be used to find the alignment for the main algorithm in this report. However, a more practical approach may be to use the simple algorithm with pruning when the known optimal score is known, and then use backtracking directly on the grid. From now on, only the actual edit distance is considered to be of interest.
 
 \subsection{Optimizations}
-Ideas:
-\begin{itemize}
-  \item Compute matrix only around its diagonal, and then extend if needed. Extend by powers of $2$, which will result in at most a factor of $2$ extra running time.
-  \item Using SIMD instructions.
-  \item Parallelization (CPU / GPU).
-\end{itemize}
+The simple algorithm can for most practical inputs be improved. This can be done by only computing the dynamical programming matrix around its diagonal, and then extend the area if the path is not contained in the computed region. If the diagonal area is extended by powers of $2$, the running time will at most increase by a factor of $2$.
 
-In order to bound the scope of this thesis, it has been chosen not to focus on parallelization of the algorithms, even through both the simple and the main algorithm investigated in this thesis of \cite{Gawrychowski:2012:FAC:2422024.2422048} should be easily parallelizable. For more details see \ref{sec:conclusion:further-work}.
+Another optimization for the simple algorithm is parallelization. However, both the simple algorithm and the main algorithm in this thesis \cite{Gawrychowski:2012:FAC:2422024.2422048} are easily parallelizable. In order to reduce the amount of code needed to implement the algorithms, none of them have has been parallelized. It is believed that the results presented in this thesis will generalize well to a parallelized version.
+
+More detail on how to parallelize the compression based algorithm is given in \cref{sec:conclusion:further-work}.
 
 \section{Compression based algorithms}
 There exists other approaches for speeding up the computation of the edit distance between two strings. This section presents a short overview of some of the approaches that relates to the approach investigated in this thesis.
@@ -306,30 +301,37 @@ One approach for speeding up the computation of edit distance, is to compress th
 
 \subsection{The Four Russian Algorithm}
 \label{sec:4-russian}
-This approach was not originally presented as a compression based algorithm, but using that each entry in the dynamic programming matrix is changing at most 1 from an adjacent entry, and that the alphabet is finite, it is possible to encode blocks of the dynamic programming table efficiently and pre-compute all of them. That is, for all different sub-strings and possible inputs to compute the relative outputs when applying the block. Due to that values can change by no more than $1$ between two entries, the representation can be succinctly represented and efficiently looked up. The pre-computed tables are then used to fill out the original dynamic programming matrix block-by-block.
-\todo{Describe details and analyze time complexity?.}
+This approach was not originally presented as a compression based algorithm, but using that each entry in the dynamic programming matrix is changing at most 1 from an adjacent entry, and that the alphabet is finite, it is possible to encode blocks of the dynamic programming table efficiently and pre-compute all of them (see \cref{fig:intro:dist-tables}). That is, for all different sub-strings and possible inputs to compute the relative outputs when applying the block. 
+
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[width=7cm]{images/grid-dist-2}
+  \caption{Shows hows blocks of the dynamic programming table fits together. Illustrates that no work needs to be done for the entries inside each block.}
+  \label{fig:intro:dist-tables}
+\end{figure}
+
+Because consecutive values in the dynamic programming matrix can change by at most $1$, the representation can be succinctly represented and efficiently looked up. The pre-computed tables are then used to fill out the original dynamic programming matrix block-by-block.
+
+It was found by \cite{LasseFourRussian} that the Four Russian approach improves the running time of the simple algorithm by a factor of around $6$ to $8$. This is worth keeping in mind when comparing the performance of the compression based algorithm examined in this thesis to the simple algorithm.
 
 \subsection{Run-Length Encoding}
-\begin{itemize}
-  \item \todo{Describe RLE}
-  \item Not the focus / implemented in this thesis, but the result is included for completeness. Refer old thesis for experimental results of this approach?
-  \item \todo{cite} gave an algorithm running in time $O(nm)$ where $n$ and $m$ denotes the size of the compressed sequences. This is the first result where the running time is only depending on the length of the compressed strings. However, for string not containing long runs of the same symbol, RLE will generate strings longer than the original input!
-\end{itemize}
+As mentioned in the introduction, the algorithm of \cite{Gawrychowski:2012:FAC:2422024.2422048} implemented and benchmarked in this thesis has a theoretical running time of $O(n N \sqrt{\log{\frac{N}{n}}})$. That is, it depends on the original length of the input and not only the length of the compressed strings.
+
+There exists other approaches where the running time depends only on the lengths of the compressed strings. Such an algorithm was given by \cite{Chen:2010:FCA:1888935.1888984} which is based on run-length encoding. The run-length encoding of a string consist a sequences of runs. A run consist of a count and a symbol and represents the symbol occurring count times. For example, the run-length encoding $\text{\texttt{a}}^4\text{\texttt{c}}^3\text{\texttt{g}}^1\text{\texttt{a}}^2\text{\texttt{t}}^2$ represents the string \texttt{aaaacccgaatt}. Notice that the run-length encoding may use more space than the original string if the input string does not contain a lot of repeating symbols. 
+
+Assume that the input strings compresses into run-length encodings consisting of respectively $m$ and $n$ runs where $m \leq n$. The running time for computing the edit-distance presented in \cite{Chen:2010:FCA:1888935.1888984} is $O(mn^2)$.
+
+The running time only depends on the compressed lengths of the strings, however it is easy to construct input strings such that the algorithm is a factor $n$ slower than the simple algorithm by exploiting the simplicity of the run-length encoding scheme.
+
+An important feature of the algorithm benchmarked in this thesis is that it will never have a theoretically worse running time than the simple algorithm.
 
 \subsection{Compression based on straight-line programs}
 \label{sec:edit-dist-on-slps-steps}
 This section gives a very brief overview of the algorithm given by \cite{Gawrychowski:2012:FAC:2422024.2422048}, which is the main focus of this thesis. A more detailed description of each of the steps of the algorithm will be given later in this report. 
 
-Another way of compressing a string, is to compress it to what is known as a straight-line program (SLP). A more formal definition of a SLP will be given in \cref{ch:compressing-strings}, for now it is sufficient to note that a SLP is a restricted context-free grammar.
+The key to make the algorithm work, is to compress the input strings to what is known as straight-line programs (SLPs). A more formal definition of a SLP will be given in \cref{ch:compressing-strings}, for now it is sufficient to note that a SLP is a restricted context-free grammar.
 
-\begin{figure}
-  \centering
-  \includegraphics[width=7cm]{images/grid-dist-2}
-  \caption{Stacking of $\DIST$-tables showing how they are used to skip the computation of some of the entries in the dynamical programming grid.}
-  \label{fig:intro:dist-tables}
-\end{figure}
-
-The algorithm can be seen as a generalization of the Four Russian approach, where the blocking of the dynamic programming table is based on the productions of the SLPs (see \cref{fig:intro:dist-tables}), so that reused productions result in reusable blocks when filling out the grid. The algorithm can be summarized in the following steps:
+The algorithm can be seen as a generalization of the Four Russian approach, where the blocking of the dynamic programming table is based on the productions of the SLPs, so that reused productions result in reusable blocks when filling out the grid. The algorithm can be summarized in the following steps:
 \begin{itemize}
   \item Construct SLP representations $\SLP{A}$, $\SLP{B}$ of the two input strings $\str{A}{0}{m}$ and $\str{B}{0}{n}$. The better the compression scheme is able to compress the SLP representations the faster the algorithm will be. A natural trade-off arises in this step, namely the running time of the compression scheme versus the quality of the resulting compression. This step will be discussed in \cref{ch:compressing-strings}.
   \item Productions from the SLPs generating strings of length $O(x)$ for some fixed $x$ are selected in such a way that they cover the entire string without duplication. This can be done in $O(N)$ time by traversing the productions of the SLP bottom-up as described in \cref{sec:algorithm:select-productions}.
@@ -878,6 +880,7 @@ since the $\DIST$ table stores the shortest path from input $i$ to output $j$. E
 However, by representing the $\DIST$ tables in a clever way, the time required to evaluate \cref{eqn:dist-application} can be reduced to $O(x)$. This algorithm is described in \cref{sec:applying-a-dist-table}. Therefore, the total time for filling out the grid becomes $O\left( \frac{N^2}{x^2}x \right) = O\left( \frac{N^2}{x} \right)$.
 
 \subsection{Combining the two steps}
+\label{sec:combining-the-two-steps}
 In order to reduce the running time, the idea is to asymptotically balance the time used to compute the $\DIST$ repository and to fill out the grid. In order to do this, define $f = \frac{N}{n}$, which is the compression ratio of the input strings.
 
 The size of the $\DIST$ tables $x$ is defined to be $x = \frac{f}{\sqrt{\log{f}}}$. This choice of $x$ results in the $\DIST$ repository taking
@@ -1683,7 +1686,7 @@ This section will examine if the maximum distance product algorithm runs within 
 This algorithm is a bit more input sensitive than the one for computing the minimum distance product, since a candidate list of possible solutions is maintained. The length of this list does have an influence on the running time. It has been chosen to verify the running time using a permutation matrix sampled uniformly at random. This choice should not have any significant influence on the running time, since the permutation matrix does not directly control the length of the candidate list. For the input vector, three different inputs have been benchmarked:
 \begin{description}
   \item[Increasing input] is given by $v_i = i$ for all entries $i$. This type of input should make the candidate list to only be of length 1.
-  \item[Decreasing input] is given by the input vector $v_i = 2 * (N - i)$ where $N$ is the input size. This type should make the length of the candidate list as long as possible.
+  \item[Decreasing input] is given by the input vector $v_i = 2 \cdot (N - i)$ where $N$ is the input size. This type should make the length of the candidate list as long as possible.
   \item[Random permutation] is a vector $v = \sigma(1, \dots, N)$ where $\sigma \in S_N$. Ie. $v$ is a random permutation of the values $1, \dots, N$.
 \end{description}
 \Cref{fig:benchmark:max-distance} plots the normalized running time of both the naive $O(n^2)$ algorithm, and the efficient $O(n)$ algorithm of \cite{Gawrychowski:2012:FAC:2422024.2422048}. It can be seen that the algorithm of \cite{Gawrychowski:2012:FAC:2422024.2422048} is superior to the naive algorithm even for relatively small.
@@ -1759,6 +1762,10 @@ Notice that the repetitive and combined human genome test cases are completely o
 \paragraph{Running time distribution}
 It will now be examined how much of the running time is spend on the different parts of the algorithm for different input types and sizes. \Cref{fig:benchmark:relative-runningtime} shows how the relative time distribution is for the different input types.
 
+It can be seen that the time for constructing and blocking the SLP takes almost all of the time for input sizes up to $\approx 2^7 = 128$. This is due to the high running time constant of building the suffix tree, used to compute the LZ-factorization. However, as the input size gets larger, the relative time for computing the SLP gets negligible in the total running time. This is also what is predicted by the theoretical running times.
+
+For the Fibonacci input, it can be seen that the grid computation is most time consuming step of the algorithm. This is opposed to the three different inputs (the human genome combinations and the random string) where most of the time is spend computing the DIST repository. It may be that it is possible to tweak the block size parameter by a constant factor to make the time distribution more balanced, possibly reducing the constant behind the algorithm. A bit of experimentation of the block size parameter has been performed by multiplying the $f$-factor and $x$-factor from \cref{sec:combining-the-two-steps}. However, no combination has been found optimizing the running time for all the inputs, and in the benchmarks a $x$-factor of $1$ and $f$ factor of $2$ was used.
+
 \begin{figure}[!ht]
   \centering
   \begin{subfigure}{0.49\textwidth}
@@ -1822,7 +1829,19 @@ which is also the running time of the simple algorithm. Therefore the practical 
 
 \chapter{Conclusion}
 \label{chapter:conclusion}
-Summarize findings.
+During the work with this thesis, the algorithm for computing the Edit Distance described in \cite{Gawrychowski:2012:FAC:2422024.2422048} has been described, implemented and tested in practice.
+
+The compression to SLPs of the input strings provides the foundation for obtaining a speedup. For the Fibonacci input, the inputs can be compressed by a factor $O(\log{n})$ of the original input size. This results in an asymptotic improvement in the theoretical running time for the compression based algorithm over the simple algorithm.
+
+For the human genome and the random input, they obtain a compression to something above $0.2N$ for all tested input sizes, which was tested up to $\approx 4\cdot 10^6$ symbols. Therefore, for all practical applications, the algorithm on such input data has a theoretical running no better than the simple algorithm. Therefore all benchmarks with the human genome and random input the competition in practice becomes a battle on constants.
+
+The running time of the algorithm when testing on Fibonacci input was found to be faster than the simple algorithm, when the input was longer than $\approx 30000$ symbols. This shows that there exist classes of inputs that does give a speedup in practice. However, it has not been possible to find any real world problems where the edit distance between such highly repetitive string is desirable.
+
+More practical input data is represented by the human genome. The human genome performed much the same way as a random string in the algorithm. For both types of input the compression based algorithm was found to be a factor of $\approx 1024$ slower than the simple algorithm. This indicates that the practical applications of the compression based algorithm in its current form are very limited.
+
+Another important thing to notice, is that the code for the compression based algorithm is immensely more complicated than the code for the simple algorithm. Also the Four Russian approach briefly described in \cref{sec:4-russian} is less extensive to implement.
+
+Therefore the algorithm in its current form is not practical, as the simple algorithm or the Four Russian algorithm is superior except for very long inputs when computing on highly structured strings. However, it may be possible to improve the practicality of the algorithm so it can compete with the simple algorithm. Some ideas in order to improve the practicality of the algorithm is given in the following section.
 
 \section{Further work}
 \label{sec:conclusion:further-work}
