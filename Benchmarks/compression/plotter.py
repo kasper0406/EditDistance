@@ -149,5 +149,5 @@ ax2.plot(clipped_fib['N'], clipped_fib['L2_miss'] / (clipped_fib['N'] * np.log2(
 ax2.plot(clipped_hg_repetitive['N'], clipped_hg_repetitive['L2_miss'] / (clipped_hg_repetitive['N'] * np.log2(clipped_hg_repetitive['N'])), ls='dashed', label="HG Repetitive")
 ax2.plot(clipped_random['N'], clipped_random['L2_miss'] / (clipped_random['N'] * np.log2(clipped_random['N'])), ls='dashed', label="HG Repetitive")
 
-ax1.legend()
+ax1.legend(loc='upper center')
 plt.savefig('instructions.pdf')

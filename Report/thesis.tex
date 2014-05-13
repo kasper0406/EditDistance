@@ -250,7 +250,7 @@ The main memory size of the machine is 16 Gb. The computer was running Mac OS X 
 
 Before doing the actual measurements, a small warm-up round was performed, ensuring that the code was in the CPU cache etc. This helped to greatly reduce the variance of the running time measurements yielding more consistent results.
 
-All running times was measured as wall-time, and all tests was repeated 5 times where the measurement with the median running times is the one used for data-analysis in this report. The reason for choosing the median measurement, is that an unexpected amount of machine activity in one of the trials should not penalize the result, but at the same time, some tasks done by the operating system may be needed for the algorithm to function, which is why the minimum time was not selected. However, for larger inputs the relative standard deviation was less than $1.5\%$ \todo{Check with final measurements}, meaning that the measurements in each trails are close to each other.
+All running times was measured as wall-time, and all tests was repeated 5 times where the measurement with the median running times is the one used for data-analysis in this report. The reason for choosing the median measurement, is that an unexpected amount of machine activity in one of the trials should not penalize the result, but at the same time, some tasks done by the operating system may be needed for the algorithm to function, which is why the minimum time was not selected. However, for larger inputs the relative standard deviation was less than $5\%$ \todo{Check with final measurements}, meaning that the measurements in each trails are close to each other.
 
 All the tested input sizes have been grown by a factor of $1.7$. This has been chosen to have a exponential growth with a reasonable step size that is not a power of $2$. The reason for not choosing a power of $2$ is that this could give worse measurement results than would be seen for other input sizes, primarily due to cache associativity. Since inputs in practice are typically not strict powers of $2$ the artifacts by cache associativity is not desired.
 
@@ -489,7 +489,7 @@ By the proof in \cite{Rytter2003211} this overhead should be bounded by $O(\log{
 \subsubsection{Random strings}
 In these benchmarks the compressibility as function of sequence length has been examined by selecting prefixes of the input string, and then measured how much a prefix of a certain length is able to be compressed. For random input this should be alright, since the starting position does not affect the distribution.
 
-Random strings contains no systematic patterns, and will by design maximize the average information rate \todo{describe/reference?}, which by information theory should make them very hard to compress. The only type of compression in this type of string occurs since the alphabet has a finite size and the strings are of arbitrary length.
+Random strings contains no systematic patterns, and will by design maximize the average information rate, which by information theory should make them very hard to compress. The only type of compression in this type of string occurs since the alphabet has a finite size and the strings are of arbitrary length.
 
 It can be seen on \cref{fig:compression:quality:random} that the compression ratio of the string is decreasing as the input size gets larger. This is also expected due to the fixed alphabet size, and this is also why the Four Russian approach sketched in \cref{sec:4-russian} works.
 %
@@ -711,11 +711,8 @@ The algorithm crucially relies on the following claim, which implies the minimum
 \begin{claim}[\refbook{p. 16}{Theorem 3.4}]
   \label{claim:unit-monge-min-prod-closed}
   Given two simple unit-Monge matrices $A, B$, then their minimum distance product $A \odot B$ is also simple unit-Monge.
-  \begin{proof}
-    \todo{Give the proof, of simply reference proof in paper?}
-  \end{proof}
 \end{claim}
-\Cref{claim:unit-monge-min-prod-closed} gives rise to the following notation that will be useful later.
+As the proof of \cref{claim:unit-monge-min-prod-closed} is thoroughly described in \refbook{p. 16}{Theorem 3.4}, and that the statement of \cref{claim:unit-monge-min-prod-closed} is not used directly in the theorems and lemmas establishing the correctness of the algorithm, the proof is not included in this thesis. \Cref{claim:unit-monge-min-prod-closed} is used to give rise to the following notation that turns out useful later.
 \begin{mydef}[\reftiskin{p. 1289}{Definition 3.2}]
   Given permutation matrices $P_A$ and $P_B$, then $P_A \boxdot P_B = P_C$ if $P_C^{\Sigma} = P_A^{\Sigma} \odot P_B^{\Sigma}$.
 \end{mydef}
@@ -1418,7 +1415,7 @@ This section will describe how the minimum distance product of two simple unit-M
 
 It is assumed from now on that the input matrices are given by their permutation matrices $P_A$ and $P_B$ both of size $n$. The result of the algorithm should be a permutation matrix $P_C$ such that $P_A \boxdot P_B = P_C$. The algorithm is a divide and conquer algorithm on the input permutation matrices $P_A$ and $P_B$.
 
-The computation is trivial in the base case $n = 1$ since only one permutation matrix of this size exists. In the actual implementation the base case size was chosen to be $k \geq 1$. The reason for choosing a bigger base case is that the constant involved in the algorithm makes it slower than direct evaluation for small input sizes. In practice it was found that $k \approx 20$ was the best performing configuration \todo{link to some experiments?}.
+The computation is trivial in the base case $n = 1$ since only one permutation matrix of this size exists. In the actual implementation the base case size was chosen to be $k \geq 1$. The reason for choosing a bigger base case is that the constant involved in the algorithm makes it slower than direct evaluation for small input sizes. In practice it was found that $k \approx 20$ was the best performing configuration (see \cref{sec:min-dist-mult-bc}).
 
 For the recursive step the two input permutation matrices are first divided into four of size $\frac{n}{2}$ and two recursive calls are then performed. More specifically the subproblems are defined as
 \begin{align*}
@@ -1658,6 +1655,7 @@ This section will benchmark the compression based edit distance algorithm. Both 
 In this section the distance product operations on unit-Monge matrices will be benchmarked and optimized for later use.
 
 \subsubsection{Minimum distance product}
+\label{sec:min-dist-mult-bc}
 In order to get the best possible performance for the minimum distance product computation, the size of the base case of the algorithm described in \cref{sec:algorithm:min-mult-two-unit-monge} should be determined. Notice that when benchmarking the algorithm, the same amount of work should be done no matter the input. Therefore the running time should not depend on the content of the input, but only on its size. Therefore, all the benchmarks of the minimum distance product algorithms have been done with random permutation matrices of a specific size.
 
 \Cref{fig:benchmark:min-distance:bc} plots the running time normalized by $n\log{n}$ of the algorithm when varying the base case size. The general form of the plot is as expected: A small base case size leads to a larger running time, and a too large base case size will also yield a larger running time. The best compromise seems to be around base case size $k \approx 20$. For all the following measurements in this report a base case size of $k = 20$ has been used.
@@ -1804,7 +1802,9 @@ This section will present measurements on how the algorithm performs compared to
 
 For all the human genome inputs and the random inputs it can be seen that the algorithm performs $\approx 2^{10} = 1024$ times slow than the simple algorithm. This is a quite disappointing result from the perspective of using the algorithm for DNA alignment and comparison. One natural thought is if there is something in the code that is directly responsible for the large slow down, but no such areas in the code was found by profiling. It is probably the case that some parts of the implementation can be optimized\footnote{Possible optimizations include double-dispatching without dynamic casts and better memory control.}. However, these optimizations should not be able to speed up the computation nowhere near the measured slowdown.
 
-It is also worth noticing that the simple algorithm may be improved. \todo{cite} experimented with the Four Russian algorithm for sequence alignment, and found a speedup factor of $\approx 4-16$ depending on the used CPU. Therefore the algorithm implemented in this thesis is not feasible to use to align DNA sequences.
+Since the alphabet is finite, the input strings can be made to compress arbitrarily well by making the strings sufficiently long. The rate of this compression happens by a factor of $O(\log_{\Sigma}{n})$ whereby the running time of the combined algorithm for all strings should be bounded by $O\left( N^2 \frac{\sqrt{\log{\log{N}}}}{\log{N}} \right)$. Since $O(\log{N})$ grows quite slow and the tremendous overhead in the compressed edit distance algorithm, the compression based algorithm will never be better than the simple algorithm for input that does not compress well under the SLP compression scheme.
+
+It is also worth noticing that the simple algorithm may be improved. \cite{LasseFourRussian} experimented with the Four Russian algorithm for sequence alignment and found a speedup factor of $\approx 6-8$. Therefore the algorithm implemented in this thesis is not feasible to use to align DNA sequences.
 
 The situation is different for Fibonacci input, which is compressed such that $n = O(\log{N})$. This means that the total running time of the algorithm for Fibonacci input becomes $O\left( N\log{N} \sqrt{\log{\frac{N}{\log{N}}}} \right) = O(N\log{N}\sqrt{\log{N}})$. Therefore running time of the LCS Blow-up method should improve by a factor $O\left( \frac{N}{\log^{\frac{3}{2}}{N}} \right)$.
 
@@ -1818,14 +1818,6 @@ The benchmarks suggests that the algorithm is able to achieve a speedup in the e
   \caption{Plot of the running time improvement of the LCS Blow-up algorithm compared to the Simple algorithm.}
   \label{fig:benchmark:simple-vs-lcsblowup}
 \end{figure}
-
-\subsubsection{Notes to self}
-From the benchmark section of the string compression chapter (\cref{sec:compression:benchmarks}), it was found that almost all "real-world" strings, was only compressible by a constant factor (up to the trivial repetition of the string due to the fixed alphabet size \todo{experiment / comment on this?} \todo{Argue that this effect is negligible in practice (empirically determined on DNA input), and that the $\sqrt{\log{\frac{N}{n}}}$ parts eats most of the advantage}). That is, for all realistic DNA related applications it has empirically been found that $n = cN$ for some $c \in \mathbb{R}$. In this case, the running times of the algorithm is
-\[
-  O\left( nN\sqrt{\log{\frac{N}{n}}} \right) = O\left( c \cdot N^2 \sqrt{\log{\frac{N}{cN}}} \right) = O(N^2),
-\]
-which is also the running time of the simple algorithm. Therefore the practical success of the implemented algorithm becomes a battle of constants against the simple algorithm, which it is very likely going to lose. One approach to overcome this problem may be to improve the way the strings are compress, and try to make different inputs share the same SLP, a little more elaboration on this idea is done in the section on further work in \cref{chapter:conclusion}.
-
 
 \chapter{Conclusion}
 \label{chapter:conclusion}

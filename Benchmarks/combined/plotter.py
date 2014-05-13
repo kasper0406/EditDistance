@@ -118,7 +118,7 @@ ax2.set_ylabel('Normalized L3 cache misses')
 ax1.plot((fibonacci_grid['A_len'] + fibonacci_grid['B_len']).tail(23), normalize_grid(fibonacci_grid, 'instructions').tail(23), color='b', label="Fibonacci")
 ax2.plot((fibonacci_grid['A_len'] + fibonacci_grid['B_len']).tail(23), normalize_grid(fibonacci_grid, 'L3_miss').tail(23), ls='dashed', color='b', label="Fibonacci")
 
-ax1.legend()
+ax1.legend(loc='upper center')
 plt.savefig('grid_runningtime_cpu.pdf')
 
 
