@@ -15,6 +15,7 @@
 \usepackage{lmodern}
 \usepackage[labeled]{multibib}
 \usepackage{color}
+\usepackage{xcolor}
 \usepackage{datetime}
 \usepackage{epstopdf} 
 \usepackage{cleveref}
@@ -25,6 +26,7 @@
 \usepackage{microtype}
 \usepackage{varwidth}
 \usepackage{subcaption}
+\usepackage{pifont}
 
 \SetAlFnt{\small}
 \SetAlCapFnt{\large}
@@ -62,6 +64,7 @@
 \crefname{algocfline}{algorithm}{algorithms}
 
 \usetikzlibrary{shapes,arrows,positioning}
+\usetikzlibrary{paths.ortho}
 
 \begin{document}
 
@@ -154,50 +157,140 @@ The algorithm for constructing the SLP representation of the input strings requi
 In order to understand and prove the correctness of the algorithm a collection of proofs is described. \Cref{fig:proof-overview} gives an overview of how the main definitions, lemmas and theorems of this thesis relates. Also the figure points to the origin in the literature and is color coded by how much detail is added in this thesis compared to the literature.
 
 \setlength{\tabcolsep}{3pt}
-\tikzstyle{block} = [draw, rectangle, align=left]
+\tikzstyle{block} = [draw, rectangle, align=left, text width=3.5cm]
 \newcommand{\nodecontent}[3]{%
-  \begin{tabular}{l p{2.4cm}}
-    \multicolumn{2}{p{3.5cm}}{#1} \\
-    \textit{Reference:} & #2 \\
-    \textit{Literature:} & #3 \\
-  \end{tabular}
+  \parbox{3.5cm}{%
+    \begin{tabular}{l p{2.2cm}}
+      \multicolumn{2}{p{3.3cm}}{#1} \\
+      \textit{Reference:} & #2 \\
+      \textit{Literature:} & #3 \\
+    \end{tabular}
+  }%
 }%
+\newcommand{\coloredbox}[1] {\item[\mbox{\ooalign{\color{#1}\ding{110}\cr\hidewidth\color{black}$\square$\hidewidth\cr}}]}%
 
 \begin{figure}[h!]
-  \begin{tikzpicture}[font=\tiny\sffamily,node distance=5cm]
-    \node[block](simple-classification){
+  \centering
+  \begin{tikzpicture}[font=\tiny\sffamily,node distance=4.2cm]
+    \node[block,fill=white!90!green](simple-classification){
       \nodecontent{Characterization of simple matrices}
                   {\Cref{claim:simple-matrix-characterization}}
                   {\cite[p. 1288]{Tiskin:2010:FDM:1873601.1873704}}
     };
 
-    \node[block, right of=simple-classification](unit-Monge-classification){
+    \node[block,fill=white!90!cyan, right of=simple-classification](unit-Monge-classification){
       \nodecontent{Characterization of unit-Monge matrices}
                   {\Cref{lemma:unit-monge-characterization}}
                   {\cite[Lemma 2.11, p. 10]{DBLP:journals/corr/abs-0707-3619}}
     };
 
-    \node[block, below right of=simple-classification](dist-representation){
+    \node[block,fill=white!90!green, below=1cm of simple-classification](DIST-H-table-relation){
+      \nodecontent{Relating of $\DIST$-tables and $H$-tables}
+                  {\Cref{lemma:dist-H-relation}}
+                  {\cite[p. 48]{DBLP:journals/corr/abs-0707-3619}}
+    };
+
+    \node[block,fill=white!90!yellow, right of=DIST-H-table-relation](dist-representation){
       \nodecontent{Succinct DIST representation}
                   {\Cref{lemma:H-permutation-representation}}
                   {\cite[Theorem 4.10, p. 49]{DBLP:journals/corr/abs-0707-3619}}
     };
 
-    \node[block](simple-unit-monge-closed){
+    \node[block, right of=unit-Monge-classification](simple-unit-monge-closed){
       \nodecontent{Simple unit-Monge matrices closed\newline under the minimum distance product}
                   {\Cref{claim:unit-monge-min-prod-closed}}
                   {\cite[Theorem 3.4, p. 16]{Tiskin:2010:FDM:1873601.1873704}}
     };
-    \node[block, below of=simple-unit-monge-closed](min-mult){
+    \node[block,fill=white!90!yellow, below=1cm of simple-unit-monge-closed](min-mult){
       \nodecontent{Minimum Distance Product}
                   {\Cref{sec:algorithm:min-mult-two-unit-monge}}
                   {\cite[Theorem 3.3]{Tiskin:2010:FDM:1873601.1873704} and\newline\cite[Theorem 3.16, p. 28]{DBLP:journals/corr/abs-0707-3619}}
     };
 
+    \node[block,fill=white!90!green, right of=min-mult](vertical-merge-DIST-mathematical-description){
+      \nodecontent{Mathematical description of how two $\DIST$ tables are vertically merged}
+                  {\Cref{claim:dist-vertical-merge}}
+                  {Not directly mentioned}
+    };
+
+    \node[block,fill=white!90!yellow, very thick, below=1cm of min-mult](vertical-merge){
+      \nodecontent{Vertical merge of two $\DIST$ tables}
+                  {\Cref{thm:dist-vertical-merge}}
+                  {\cite[Theorem 4.19, p. 55]{DBLP:journals/corr/abs-0707-3619}}
+    };
+
+    \node[block,fill=white!90!cyan, right of=vertical-merge](query-sigma){
+      \nodecontent{Query adjacent entry in $\Sigma$'ed permutation matrix}
+                  {\Cref{lemma:simple-unit-monge-query-next}}
+                  {\cite[Theorem 2.1, p. 1288]{Tiskin:2010:FDM:1873601.1873704}}
+    };
+
+    \node[block,fill=white!90!yellow, very thick, below=1cm of vertical-merge](horizontal-merge){
+      \nodecontent{Horizontal merge of two $\DIST$ tables}
+                  {\Cref{thm:dist-horizontal-merge}}
+                  {Not directly mentioned}
+    };
+
+    \node[block,fill=white!90!green, left of=horizontal-merge](swap-DIST-strings){
+      \nodecontent{Swap strings of $\DIST$ table}
+                  {\Cref{lemma:swap_strings}}
+                  {\cite[Lemma 4.14, p. 52]{DBLP:journals/corr/abs-0707-3619}}
+    };
+
+    \node[block,fill=white!90!green, left of=vertical-merge](H-table-swap-strings){
+      \nodecontent{Swap the strings of a $H$-table}
+                  {\Cref{claim:H_string_switch_relation}}
+                  {\cite[Lemma 4.14, p. 52]{DBLP:journals/corr/abs-0707-3619}}
+    };
+
+    \node[block,fill=white!90!green, left of=H-table-swap-strings](useful-swap-identity){
+      \nodecontent{Useful identity for $\Sigma$'ed permutation matrix}
+                  {\Cref{claim:sum_top_described_as_sum_bottom}}
+                  {Not directly mentioned}
+    };
+
+    \node[block,fill=white!90!yellow, very thick, above=1cm of simple-unit-monge-closed](applying-DIST){
+      \nodecontent{Applying a $\DIST$-table in the dynamic programming grid}
+                  {\Cref{sec:applying-a-dist-table}}
+                  {Not directly mentioned}
+    };
+
+    \node[block,fill=white!90!cyan, left of=applying-DIST](max-mult){
+      \nodecontent{Maximum distance product between vector and $H$-table}
+                  {\Cref{sec:algorithm:max-mult-H-table-with-vector}}
+                  {\cite[Lemma 2, p. 234]{Gawrychowski:2012:FAC:2422024.2422048}}
+    };
+
+    \draw [->] (simple-classification) -- (dist-representation);
+    \draw [->] (unit-Monge-classification) -- (dist-representation);
+    \draw [->] (DIST-H-table-relation) -- (dist-representation);
+
     \draw [->] (simple-unit-monge-closed) -- (min-mult);
+
+    \draw [->] (vertical-merge-DIST-mathematical-description) -- (vertical-merge);
+    \draw [->] (min-mult) -- (vertical-merge);
+    \draw [->] (dist-representation) -- (vertical-merge);
+    \draw [->] (query-sigma) -- (vertical-merge);
+    \draw [->] (vertical-merge) -- (horizontal-merge);
+
+    \draw [->] (H-table-swap-strings) -- (swap-DIST-strings);
+    \draw [->] (useful-swap-identity) -- (swap-DIST-strings);
+    \draw [->] (swap-DIST-strings) -- (horizontal-merge);
+
+    \draw [->] (dist-representation) -|- (applying-DIST);
+    \draw [->] (max-mult) -- (applying-DIST);
   \end{tikzpicture}
 
-  \caption{Overview of the proofs needed to describe and prove the correctness of the algorithm. Specifies how the proves in this thesis relates to the ones in the literature.}
+  \captionsetup{singlelinecheck=off}
+  \caption[foo]{Overview of the proofs needed to describe and prove the correctness of the algorithm. Every box indicates a statement (claim, lemma or theorem) in this thesis. An edge between two boxes indicate a dependency between the statements. The boxes with a thick border indicates the main results needed for the implementation of the algorithm. The color coding of the boxes are assigned as follows:
+  \begin{itemize}
+    \coloredbox{white} No proof is given in this thesis.
+    \coloredbox{white!90!cyan} No or only minor contribution in the proof or statement.
+    \coloredbox{white!90!yellow} The proofs of the statements included in this thesis follow the structure of the proofs supplied in the literature, but additional details are included.
+    \coloredbox{white!90!green} Statements that are not mentioned or proved in the literature.
+  \end{itemize}
+  The diagram is intended to provide an easy to cope overview of how the results described in this thesis relate.
+  }
   \label{fig:proof-overview}
 \end{figure}
 
@@ -250,7 +343,7 @@ The main memory size of the machine is 16 Gb. The computer was running Mac OS X 
 
 Before doing the actual measurements, a small warm-up round was performed, ensuring that the code was in the CPU cache etc. This helped to greatly reduce the variance of the running time measurements yielding more consistent results.
 
-All running times was measured as wall-time, and all tests was repeated 5 times where the measurement with the median running times is the one used for data-analysis in this report. The reason for choosing the median measurement, is that an unexpected amount of machine activity in one of the trials should not penalize the result, but at the same time, some tasks done by the operating system may be needed for the algorithm to function, which is why the minimum time was not selected. However, for larger inputs the relative standard deviation was less than $5\%$ \todo{Check with final measurements}, meaning that the measurements in each trails are close to each other.
+All running times was measured as wall-time, and all tests was repeated 5 times where the measurement with the median running times is the one used for data-analysis in this report. The reason for choosing the median measurement, is that an unexpected amount of machine activity in one of the trials should not penalize the result, but at the same time, some tasks done by the operating system may be needed for the algorithm to function, which is why the minimum time was not selected. However, for larger inputs the relative standard deviation was almost always less than $5\%$, meaning that measurements across trails are close to each other.
 
 All the tested input sizes have been grown by a factor of $1.7$. This has been chosen to have a exponential growth with a reasonable step size that is not a power of $2$. The reason for not choosing a power of $2$ is that this could give worse measurement results than would be seen for other input sizes, primarily due to cache associativity. Since inputs in practice are typically not strict powers of $2$ the artifacts by cache associativity is not desired.
 
@@ -392,9 +485,9 @@ The idea behind the algorithm is to iteratively build the SLP for the string. Th
   \caption{Algorithm for generating $\log{n}$ approximation of minimal SLP of input string $\str{A}{0}{m}$.}
 \end{algorithm}
 
-When building the SLP, the SLP will be considered as an AVL-tree. Therefore it is known how to search and concatenate two SLPs in a way that keeps the resulting SLP balanced. The idea is to add add a repeating factor in the string once at a time. The repeating factor is added by reusing the productions already in the SLP generating the factor. During the concatenating operation of SLPs, the resulting tree is balanced using appropriate AVL-tree rotations.
+When building the SLP, the SLP will be considered as an AVL-tree. Therefore it is known how to search and concatenate two SLPs in a way that keeps the resulting SLP balanced. The idea is to add add a repeating factor in the string one at a time. The repeating factor is added by reusing the productions already in the SLP generating the factor. During the concatenating operation of SLPs, the resulting tree is balanced using appropriate AVL-tree rotations.
 
-The $Concat$ process referenced in the code, is function almost the same way as concatenating two AVL trees \todo{ref?}. However, productions in the SLP may be shared, hence when adding nodes and making rotations, special care needs to be taken in order to ensure the balance of the tree and that the derived string is correct. This is easy to fix by simple introducing a constant number of new productions for every insertion and rotation. Amortized, the number of rotations that happens on every concatenation is constant and therefore only a constant number of extra productions are added every time $Concat$ is called.
+The $Concat$ process referenced in the code, is function almost the same way as concatenating two AVL trees. The only difference is that productions in the SLP may be shared, hence when adding nodes and making rotations, special care needs to be taken in order to ensure the balance of the tree and that the derived string is correct. This is easy to fix simply by introducing a constant number of new productions for every insertion and rotation. Amortized, the number of rotations that happens on every concatenation is constant and therefore only a constant number of extra productions are added every time $Concat$ is called.
 
 The factors iteratively added to the SLP are the LZ-factors of the input string $\str{A}{0}{m}$. The LZ-factors of a string is found by scanning the string from left to right. Assume that the current position is $i \in \{0, \dots, m - 1\}$, then the next LZ factor is found by finding the longest string starting at position $i$ that have occurred in the input string before position $i$. \Cref{fig:lz-factor} illustrates the situation.
 
@@ -413,45 +506,47 @@ First the suffix tree for the input string is generated. Then every node $v$ in 
 
 Having the described suffix tree, the LZ-factorization can be found by scanning the input string and follow the corresponding path in the suffix tree. While the string has already occurred before the path is extended, and when it is not a new LZ factor is added and the search begins from the top of the suffix tree. Pseudo code for the algorithm is given in \cref{alg:compression:lz-factorization}. The algorithm could potentially be improved a bit by following an entire suffix tree edge in every iteration. However, since the SLP construction is not the time consuming part of the algorithm this has not been implemented as the gain will be almost non noticeable.
 
-\begin{algorithm}[!htb]
-  \label{alg:compression:lz-factorization}
-  $LZFactors = \emptyset$\;
-  $factorStart = 0$\;
-  \While{$factorStart < |A|$}{
-    $previousNode = currentNode = Root$\;
-    $currentEdgeLength = currentEdgeMatched = 0$\;
+\begin{center}
+  \begin{algorithm}[!htb]
+    \label{alg:compression:lz-factorization}
+    $LZFactors = \emptyset$\;
+    $factorStart = 0$\;
+    \While{$factorStart < |A|$}{
+      $previousNode = currentNode = Root$\;
+      $currentEdgeLength = currentEdgeMatched = 0$\;
 
-    $factorLen = 1$\;
-    \While{true}{
-      \If{$currentEdgeMatched \geq currentEdgeLength$}{
-        $previousNode = currentNode$\;
-        $pos = factorStart + factorLen - 1$\;
-        $currentNode, followedEdge = \operatorname{FastScan}(currentNode, A[pos])$\;
-        $currentEdgeLength = |followedEdge|$\;
-        $currentEdgeMatched = 0$\;
-      }
-
-      \If{$FirstSeen[Root \to currentNode] + factorLen - 1 \geq factorStart$}{
-        \eIf{$factorLen == 1$}{
-          $LZFactors = LZFactors \cup \{ (factorStart, factorStart) \}$\;
-          $factorStart = factorStart + 1$\;
-        }{
-          $pos = FirstSeen[Root \to previousNode]$\;
-          $LZFactors = LZFators \cup \{ (pos, pos + factorLen - 2) \}$\;
-          $factorStart = factorStart + factorLen - 1$\;
+      $factorLen = 1$\;
+      \While{true}{
+        \If{$currentEdgeMatched \geq currentEdgeLength$}{
+          $previousNode = currentNode$\;
+          $pos = factorStart + factorLen - 1$\;
+          $currentNode, followedEdge = \operatorname{FastScan}(currentNode, A[pos])$\;
+          $currentEdgeLength = |followedEdge|$\;
+          $currentEdgeMatched = 0$\;
         }
 
-        break\;
-      }
+        \If{$FirstSeen[Root \to currentNode] + factorLen - 1 \geq factorStart$}{
+          \eIf{$factorLen == 1$}{
+            $LZFactors = LZFactors \cup \{ (factorStart, factorStart) \}$\;
+            $factorStart = factorStart + 1$\;
+          }{
+            $pos = FirstSeen[Root \to previousNode]$\;
+            $LZFactors = LZFators \cup \{ (pos, pos + factorLen - 2) \}$\;
+            $factorStart = factorStart + factorLen - 1$\;
+          }
 
-      $previousNode = currentNode$\;
-      $currentEdgeMatched = currentEdgeMatched + 1$\;
-      $factorLen = factorLen + 1$\;
+          break\;
+        }
+
+        $previousNode = currentNode$\;
+        $currentEdgeMatched = currentEdgeMatched + 1$\;
+        $factorLen = factorLen + 1$\;
+      }
     }
-  }
-  \Return $LZFactors$
-  \caption{Algorithm for generating the LZ-factorization of a given input string $A$. The algorithm assumes a $FirstSeen$ array that for a given node gives the first time its associated string occurs in the string.}
-\end{algorithm}
+    \Return $LZFactors$
+    \caption{Algorithm for generating the LZ-factorization of a given input string $A$. The algorithm assumes a $FirstSeen$ array that for a given node gives the first time its associated string occurs in the string.}
+  \end{algorithm}
+\end{center}
 
 The implementation uses a pointer based representation of the SLP. It is worth noticing that in the context of standard binary heaps pointer based implementation typically performs worse than an implicit array representation due to the extra overhead of lookup pointers and jumping in memory. In a previous project \cite[p. 9]{AA13Project1} the penalty of using pointers was found to be around $2$.
 
@@ -831,7 +926,7 @@ One technical detail to notice for the above approach to work directly, is that 
 \label{sec:algorithm:building-DISTs-overview}
 In the previous step the productions for which the DIST repository should be build for. This section will focus on how the DIST repository is constructed. More specifically the DIST repository contains a DIST table for every pair of selected in the two SLPs. In other words, let $P_\mathcal{A}$ and $P_\mathcal{B}$ denotes the selected productions in respectively the SLPs $\mathcal{A}$ and $\mathcal{B}$. Then the dist repository contains a DIST table $\DIST_{a,b}$ for all $a \in P_\mathcal{A}, b \in P_{\mathcal{B}}$. The $\DIST$ tables was only defined for strings in \cref{defn:dist-table}, however it is easy to generalize to productions of a SLP by using the associated string of the production.
 
-The $\DIST$ tables will be constructed by means of recursively merging $\DIST$ tables for sub-productions of the selected productions. The base case for a pair of terminals is not explicitly described in this section, but is deferred to when the concrete representation of the $\DIST$ tables have been described \todo{ref}.
+The $\DIST$ tables will be constructed by means of recursively merging $\DIST$ tables for sub-productions of the selected productions. The base case for a pair of terminals is not explicitly described in this section, but will follow directly from definition once the concrete representation of the $\DIST$ tables have been described in \cref{lemma:H-permutation-representation}.
 
 The previously described production selection process divides the the selected productions into two types. The following describes how to handle the two cases.
 \begin{description}
@@ -1284,6 +1379,7 @@ This eliminates the middle case of the minimization in $\circled{*}$. Moreover, 
 \]
 which directly gives that $\circled{*} = P_{A'}^{\Sigma}(i - m'', j - m'')$. Therefore the min-multiplication can also be used to solve case \circled{2}. The above calculations establish the following important theorem.
 \begin{theorem}[\refbook{p.-55}{Theorem 4.19}]
+  \label{thm:dist-vertical-merge}
   Given two $\DIST$ tables $DIST_{A',B}$ and $\DIST_{A'',B}$ with representations $P_{A'}$ and $P_{A''}$ they can be merged into $\DIST_{A'A'',B}$ with representation $P_{A'A''}^{\Sigma}$ by setting
   \[
     P_{A'A''} = IC'_{P_{A'}} \boxdot IC''_{P_{A''}} .
@@ -1376,11 +1472,19 @@ The horizontal merge will be carried out by means of a vertical merge. In order 
   \end{proof}
 \end{lemma}
 %
-Following \cref{lemma:swap_strings} a horizontal merge can be carried out by first swapping the strings, then performing a vertical merge, and then swapping the strings of the merged $\DIST$ table again. Since swapping the strings runs in time $O(x)$, the total time of a horizontal merge is bounded by the time of the vertical merging. Hence, the total time of either of the merge routines is bounded by $O(x\log{x})$.
+Since it is known how to merge two $\DIST$ tables vertically, the following statement follows.
+\begin{theorem}
+  \label{thm:dist-horizontal-merge}
+  Given two $\DIST$ tables $\DIST_{A,B'}$ and $\DIST_{A,B''}$ of size $O(x)$, they can be merged into $\DIST_{A,B'B''}$ in time $O(x\log{x})$.
+  \begin{proof}
+    Following \cref{lemma:swap_strings} a horizontal merge can be carried out by first swapping the strings, then performing a vertical merge, and then swapping the strings of the merged $\DIST$ table again. Since swapping the strings runs in time $O(x)$, the total time of a horizontal merge is bounded by the time of the vertical merging. Hence, the total time of either of the merge routines is bounded by $O(x\log{x})$.
+  \end{proof}
+\end{theorem}
+This completes the description on how to build the $\DIST$-repository within the specified time bounds.
 
 \subsection{Applying a $\DIST$ table}
 \label{sec:applying-a-dist-table}
-When filling out a block in the grid with input $I$, the output is given by \cref{eqn:dist-application} which by \cref{lemma:dist-H-relation} can be re-written as
+What remains is to show how the $\DIST$-repository can be used to fill the dynamic programming grid efficiently. Assume that the outputs of a block in the grid with input $I$ should be computed (\todo{figure?}). The outputs are given by \cref{eqn:dist-application} which by \cref{lemma:dist-H-relation} can be re-written as
 \begin{align*}
   O[j] &= \max_i \left\{ I[i] + \DIST[i, j] \right\} \\
     &= \max_i \left\{ I[i] + H(i, j) + \left\{
@@ -1410,8 +1514,7 @@ The two basic building blocks for merging and applying DIST tables are the follo
 
 \subsection{Min-multiplication of two simple unit-Monge matrices}
 \label{sec:algorithm:min-mult-two-unit-monge}
-\todo{ref book}
-This section will describe how the minimum distance product of two simple unit-Monge matrices of size $n$ can be calculated in $O(n\log{n})$ time. The algorithm is the main result of \cite{Tiskin:2010:FDM:1873601.1873704}. The explanation follows the one in \cite{Tiskin:2010:FDM:1873601.1873704}, however there seems to be an error (or unexplained step) in the end of the algorithm, which is fixed in this description.
+This section will describe how the minimum distance product of two simple unit-Monge matrices of size $n$ can be calculated in $O(n\log{n})$ time. The algorithm is the main result of \cite{Tiskin:2010:FDM:1873601.1873704} and the result has also been described in \refbook{p. 28}{Theorem 3.16}. The explanation given in \cite{Tiskin:2010:FDM:1873601.1873704} contains an error (or unexplained step) in the end of the algorithm which is fixed in \refbook{p. 28}{Theorem 3.16}. The overall presentation of this algorithm follows the ones in the literature, but additional details are supplied and indices are changed to match the \texttt{C++} implementation.
 
 It is assumed from now on that the input matrices are given by their permutation matrices $P_A$ and $P_B$ both of size $n$. The result of the algorithm should be a permutation matrix $P_C$ such that $P_A \boxdot P_B = P_C$. The algorithm is a divide and conquer algorithm on the input permutation matrices $P_A$ and $P_B$.
 
@@ -1689,13 +1792,20 @@ This algorithm is a bit more input sensitive than the one for computing the mini
 \end{description}
 \Cref{fig:benchmark:max-distance} plots the normalized running time of both the naive $O(n^2)$ algorithm, and the efficient $O(n)$ algorithm of \cite{Gawrychowski:2012:FAC:2422024.2422048}. It can be seen that the algorithm of \cite{Gawrychowski:2012:FAC:2422024.2422048} is superior to the naive algorithm even for relatively small.
 
-Also, it can be seen that the algorithm behaves as expected wrt. to the input types. The input generating the longest candidate list takes the longest time, and the one with only one candidate is the fastest. It can also be seen that the normalized running times seems to be bounded by a constant, which indicates that the theoretical running time is satisfied. However, for large input sizes a small increase in normalized running time for the long candidate list input. This increase can be explained by TLB misses / branch mispredictions, since it by the measurements included with this report can be seen that the normalized instruction count approaches a constant \todo{make this plot?}.
+Also, it can be seen that the algorithm behaves as expected wrt. to the input types. The input generating the longest candidate list takes the longest time, and the one with only one candidate is the fastest. It can also be seen that the normalized running times seems to be bounded by a constant, which indicates that the theoretical running time is satisfied. However, for large input sizes a small increase in normalized running time for the long candidate list input. From \cref{fig:benchmark:max-distance-cpu} it can be seen that the normalized CPU instructions remain constant as the input size grows. Therefore the increase in running time can be explained by a mismatch with the RAM model and the actual realization of a computer. The measurements from the experiments suggest that the blame is not cache misses as they also approaches a constant when normalized. Therefore it is not exactly known which part of the CPU is responsible for the slight increase in running time, but reasonable guesses could be TLB misses or branch mispredictions.
 
 \begin{figure}[h!]
   \centering
   \includegraphics[width=10cm]{distance-mult/max-dist-mult}
   \caption{Running time of the efficient and naive algorithms for computing the maximum distance product of a permutation matrix and a vector.}
   \label{fig:benchmark:max-distance}
+\end{figure}
+
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[width=8cm]{distance-mult/max-dist-mult-cpu}
+  \caption{Normalized instruction count for the Maximum Distance Multiplication benchmarks.}
+  \label{fig:benchmark:max-distance-cpu}
 \end{figure}
 
 \subsection{Combined algorithm}
