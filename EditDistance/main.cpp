@@ -36,8 +36,41 @@ int main(int argc, char* argv[])
   cout << "Running in RELEASE MODE!" << endl << endl;
 #endif
   
-  // TODO: Write test for blow up slp
   Test::TestSuite::run_tests();
+  
+  {
+    auto parameter_test = [] (double xfactor, double ffactor) {
+      const uint64_t max_seq_len = 610;
+      const uint64_t fib_len = 15;
+      const int trials = 1;
+      
+      return [xfactor, ffactor, max_seq_len, fib_len, trials] () -> int {
+        /*
+        Benchmark::run_benchmark<Compression::LCSBlowUpAligner<SLP::LZSLPBuilder, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>>>(trials, xfactor, ffactor, Benchmark::FastaInput("hg_repetitive.fa", max_seq_len), Benchmark::FastaInput("hg_repetitive.fa", max_seq_len));
+        
+        Benchmark::run_benchmark<Compression::LCSBlowUpAligner<SLP::LZSLPBuilder, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>>>(trials, xfactor, ffactor, Benchmark::FastaInput("hg_nonrepetitive.fa", max_seq_len), Benchmark::FastaInput("hg_nonrepetitive.fa", max_seq_len));
+        
+        Benchmark::run_benchmark<Compression::LCSBlowUpAligner<SLP::LZSLPBuilder, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>>>(trials, xfactor, ffactor, Benchmark::FastaInput("hg_combined.fa", max_seq_len), Benchmark::FastaInput("hg_combined.fa", max_seq_len));
+         */
+        
+        int result = 0;
+        
+        Compression::LCSBlowUpAligner<SLP::LZSLPBuilder, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>> fibAligner(Benchmark::fib_string(fib_len), Benchmark::fib_string(fib_len), xfactor, ffactor);
+        result ^= fibAligner.edit_distance();
+        
+        Compression::LCSBlowUpAligner<SLP::LZSLPBuilder, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>> randomAligner(Benchmark::generate_string(max_seq_len), Benchmark::generate_string(max_seq_len), xfactor, ffactor);
+        result ^= randomAligner.edit_distance();
+        
+        return result;
+      };
+    };
+    
+    ofstream out("parameter-test.dat");
+    Benchmark::test_partition_constants(parameter_test, out);
+    out.close();
+  }
+  
+  return 0;
   
   {
     const double xfactor = 2;

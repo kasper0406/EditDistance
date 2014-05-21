@@ -250,7 +250,7 @@ namespace Test {
         string B = Benchmark::generate_string(length + 4);
         
         for (double xfactor = 2; xfactor < 3; ++xfactor) {
-          Aligner aligner(A, B, xfactor);
+          Aligner aligner(A, B, xfactor, 1);
           Simple::EditDistance simple(A, B);
           
           const auto found = aligner.edit_distance();

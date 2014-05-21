@@ -11,6 +11,7 @@
 #include <iomanip>
 #include <sstream>
 #include <fstream>
+#include <queue>
 
 #include "utils.hpp"
 
@@ -73,15 +74,15 @@ namespace Benchmark {
     return measurement;
   }
   
-  /**
-   * NOTICE: Strings are NOT generated uniformly at random!!!
-   */
   string generate_string(int64_t length, vector<char> alphabet = { 'a', 'c', 'g', 't' })
   {
+    mt19937 generator(0xCAFEBABE);
+    uniform_int_distribution<int> distr(0, alphabet.size() - 1);
+    
     stringstream ss;
     
     for (int64_t i = 0; i < length; ++i)
-      ss << alphabet[rand() % alphabet.size()]; // Not fair randomness, but its good enough for this testing!
+      ss << alphabet[distr(generator)];
     
     return ss.str();
   }
@@ -498,7 +499,7 @@ namespace Benchmark {
   }
   
   template <class Implementation, class InputGenerator>
-  void run_benchmark(uint16_t trials, const double xfactor, InputGenerator generator1, InputGenerator generator2) {
+  void run_benchmark(uint16_t trials, const double xfactor, const double ffactor, InputGenerator generator1, InputGenerator generator2) {
     cout << "#Testing: " << Implementation::name() << endl;
     
     const auto& stages = Implementation::run({ "a", "b", 1 });
@@ -658,5 +659,67 @@ namespace Benchmark {
     
     for (auto& output : outputs)
       output.close();
+  }
+  
+  void test_partition_constants(function<function<int()>(double,double)> fct, ostream& out) {
+    using namespace Compression;
+    
+    constexpr double xstep = 0.1;
+    constexpr double xlimit = 2;
+    constexpr double fstep = 0.5;
+    constexpr double flimit = 5;
+    
+    class CompareFactors {
+    public:
+      bool operator()(tuple<double,double> f1, tuple<double,double> f2) {
+        double xcenter = xlimit / 2;
+        double fcenter = flimit / 2;
+        
+        double f1_dist = pow(get<0>(f1) - xcenter, 2) + pow(get<1>(f1) - fcenter, 2);
+        double f2_dist = pow(get<0>(f2) - xcenter, 2) + pow(get<1>(f2) - fcenter, 2);
+        
+        return f1_dist > f2_dist;
+      }
+    };
+    priority_queue<tuple<double, double>, vector<tuple<double,double>>, CompareFactors> queue;
+    
+    out << left << setw(15) << "xfactor" << setw(15) << "ffactor" << setw(15) << "median_time" << setw(15) << "mean_time" << setw(15) << "RSD" << endl;
+    for (double xfactor = xstep; xfactor < xlimit; xfactor += xstep) {
+      for (double ffactor = fstep; ffactor < flimit; ffactor += fstep) {
+        queue.push({ xfactor, ffactor });
+      }
+    }
+    
+    while (!queue.empty()) {
+      double xfactor, ffactor;
+      tie(xfactor, ffactor) = queue.top();
+      queue.pop();
+      
+      cout << "Testing xfactor = " << xfactor << " and ffactor = " << ffactor << endl;
+      
+      const uint64_t trials = 5;
+      const uint64_t iMedian = trials / 2;
+      
+      vector<Measurement> measurements;
+      for (int trial = 0; trial < trials; ++trial)
+        measurements.push_back(time(fct(xfactor, ffactor)));
+      sort(measurements.begin(), measurements.end());
+      
+      // Compute mean value
+      double mean = 0;
+      for (uint16_t trial = 0; trial < trials; trial++)
+        mean += measurements[trial].time;
+      mean /= trials;
+      
+      // Compute %RSD
+      double standard_deviation = 0;
+      for (uint16_t trial = 0; trial < trials; trial++)
+        standard_deviation += pow(measurements[trial].time - mean, 2);
+      standard_deviation = sqrt(standard_deviation / trials);
+      
+      double rsd = (standard_deviation / mean) * 100;
+      
+      out << setw(15) << xfactor << setw(15) << ffactor << setw(15) << measurements[iMedian].time << setw(15) << mean << setw(15) << rsd << endl;
+    }
   }
 };

@@ -201,7 +201,7 @@ In order to understand and prove the correctness of the algorithm a collection o
                   {\Cref{claim:unit-monge-min-prod-closed}}
                   {\cite[Theorem 3.4, p. 16]{Tiskin:2010:FDM:1873601.1873704}}
     };
-    \node[block,fill=white!90!yellow, below=1cm of simple-unit-monge-closed](min-mult){
+    \node[block,fill=white!90!yellow, right of=dist-representation](min-mult){
       \nodecontent{Minimum Distance Product}
                   {\Cref{sec:algorithm:min-mult-two-unit-monge}}
                   {\cite[Theorem 3.3]{Tiskin:2010:FDM:1873601.1873704} and\newline\cite[Theorem 3.16, p. 28]{DBLP:journals/corr/abs-0707-3619}}
@@ -219,7 +219,7 @@ In order to understand and prove the correctness of the algorithm a collection o
                   {\cite[Theorem 4.19, p. 55]{DBLP:journals/corr/abs-0707-3619}}
     };
 
-    \node[block,fill=white!90!cyan, right of=vertical-merge](query-sigma){
+    \node[block,fill=white!90!cyan, right of=simple-unit-monge-closed](query-sigma){
       \nodecontent{Query adjacent entry in $\Sigma$'ed permutation matrix}
                   {\Cref{lemma:simple-unit-monge-query-next}}
                   {\cite[Theorem 2.1, p. 1288]{Tiskin:2010:FDM:1873601.1873704}}
@@ -270,7 +270,7 @@ In order to understand and prove the correctness of the algorithm a collection o
     \draw [->] (vertical-merge-DIST-mathematical-description) -- (vertical-merge);
     \draw [->] (min-mult) -- (vertical-merge);
     \draw [->] (dist-representation) -- (vertical-merge);
-    \draw [->] (query-sigma) -- (vertical-merge);
+    \draw [->] (query-sigma) -- (min-mult);
     \draw [->] (vertical-merge) -- (horizontal-merge);
 
     \draw [->] (H-table-swap-strings) -- (swap-DIST-strings);
@@ -286,8 +286,8 @@ In order to understand and prove the correctness of the algorithm a collection o
   \begin{itemize}
     \coloredbox{white} No proof is given in this thesis.
     \coloredbox{white!90!cyan} No or only minor contribution in the proof or statement.
-    \coloredbox{white!90!yellow} The proofs of the statements included in this thesis follow the structure of the proofs supplied in the literature, but additional details are included.
-    \coloredbox{white!90!green} Statements that are not mentioned or proved in the literature.
+    \coloredbox{white!90!yellow} The proof of the statement included in this thesis follows the structure of the proof supplied in the literature, but additional details are included.
+    \coloredbox{white!90!green} The statement is not mentioned or proved in the literature.
   \end{itemize}
   The diagram is intended to provide an easy to cope overview of how the results described in this thesis relate.
   }
@@ -802,7 +802,7 @@ An important observation required for the algorithm described in \cref{sec:algor
   \]
   The maximum distance product is defined analogously but where the $\min$ is replaced by $\max$.
 \end{mydef}
-The algorithm crucially relies on the following claim, which implies the minimum distance product of two simple unit-Monge can be succinctly represented by a permutation matrix.
+The algorithm relies on the following claim, which implies the minimum distance product of two simple unit-Monge can be succinctly represented by a permutation matrix.
 \begin{claim}[\refbook{p. 16}{Theorem 3.4}]
   \label{claim:unit-monge-min-prod-closed}
   Given two simple unit-Monge matrices $A, B$, then their minimum distance product $A \odot B$ is also simple unit-Monge.
@@ -991,6 +991,8 @@ time to build. The grid can be filled in time
     = O\left( Nn\sqrt{\log{\frac{N}{n}}} \right).
 \]
 Since the SLP construction algorithm runs in time $O(N\log{N})$ which will always be less, the combined running time for the entire combined algorithm becomes $O\left( Nn\sqrt{\log{\frac{N}{n}}} \right)$. In the big-O notation this running time is always superior to $O(N^2)$ which is the time required by the simple algorithm.
+
+The theoretical combined running time from this section remains valid when $f$ and $x$ are multiplied by arbitrary constants. Call these constants respectively $ffactor$ and $xfactor$ such that $f = ffactor \cdot \frac{N}{n}$ and $x = xfactor \cdot \frac{f}{\sqrt{\log{f}}}$. It is likely that changing these constants will have a big influence on the actual running time of the algorithm. Therefore the effect of different choices have been examined in \todo{ref}.
 
 \section{Representation of $\DIST$s}
 As mentioned in the previous section, representing the $\DIST$s in a succinct way is crucial in order to obtain the desired running time.
@@ -1812,6 +1814,20 @@ Also, it can be seen that the algorithm behaves as expected wrt. to the input ty
 This section will present and discuss measurements of the combined algorithm. First it will be examined that the two main steps of the algorithm (the DIST repository construction and grid computation) satisfies their theoretical running times. Also the time distribution between these two steps will be examined.
 
 In the end it will be checked that all the steps combined into the complete algorithm satisfies the theoretical running time and the running time will be compared to the running time of the simple algorithm on the same inputs.
+
+\subsubsection{Determining SLP partitioning factors}
+In \cref{sec:combining-the-two-steps} two factors called $ffactor$ and $xfactor$ was introduced. These factors controls how large each partition of the SLP should be. In this section these factors will be experimentally determined for use in all following benchmarks.
+
+Notice that the input may have a significant influence on how these factors should be chosen. For finding a reasonable value for the factors, the combined running time of aligning two Fibonacci strings of length 610 and two uniform random strings of length 610. These strings represent two extremes for the SLP string compressibility (see \cref{sec:compression:benchmarks}). The choice is more or less arbitrary, but it is believed that factors offering the best compromise between these two strings are likely to yield a reasonable performance for most types of input.
+
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[width=12cm]{parameter-test}
+  \caption{Plot showing the combined running time of aligning two highly compressible sequences with each other and two poorly compressible sequences with each other.}
+  \label{fig:benchmark:estimating-factors}
+\end{figure}
+
+\Cref{fig:benchmark:estimating-factors} shows a heat map of the combined running time. It can be seen that different choices of factors indeed have a big influence on the practical running time. The best running time seems to be obtained around $ffactor = 2$ and $xfactor = 0.7$. Therefore this choice has been chosen for all following benchmarks.
 
 \subsubsection{DIST Repository and grid computation}
 This section will present measurements on the two most time consuming parts of the algorithm. Namely construction of the DIST repository and the grid computation.

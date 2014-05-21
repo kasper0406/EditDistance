@@ -13,13 +13,14 @@
 #include "DIST.hpp"
 #include "../benchmark/benchmarker.hpp"
 
+
 namespace Compression {
   using namespace std;
   
   template <class Factory, class SLPCompressor, class DISTRepo>
   class Aligner {
   public:
-    Aligner(string A, string B, double xfactor) : xfactor_(xfactor), stats(nullptr), A_(A), B_(B)
+    Aligner(string A, string B, double xfactor, double ffactor) : xfactor_(xfactor), ffactor_(ffactor), stats(nullptr), A_(A), B_(B)
     { }
     
     virtual ~Aligner() { };
@@ -68,6 +69,7 @@ namespace Compression {
     }
     
     double xfactor_;
+    double ffactor_;
     
     Benchmark::Stats* stats;
     
@@ -82,7 +84,7 @@ namespace Compression {
   template <class SLPCompressor, class DISTRepo>
   class EditDistanceAligner : public Aligner<EditDistanceAligner<SLPCompressor, DISTRepo>, SLPCompressor, DISTRepo> {
   public:
-    EditDistanceAligner(string A, string B, double xfactor) : Aligner<EditDistanceAligner, SLPCompressor, DISTRepo>(A, B, xfactor)
+    EditDistanceAligner(string A, string B, double xfactor, double ffactor) : Aligner<EditDistanceAligner, SLPCompressor, DISTRepo>(A, B, xfactor, ffactor)
     {
       this->generateSLPs();
       this->buildDISTRepo();
@@ -177,8 +179,8 @@ namespace Compression {
       cout << "Compression factor B: " << this->slpB_->compressionFactor() << endl;
       
       auto findX = [this] (SLP::SLP* slp) {
-        const int64_t f = max((int64_t)2, slp->derivedLength() / slp->productions());
-        const int64_t x = max(f / (int64_t)sqrt(log2(f)), min((int64_t)5, slp->derivedLength()));
+        const double f =  max((double)2, this->ffactor_ * ((double)slp->derivedLength() / (double)slp->productions()));
+        const double x = max(f / sqrt(log2(f)), min(5., (double)slp->derivedLength()));
         
         return min((int64_t)(x * this->xfactor_), slp->derivedLength());
       };
@@ -198,7 +200,7 @@ namespace Compression {
   template <class SLPCompressor, class DISTRepo>
   class LCSBlowUpAligner : public Aligner<LCSBlowUpAligner<SLPCompressor, DISTRepo>, SLPCompressor, DISTRepo> {
   public:
-    LCSBlowUpAligner(string A, string B, double xfactor) : Aligner<LCSBlowUpAligner, SLPCompressor, DISTRepo>(A, B, xfactor)
+    LCSBlowUpAligner(string A, string B, double xfactor, double ffactor) : Aligner<LCSBlowUpAligner, SLPCompressor, DISTRepo>(A, B, xfactor, ffactor)
     {
       this->generateSLPs();
       this->buildDISTRepo();
@@ -303,12 +305,19 @@ namespace Compression {
        */
       
       auto findX = [this] (SLP::SLP* slp) -> int64_t {
+        const double f =  max((double)2, this->ffactor_ * ((double)slp->derivedLength() / (double)slp->productions()));
+        const double x = max(f / sqrt(log2(f)), min(5., (double)slp->derivedLength()));
+        
+        return max((int64_t)1, min((int64_t)(x * this->xfactor_), slp->derivedLength()));
+        
+        /*
         // return min((int64_t)5, slp->derivedLength());
         
         const int64_t f = max((int64_t)2, slp->derivedLength() / slp->productions());
         const int64_t x = max(f / (int64_t)sqrt(log2(f)), min((int64_t)5, slp->derivedLength()));
         
         return max(int64_t(1), min((int64_t)(x * this->xfactor_), slp->derivedLength()));
+         */
       };
       
       const uint64_t A_x = findX(this->slpA_.get());
