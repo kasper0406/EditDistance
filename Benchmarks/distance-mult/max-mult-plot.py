@@ -2,22 +2,19 @@ import sys
 sys.path.insert(0, "/Library/Python/2.7/site-packages")
 
 import matplotlib as mpl
-# mpl.use("pgf")
-# pgf_with_pdflatex = {
-#   "pgf.texsystem": "pdflatex",
-#   "pgf.preamble": [
-#     r"\usepackage[utf8x]{inputenc}",
-#     r"\usepackage[T1]{fontenc}",
-#     r"\usepackage{cmbright}"
-#   ]
-# }
-# mpl.rcParams.update(pgf_with_pdflatex)
+mpl.use("pgf")
+pgf_with_pdflatex = {
+  "pgf.texsystem": "pdflatex",
+  "pgf.preamble": [
+    r"\usepackage[utf8x]{inputenc}",
+    r"\usepackage[T1]{fontenc}"
+  ]
+}
+mpl.rcParams.update(pgf_with_pdflatex)
 
 from matplotlib import pyplot as plt
 import pandas as pd
 import numpy as np
-
-plt.xkcd()
 
 # Min distance product base case plot
 plt.figure()

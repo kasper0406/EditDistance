@@ -2,22 +2,19 @@ import sys
 sys.path.insert(0, "/Library/Python/2.7/site-packages")
 
 import matplotlib as mpl
-# mpl.use("pgf")
-# pgf_with_pdflatex = {
-#   "pgf.texsystem": "pdflatex",
-#   "pgf.preamble": [
-#     r"\usepackage[utf8x]{inputenc}",
-#     r"\usepackage[T1]{fontenc}",
-#     r"\usepackage{cmbright}"
-#   ]
-# }
-# mpl.rcParams.update(pgf_with_pdflatex)
+mpl.use("pgf")
+pgf_with_pdflatex = {
+  "pgf.texsystem": "pdflatex",
+  "pgf.preamble": [
+    r"\usepackage[utf8x]{inputenc}",
+    r"\usepackage[T1]{fontenc}"
+  ]
+}
+mpl.rcParams.update(pgf_with_pdflatex)
 
 from matplotlib import pyplot as plt
 import pandas as pd
 import numpy as np
-
-plt.xkcd()
 
 # Plot to verify the theoretical running time of the DIST repository computation
 def normalize_dist(df, to_normalize = 'median'):
@@ -28,6 +25,7 @@ def normalize_dist(df, to_normalize = 'median'):
 plt.figure()
 plt.title("Running time of DIST Repository computation")
 plt.xscale('log', basex=2)
+plt.yscale('log', basey=2)
 plt.ylabel('Normalized running time')
 plt.xlabel('N')
 
@@ -51,6 +49,7 @@ plt.figure()
 plt.title("Running time of DIST Repository computation")
 ax1 = plt.subplot(111)
 plt.xscale('log', basex=2)
+plt.yscale('log', basey=2)
 plt.ylabel('Normalized instruction count')
 plt.xlabel('N')
 

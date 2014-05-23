@@ -16,11 +16,11 @@ namespace Simple {
   public:
     EditDistance(string a, string b) : a_(a), b_(b), stats(nullptr) { }
     
-    static vector<pair<string, function<int64_t()>>> run(tuple<string, string, int64_t> input, Benchmark::Stats* stats = nullptr) {
+    static vector<pair<string, function<int64_t()>>> run(tuple<string, string, double, double> input, Benchmark::Stats* stats = nullptr) {
       EditDistance* simple = new EditDistance();
       simple->stats = stats;
       
-      tie(simple->a_, simple->b_, ignore) = input;
+      tie(simple->a_, simple->b_, ignore, ignore) = input;
       
       auto compute = [simple]() -> int64_t {
         return simple->calculate();

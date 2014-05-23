@@ -25,7 +25,7 @@ namespace Compression {
     
     virtual ~Aligner() { };
     
-    static vector<pair<string, function<int64_t()>>> run(tuple<string, string, int64_t> input, Benchmark::Stats* stats = nullptr) {
+    static vector<pair<string, function<int64_t()>>> run(tuple<string, string, double, double> input, Benchmark::Stats* stats = nullptr) {
       Aligner* aligner = Factory::getInstance(input);
       aligner->stats = stats;
       
@@ -162,9 +162,9 @@ namespace Compression {
       return "editdistalign";
     }
     
-    static Aligner<EditDistanceAligner, SLPCompressor, DISTRepo>* getInstance(tuple<string, string, double> input) {
+    static Aligner<EditDistanceAligner, SLPCompressor, DISTRepo>* getInstance(tuple<string, string, double, double> input) {
       auto instance = new EditDistanceAligner<SLPCompressor, DISTRepo>();
-      tie(instance->A_, instance->B_, instance->xfactor_) = input;
+      tie(instance->A_, instance->B_, instance->xfactor_, instance->ffactor_) = input;
       return instance;
     }
     
@@ -279,11 +279,9 @@ namespace Compression {
       return "lcs_blowup";
     }
     
-    static Aligner<LCSBlowUpAligner, SLPCompressor, DISTRepo>* getInstance(tuple<string, string, double> input) {
+    static Aligner<LCSBlowUpAligner, SLPCompressor, DISTRepo>* getInstance(tuple<string, string, double, double> input) {
       auto instance = new LCSBlowUpAligner<SLPCompressor, DISTRepo>();
-      instance->A_ = get<0>(input);
-      instance->B_ = get<1>(input);
-      instance->xfactor_ = get<2>(input);
+      tie(instance->A_, instance->B_, instance->xfactor_, instance->ffactor_) = input;
       return instance;
     }
     

@@ -556,7 +556,7 @@ namespace Benchmark {
       Stats stats;
       // Run the actual tests
       for (uint16_t trial = 0; trial < trials; ++trial) {
-        auto run = Implementation::run({ a, b, xfactor }, &stats);
+        auto run = Implementation::run({ a, b, xfactor, ffactor }, &stats);
         for (uint16_t stage = 0; stage < run.size(); ++stage) {
           auto& fct = run[stage].second;
           
@@ -664,10 +664,10 @@ namespace Benchmark {
   void test_partition_constants(function<function<int()>(double,double)> fct, ostream& out) {
     using namespace Compression;
     
-    constexpr double xstep = 0.1;
-    constexpr double xlimit = 2;
-    constexpr double fstep = 0.5;
-    constexpr double flimit = 5;
+    constexpr double xstep = 0.3;
+    constexpr double xlimit = 6;
+    constexpr double fstep = 0.3;
+    constexpr double flimit = 6;
     
     class CompareFactors {
     public:
