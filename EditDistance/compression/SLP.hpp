@@ -592,7 +592,7 @@ namespace Compression {
             }
           } else {
             auto productions = NodeHarvester::productions(root, get<0>(factor), get<1>(factor));
-            root = concat(root, concat(productions));
+            root = concat(root, concat(concat(get<0>(productions)), concat(get<1>(productions))));
           }
           
           processed += get<1>(factor) - get<0>(factor) + 1;
@@ -609,7 +609,10 @@ namespace Compression {
       }
       
     private:
-      static NonTerminal* concat(Production* A, Production* B) {
+      static Production* concat(Production* A, Production* B) {
+        if (A == nullptr) return B;
+        else if (B == nullptr) return A;
+        
 //        cout << "A height: " << A->height() << endl;
 //        cout << "B height: " << B->height() << endl;
         
@@ -768,31 +771,44 @@ namespace Compression {
       
       class NodeHarvester : private Visitor {
       public:
-        static vector<Production*> productions(Production* root, int64_t start, int64_t end) {
+        static tuple<vector<Production*>, vector<Production*>> productions(Production* root, int64_t start, int64_t end) {
           NodeHarvester harvester(start, end);
           root->accept(&harvester);
           
-          return harvester.productions_;
+          return { harvester.left_productions_, harvester.right_productions_ };
         }
         
       private:
-        NodeHarvester(int64_t start, int64_t end) : start_(start), end_(end) { }
+        NodeHarvester(int64_t start, int64_t end) : current_production_list_(nullptr), start_(start), end_(end) { }
         
         void visit(Terminal* terminal) {
           assert(start_ == end_);
-          productions_.push_back(terminal);
+          if (current_production_list_ == nullptr) {
+            left_productions_.push_back(terminal);
+          } else {
+            current_production_list_->push_back(terminal);
+          }
         }
         
         void visit(NonTerminal* nonTerminal) {
           assert(start_ <= end_);
           
           if (nonTerminal->lzbuilder_length == end_ - start_ + 1) {
-            productions_.push_back(nonTerminal);
+            if (current_production_list_ == nullptr) {
+              left_productions_.push_back(nonTerminal);
+            } else {
+              current_production_list_->push_back(nonTerminal);
+            }
             return;
           }
           
-          int64_t left_len = nonTerminal->left()->lzbuilder_length;
+          const int64_t left_len = nonTerminal->left()->lzbuilder_length;
+          const bool is_split = current_production_list_ == nullptr && left_len > start_ && left_len <= end_;
           if (left_len > start_) {
+            if (is_split) {
+              current_production_list_ = &left_productions_;
+            }
+            
             // Call recursively on left
             int64_t tmp_end = end_;
             end_ = min(end_, left_len - 1);
@@ -800,6 +816,10 @@ namespace Compression {
             end_ = tmp_end;
           }
           if (left_len <= end_) {
+            if (is_split) {
+              current_production_list_ = &right_productions_;
+            }
+            
             // Call recursively on right
             end_ -= left_len;
             start_ = max((int64_t)0, start_ - left_len);
@@ -809,7 +829,12 @@ namespace Compression {
           }
         }
         
-        vector<Production*> productions_;
+        vector<Production*>* current_production_list_;
+        
+        vector<Production*> left_productions_;
+        vector<Production*> right_productions_;
+        
+        // vector<Production*> productions_;
         int64_t start_, end_;
       };
       

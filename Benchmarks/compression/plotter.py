@@ -39,6 +39,18 @@ ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), fancybox=True, shadow
 plt.savefig('fib.pdf')
 
 
+plt.figure()
+plt.title("Compression of Fibonacci strings")
+plt.xscale('log', basex=2)
+# plt.yscale('log', basey=2)
+plt.ylabel('Normalized SLP size')
+plt.xlabel('Length')
+
+plt.plot(fib['N'], (fib['compression'] * fib['N']) / np.power(np.log2(fib['N']), 1))
+# plt.plot(fib['N'], (fib['compression'] * fib['N']) / np.power(np.log2(fib['N']), 2))
+
+plt.savefig('fib-normalized.pdf')
+
 # Random string plots
 plt.figure()
 plt.title("Compression quality")

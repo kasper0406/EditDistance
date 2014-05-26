@@ -28,6 +28,7 @@ namespace Test {
       
       vector<pair<string, function<bool()>>> tests = {
         { "Test LZ factorization", test_lz_factorization },
+        { "Test LZ SLP builder", test_slp_builder<SLP::LZSLPBuilder> },
         
         { "Testing union find", test_union_find },
         { "Testing interval union find", test_interval_union_find },
@@ -38,8 +39,7 @@ namespace Test {
         
         { "Verify result of sample using simple compression SLP and simple merging DIST.", test_slp_compression_align<EditDistanceAligner<SLP::SimpleCompressionSLPBuilder, DIST::MergingDISTRepository<DIST::EditDistanceDISTTable, DIST::SimpleMerger>>> },
         { "Test blow-up method for computing edit-distance from LCS.", test_blow_up_method },
-        { "Verify result of sample using LCS blow up SLP and simple merging DIST.", test_slp_compression_align<LCSBlowUpAligner<SLP::SimpleCompressionSLPBuilder, DIST::MergingDISTRepository<DIST::SimpleLCSDISTTable, DIST::SimpleLCSDISTMerger>>> },
-        { "Test LZ SLP builder", test_slp_builder<SLP::LZSLPBuilder> }
+        { "Verify result of sample using LCS blow up SLP and simple merging DIST.", test_slp_compression_align<LCSBlowUpAligner<SLP::SimpleCompressionSLPBuilder, DIST::MergingDISTRepository<DIST::SimpleLCSDISTTable, DIST::SimpleLCSDISTMerger>>> }
       };
       
       bool success = true;
@@ -65,7 +65,7 @@ namespace Test {
   private:
     template <class SLPBuilder>
     static bool test_slp_builder() {
-      for (int64_t length = 10; length < 1000; length = max((int64_t)((double)length * 1.2), length + 1)) {
+      for (int64_t length = 10; length < 10000; length = max((int64_t)((double)length * 1.2), length + 1)) {
         string input = Benchmark::generate_string(length);
         auto tree = SLP::LZSLPBuilder::build(input);
         

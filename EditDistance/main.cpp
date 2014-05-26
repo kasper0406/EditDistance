@@ -99,10 +99,12 @@ int main(int argc, char* argv[])
     const uint16_t trials = 5;
     const uint64_t max_len = 4000000;
     
-    /*
     Benchmark::benchmark_compression(trials, Benchmark::FibonacciInput(30));
     Benchmark::benchmark_compression(trials, Benchmark::UniformRandomInput(max_len));
-     */
+    
+    Benchmark::benchmark_compression(trials, Benchmark::FastaInput("hg_repetitive.fa", max_len));
+    
+    return 0;
     
     /*
     Benchmark::benchmark_compression(trials, Benchmark::FastaInput("hg_repetitive.fa", max_len));

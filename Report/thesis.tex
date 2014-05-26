@@ -152,7 +152,7 @@ The algorithm relies on the following list of sub-algorithms which all have been
       \item The maximum distance product algorithm further relies on an interval union find data-structure from \cite{Itai06lineartime}. Described in \cref{sec:algorithm:interval-union-find}.
     \end{itemize}
 \end{itemize}
-The algorithm for constructing the SLP representation of the input strings requires a suffix tree. In order to have a succinct and efficient suffix tree, it has been chosen to use a suffix tree implementation in the Succinct Data Structure Library (SDSL) \cite{SDSL} based on \cite{OHL:FIS:GOG:2010}.
+The algorithm for constructing the SLP representation of the input strings requires a suffix tree. In order to have a succinct and efficient suffix tree, it has been chosen to use a suffix tree implementation from the Succinct Data Structure Library (SDSL) \cite{SDSL} based on \cite{OHL:FIS:GOG:2010}.
 
 In order to understand and prove the correctness of the algorithm a collection of proofs is described. \Cref{fig:proof-overview} gives an overview of how the main definitions, lemmas and theorems of this thesis relates. Also the figure points to the origin in the literature and is color coded by how much detail is added in this thesis compared to the literature.
 
@@ -339,11 +339,11 @@ All measurements presented in this report were performed on a computer with an I
   \item 2 cores operating at 2.4GHz, with turbo boost up to 2.9GHz.
   \item 256KB L2 cache, 3MB L3 cache.
 \end{itemize}
-The main memory size of the machine is 16 Gb. The computer was running Mac OS X and Intel Performance Counter Monitor (IPCM) was used to measure cache misses and instructions executed. All implementations have been written in \texttt{C++11} and compiled on  Mac OS X using the clang 3.3 compiler. When measurements were performed, the code was compiled using the \texttt{-O3 -funroll-loops -flto -fasm-blocks -march=core-avx2 -DNDEBUG} optimization flags.
+The main memory size of the machine was 16 Gb. The computer was running Mac OS X and Intel Performance Counter Monitor (IPCM) was used to measure cache misses and instructions executed. All implementations have been written in \texttt{C++11} and compiled on  Mac OS X using the clang 3.4 compiler. When measurements were performed, the code was compiled using the \texttt{-O3 -funroll-loops -flto -fasm-blocks -march=core-avx2 -DNDEBUG} optimization flags.
 
 Before doing the actual measurements, a small warm-up round was performed, ensuring that the code was in the CPU cache etc. This helped to greatly reduce the variance of the running time measurements yielding more consistent results.
 
-All running times was measured as wall-time, and all tests was repeated 5 times where the measurement with the median running times is the one used for data-analysis in this report. The reason for choosing the median measurement, is that an unexpected amount of machine activity in one of the trials should not penalize the result, but at the same time, some tasks done by the operating system may be needed for the algorithm to function, which is why the minimum time was not selected. However, for larger inputs the relative standard deviation was almost always less than $5\%$, meaning that measurements across trails are close to each other.
+All running times was measured as wall-time, and all tests were repeated 5 times where the measurement with the median running times is the one used for data-analysis in this report. The reason for choosing the median measurement, is that an unexpected amount of machine activity in one of the trials should not penalize the result, but at the same time, some tasks done by the operating system may be needed for the algorithm to function, which is why the minimum time was not selected. However, for larger inputs the relative standard deviation was almost always less than $5\%$, meaning that measurements across trails are close to each other.
 
 All the tested input sizes have been grown by a factor of $1.7$. This has been chosen to have a exponential growth with a reasonable step size that is not a power of $2$. The reason for not choosing a power of $2$ is that this could give worse measurement results than would be seen for other input sizes, primarily due to cache associativity. Since inputs in practice are typically not strict powers of $2$ the artifacts by cache associativity is not desired.
 
@@ -383,7 +383,7 @@ The same approach can be used to find the alignment for the main algorithm in th
 \subsection{Optimizations}
 The simple algorithm can for most practical inputs be improved. This can be done by only computing the dynamical programming matrix around its diagonal, and then extend the area if the path is not contained in the computed region. If the diagonal area is extended by powers of $2$, the running time will at most increase by a factor of $2$.
 
-Another optimization for the simple algorithm is parallelization. However, both the simple algorithm and the main algorithm in this thesis \cite{Gawrychowski:2012:FAC:2422024.2422048} are easily parallelizable. In order to reduce the amount of code needed to implement the algorithms, none of them have has been parallelized. It is believed that the results presented in this thesis will generalize well to a parallelized version.
+Another optimization for the simple algorithm is parallelization. However, both the simple algorithm and the main algorithm in this thesis \cite{Gawrychowski:2012:FAC:2422024.2422048} are easily parallelizable. In order to reduce the amount of code needed to implement the algorithms, none of them have been parallelized. It is believed that the results presented in this thesis will generalize well to a parallelized version.
 
 More detail on how to parallelize the compression based algorithm is given in \cref{sec:conclusion:future-work}.
 
@@ -414,7 +414,7 @@ There exists other approaches where the running time depends only on the lengths
 
 Assume that the input strings compresses into run-length encodings consisting of respectively $m$ and $n$ runs where $m \leq n$. The running time for computing the edit-distance presented in \cite{Chen:2010:FCA:1888935.1888984} is $O(mn^2)$.
 
-The running time only depends on the compressed lengths of the strings, however it is easy to construct input strings such that the algorithm is a factor $n$ slower than the simple algorithm by exploiting the simplicity of the run-length encoding scheme.
+The running time only depends on the compressed lengths of the strings, however it is easy to construct input strings such that the algorithm is a factor of the string length slower than the simple algorithm by exploiting the simplicity of the run-length encoding scheme.
 
 An important feature of the algorithm benchmarked in this thesis is that it will never have a theoretically worse running time than the simple algorithm.
 
@@ -422,13 +422,13 @@ An important feature of the algorithm benchmarked in this thesis is that it will
 \label{sec:edit-dist-on-slps-steps}
 This section gives a very brief overview of the algorithm given by \cite{Gawrychowski:2012:FAC:2422024.2422048}, which is the main focus of this thesis. A more detailed description of each of the steps of the algorithm will be given later in this report. 
 
-The key to make the algorithm work, is to compress the input strings to what is known as straight-line programs (SLPs). A more formal definition of a SLP will be given in \cref{ch:compressing-strings}, for now it is sufficient to note that a SLP is a restricted context-free grammar.
+The key to make the algorithm work, is to compress the input strings to what is known as straight-line programs (SLPs). A formal definition of a SLP will be given in \cref{ch:compressing-strings}. For now it is sufficient to note that a SLP is a restricted context-free grammar.
 
 The algorithm can be seen as a generalization of the Four Russian approach, where the blocking of the dynamic programming table is based on the productions of the SLPs, so that reused productions result in reusable blocks when filling out the grid. The algorithm can be summarized in the following steps:
 \begin{itemize}
   \item Construct SLP representations $\SLP{A}$, $\SLP{B}$ of the two input strings $\str{A}{0}{m}$ and $\str{B}{0}{n}$. The better the compression scheme is able to compress the SLP representations the faster the algorithm will be. A natural trade-off arises in this step, namely the running time of the compression scheme versus the quality of the resulting compression. This step will be discussed in \cref{ch:compressing-strings}.
   \item Productions from the SLPs generating strings of length $O(x)$ for some fixed $x$ are selected in such a way that they cover the entire string without duplication. This can be done in $O(N)$ time by traversing the productions of the SLP bottom-up as described in \cref{sec:algorithm:select-productions}.
-  \item Blocks from the dynamic programming table are precomputed for all the selected productions (these precomputed tables are called DIST tables). By naively representing the DIST tables they each take up $O(x^2)$ space, but using a succinct representation given in \cite{DBLP:journals/corr/abs-0707-3619}, it is possibly to reduce the space consumption to $O(x)$ and also improve the time it takes to use a $\DIST$. This step is described in \cref{sec:algorithm:building-DISTs-overview}.
+  \item Blocks from the dynamic programming table are precomputed for all the selected productions (these precomputed tables are called DIST tables). By naively representing the DIST tables they take up $O(x^2)$ space each, but using a succinct representation given in \cite{DBLP:journals/corr/abs-0707-3619}, it is possibly to reduce the space consumption to $O(x)$ and also improve the time it takes to use a $\DIST$. This step is described in \cref{sec:algorithm:building-DISTs-overview}.
   \item The dynamical programming table is filled up by using the partition and the precomputed $\DIST$ tables. This step takes time $O\left(\left(\frac{N}{x}\right)^2 \cdot AP(x)\right)$ where $AP(x)$ is the time to apply a DIST table. Using the succinct representation, \cite{Gawrychowski:2012:FAC:2422024.2422048} shows how to make $AP(x) = O(x)$, leading to a total running time of $O(\frac{N^2}{x})$. This step is described in \cref{sec:algorithm:filling-grid-overview}.
 \end{itemize}
 
@@ -453,9 +453,9 @@ From this definition it is not possible for a SLP to generate the empty string, 
   \label{compression:problem:minimum-slp}
   Given an input string $\str{A}{0}{m}$ find a SLP $\SLP{A}$ of minimum size generating $A$.
 \end{problem}
-It is known \cite[p. 212]{Rytter2003211} that this problem is NP-complete, hence a general, exact and efficient algorithm should not be expected to be easily obtainable. However, a number of articles (ex. \cite{Rytter2003211} and \cite{Sakamoto2005416}) have studied how to approximate a minimum size SLP for the input string. The approach implemented in this article is a $O(\log{n})$-approximation given in \cite{Rytter2003211}, which is based on the Lempel-Ziv factorization (LZ-factorization), which is a version of the popular LZ77 compression scheme. The algorithm is described in \cref{sec:compression:alg}.
+It is known from \cite[p. 212]{Rytter2003211} that this problem is NP-complete, hence a general, exact and efficient algorithm should not be expected to be easily obtainable. However, a number of articles (ex. \cite{Rytter2003211} and \cite{Sakamoto2005416}) have studied how to approximate a minimum size SLP for the input string. The approach implemented in this article is a $O(\log{n})$-approximation given in \cite{Rytter2003211}, which is based on the Lempel-Ziv factorization (LZ-factorization), which is a version of the popular LZ77 compression scheme. The algorithm is described in \cref{sec:compression:alg}.
 
-A small theoretical improvement was given in \cite{Rytter2003211}, reducing the approximation factor to $O(\log{\frac{n}{g^*}})$ where $g^*$ denotes the size of the minimal SLP compression. As suggested by \cite{Rytter2003211} the improvement is mostly cosmetic, and from the description of the approach, I find it very likely that the approach will significantly increase the constant in front of the big-$O$ notation. Therefore, I have not chosen to implemented this theoretical improvement.
+A small theoretical improvement was given in \cite{Rytter2003211}, reducing the approximation factor to $O(\log{\frac{n}{g^*}})$ where $g^*$ denotes the size of the minimal SLP compression. As suggested by \cite{Rytter2003211} the improvement is mostly cosmetic, and from the description of the approach, I find it very likely that the approach will significantly increase the constant in front of the big-$O$ notation. Therefore, I have not chosen to implement this theoretical improvement.
 
 For computing the LZ-factorization a suffix tree is used. Suffix tress often comes with a large constant space overhead, making them undesirable in practice in some cases. \cite{Sakamoto2005416} gave another algorithm for solving \cref{compression:problem:minimum-slp} which also actives the $O(\log{\frac{n}{g^*}})$ approximation factor, but does it based on the RE-PAIR encoding scheme, which can be made to work without using a suffix tree. The reason for not implementing this approach, is that I find the LZ-factorization approach more intuitive, and for the benchmarks in this report the space consumption of the suffix tree has not been a problem.
 
@@ -466,7 +466,7 @@ In lossless compression there exist Entropy-based encoding schemes. Such schemes
 \paragraph{Notes about size}
 Given input strings over the finite alphabet $\Sigma$, all strings over this alphabet can trivially be encoded using $\ceil{\log_2 |\Sigma|}$ bits per symbol. However, for a direct representation of the SLP using pointers a left and a right pointer has to be stored together with the symbol, which on a new machine uses up $64$ bits each. Moreover, the algorithms working on the SLPs are likely to require more information annotated to each node in the tree. This results in a huge constant blow up on the space required to store the input string, especially for strings not compressing very well.
 
-It could be both of practical and theoretical interest to try to find a succinct representation of a SLP, in order to make the space consumption smaller, making the SLP approach practical for long strings that does not compress very well.
+It could be both of practical and theoretical interest to find a succinct representation of a SLP, in order to make the space consumption smaller, making the SLP approach practical for long strings that does not compress very well.
 
 \section{Algorithm}
 \label{sec:compression:alg}
@@ -485,15 +485,15 @@ The idea behind the algorithm is to iteratively build the SLP for the string. Th
   \caption{Algorithm for generating $\log{n}$ approximation of minimal SLP of input string $\str{A}{0}{m}$.}
 \end{algorithm}
 
-When building the SLP, the SLP will be considered as an AVL-tree. Therefore it is known how to search and concatenate two SLPs in a way that keeps the resulting SLP balanced. The idea is to add add a repeating factor in the string one at a time. The repeating factor is added by reusing the productions already in the SLP generating the factor. During the concatenating operation of SLPs, the resulting tree is balanced using appropriate AVL-tree rotations.
+When building the SLP it will be considered as an AVL-tree. Therefore it is known how to search and concatenate two SLPs in a way that keeps the resulting SLP balanced. The idea is to add a repeating factor in the string one at a time. The repeating factor is added by reusing the productions already in the SLP generating the factor. During the concatenating operation of SLPs, the resulting tree is balanced using appropriate AVL-tree rotations.
 
-The $Concat$ process referenced in the code, is function almost the same way as concatenating two AVL trees. The only difference is that productions in the SLP may be shared, hence when adding nodes and making rotations, special care needs to be taken in order to ensure the balance of the tree and that the derived string is correct. This is easy to fix simply by introducing a constant number of new productions for every insertion and rotation. Amortized, the number of rotations that happens on every concatenation is constant and therefore only a constant number of extra productions are added every time $Concat$ is called.
+The $Concat$ process referenced in the code, is function almost the same way as concatenating two AVL trees. The only difference is that productions in the SLP may be shared, hence when adding nodes and making rotations, special care needs to be taken in order to ensure the balance of the tree and that the derived string is correct. This is easy to fix simply by introducing a constant number of new productions for every insertion and rotation. Amortized, the number of rotations that happen on every concatenation is constant and therefore only a constant number of extra productions are added every time $Concat$ is called.
 
 The factors iteratively added to the SLP are the LZ-factors of the input string $\str{A}{0}{m}$. The LZ-factors of a string is found by scanning the string from left to right. Assume that the current position is $i \in \{0, \dots, m - 1\}$, then the next LZ factor is found by finding the longest string starting at position $i$ that have occurred in the input string before position $i$. \Cref{fig:lz-factor} illustrates the situation.
 
 \begin{figure}[!htb]
   \centering
-  \includegraphics[width=8cm]{images/lz-factor}
+  \includegraphics[width=10cm]{images/lz-factor}
   \caption{A graphical illustration of a LZ-factor.}
   \label{fig:lz-factor}
 \end{figure}
@@ -555,7 +555,7 @@ It is also expected that a pointer based SLP will suffer for such a penalty when
 \clearpage
 \section{Benchmarks}
 \label{sec:compression:benchmarks}
-This section will examine how well different types of string can be compressed to a SLP. It will also check that the theoretical running time of $O(n\log{n})$ is also satisfied in practice.
+This section will examine how well different types of string can be compressed to a SLP. It will also check that the theoretical running time of $O(n\log{n})$ is satisfied in practice.
 
 \subsection{Compression quality}
 First the quality of the compressions is examined for the different type of inputs as described in \cref{sec:intro:test-data}.
@@ -573,6 +573,10 @@ Notice directly by definition, $F_1$ can be represented by a SLP of size $1$ and
 Therefore Fibonacci strings compresses very well to a SLP, where a representation of $F_{i}$ uses only $i + 1$ productions for $i \geq 2$. Therefore the quality of the compressed Fibonacci strings can be measured relative to the optimal SLP. \Cref{fig:compression:quality:fibonacci} shows a plot where the blue line shows how big a factor the computed SLP is bigger than the optimal SLP.
 
 By the proof in \cite{Rytter2003211} this overhead should be bounded by $O(\log{n})$. The red line of \cref{fig:compression:quality:fibonacci} plots the production overhead normalized by $\log{n}$. From theory this should converge towards a constant, which also seems to be the case in practice.
+
+As mentioned above it is easy to construct a SLP of size $n = O(\log{N})$ for a Fibonacci string of length $N$. Because of the approximation factor in the SLP approximation algorithm, this bound worsens to $O(\log^2{N})$. From \cref{fig:compression:quality:fibonacci} it is clear that the $O(\log{N})$ bound is not satisfied but that the $O(\log^2{N})$ bound is.
+
+All following benchmarks in the report is using the SLP constructed by the approximation algorithm. That is, for all benchmarks Fibonacci strings compress such that $n = O(\log^2{N})$.
 %
 \begin{figure}[h!]
   \centering
@@ -612,7 +616,7 @@ Since random strings should not compress very well, it is not desirable that the
 \end{figure}
 
 \subsection{Running time}
-The running time of the algorithm should be bounded by $O(n\log{n})$ since the LZ-factorization can be found in linear time, and the concatenation and search steps all can be done in $O(\log{n} |f_i|)$ for each factor $f_i$. Because $f_1 + \dots + f_k = n$ the running time follows.
+The running time of the algorithm is bounded by $O(N\log{N})$. This follows since the LZ-factorization $f_1, \dots, f_k$ can be found in linear time and the concatenation and search steps all can be done in time $O(\log{N} + \log{|f_i|}) = O(\log{N})$ for each factor $f_i$. Because $k = O(N)$ the running time follows.
 
 \Cref{fig:compression:runningtime} shows the normalized running time for constructing the SLP. From the plot it can be seen that the normalized running time for the different types of input more or less converges to a constant. For the longest input sizes especially the human genome test cases seems to increase. \Cref{fig:compression:instructions} shows that the normalized instruction count does not have this increase, but that the L2 cache misses increases. Therefore the extra increase can be explained by the hierarchical memory layout of a modern computer.
 
@@ -676,7 +680,7 @@ hence $\Omega(\log{n!}) = \Omega(n \log{n})$ bits are required to represent the 
   \[
     A^{\Box}(i, j) = A(i, j + 1) - A(i, j) - A(i + 1, j + 1) + A(i + 1, j)
   \]
-  for all $i, j \in \{ 0, \dots, n - 1 \}$. \todo{Graphical representation?}
+  for all $i, j \in \{ 0, \dots, n - 1 \}$.
 \end{mydef}%
 The distribution and density operators always have the useful relation stated by the following claim.
 \begin{claim}[\reftiskin{p. 1288}{remarked}]
@@ -934,7 +938,7 @@ The previously described production selection process divides the the selected p
   
   \begin{figure}[h!]
     \centering
-    \includegraphics[width=8cm]{images/distrepo-key}
+    \includegraphics[width=10cm]{images/distrepo-key}
     \caption{Illustration of a key production.}
     \label{fig:distrepo-key}
   \end{figure}
@@ -958,7 +962,7 @@ The previously described production selection process divides the the selected p
 
   By adopting the notation of $a_L$ and $a_R$ from \cref{fig:distrepo-key}, and using the appropriate definitions of $b_L, b_R$ from the type of the $b$ production, the merging process of \cref{fig:compression:dist:merge} gives the desired result.
 \end{description}
-Since the number of productions is bounded by $O(n^2)$, memorization can be used in combination with the above procedure to construct the dist repository in time $O(n^2 M(x))$, where $M(x)$ denotes the time for merging two DIST tables. As will be seen in \cref{sec:merging-dists}, the merging can be done in time $M(x) = O(n\log{n})$, leading to a total running time of $O(n^2x\log{x})$ for computing the DIST repository.
+Since the number of productions is bounded by $O(n^2)$, memorization can be used in combination with the above procedure to construct the $\DIST$-repository in time $O(n^2 M(x))$, where $M(x)$ denotes the time for merging two $\DIST$ tables. As will be seen in \cref{sec:merging-dists} the merging can be done in time $M(x) = O(x\log{x})$, leading to a total running time of $O(n^2x\log{x})$ for computing the DIST repository.
 
 \subsection{Filling out the dynamical programming table}
 \label{sec:algorithm:filling-grid-overview}
@@ -1176,7 +1180,7 @@ Now it will be explained how a vertical merge between $A'$ and $A''$ can be foun
     \[
       \DIST_{A'A'',B}[i, j] = \DIST_{A',B}[i - m'', j - m''].
     \]
-  \item[\circled{3}]: For $i \geq m'', j \leq n + m'$:
+  \item[\circled{3}]: For $i \geq m'', j \leq n + m''$:
     \[
       \DIST[i, j] = \max_{k \in \{0, \dots, n\} } \left\{ \DIST_{A',B}[i - m'', k] + \DIST_{A'',B}[m'' + k, j] \right\}
     \]
@@ -1527,11 +1531,21 @@ For the recursive step the two input permutation matrices are first divided into
   P_{A,lo} = P_A\left[*, 0 : \frac{n}{2}\right], \quad &P_{B,lo} = P_B\left[0 : \frac{n}{2}, *\right] \\
   P_{A,hi} = P_A\left[*, \frac{n}{2} : n\right], \quad &P_{B,hi} = P_B\left[\frac{n}{2} : n, *\right].
 \end{align*}
-\todo{graphical illustration} Notice that all of these sub-problems are rectangular matrices of size $n \times \frac{n}{2}$ or $\frac{n}{2} \times n$. However, half of the rows (or columns) contains all zero entries, and they can therefore be virtually removed by doing an appropriate index mapping when doing recursive calls. The results of the recursive calls are denoted by
+The subproblems are illustrated on \cref{fig:min-mult:subproblems}.
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[width=7cm]{images/min-dist-subproblems}
+  \caption{Graphical illustration of the subproblems of the input matrices $P_A$ and $P_B$. The gray rows / columns illustrates rows / columns containing all $0$'s. These are virtually removed when calling recursively.}
+  \label{fig:min-mult:subproblems}
+\end{figure}
+
+Notice that all of these sub-problems are rectangular matrices of size $n \times \frac{n}{2}$ or $\frac{n}{2} \times n$. However, half of the rows (or columns) contains all zero entries, and they can therefore be virtually removed by doing an appropriate index mapping when doing recursive calls. The results of the recursive calls are denoted by
 \[
   P_{C,lo} = P_{A,lo} \boxdot P_{B,lo}, \quad P_{C,hi} = P_{A,hi} \boxdot P_{B,hi}.
 \]
 As a result from the recursive calls these matrices are of size $\frac{n}{2}$. However, by doing the inverse index remapping from the above step, they can be considered as matrices of size $n$ and with the property that $P_{C,lo} + P_{C,hi}$ is a permutation matrix, since they come from disjoint ranges. From this point on $P_{C,lo}$ and $P_{C,hi}$ will be considered as matrices of size $n$. Notice that when the $\Sigma$-operator is applied to the sub-problem matrices, all the rows (columns) that contain all zeros in the sub-problem matrix will be identical to the previous row (column) in the $\Sigma$'ed version. Therefore all the sub-problem matrices where $\Sigma$ is applied will be indexed as $n \times \frac{n}{2}$ or $\frac{n}{2} \times n$ matrices as this eases index notation.
+
+In the implementation the index transformation is done by sending vectors containing the current subset of rows and columns that should be considered for the subproblem. Using these vectors and the original input matrices, it is easy to construct and represent a constant time mapping to and from indices in the sub-problem matrices and the original input matrices in both $O(n)$ time and space. Since the mapping is constant time, it is possible to query the position of the $1$ entry in a row or column in the sub-problem matrices.
 
 In the following calculations, let $i, j \in \{0, \dots, n\}$. First notice that the desired result can be written as
 \begin{align*}
@@ -1627,9 +1641,9 @@ Summarizing the above cases, $P_C(i, j)$ should contain a $1$ iff one of the fol
   P_{C,hi}(i, j) = 1 &\text{ and } \delta(i, j) \geq 0 \\
   \delta(i + 1, j + 1) > 0 &\text{ and } \delta(i, j) < 0.
 \end{align}
-The idea is to make it efficiently to check when one of the condition is satisfied. In order to do this, is is needed to be able to efficiently check if the $\delta$ function contains a number $< 0$ or $> 0$. If for a given $i, j$ this can be done in constant time, all the above $\delta$-constraints can be efficiently checked.
+The idea is to make it efficiently to check when one of the conditions is satisfied. In order to do this, it is needed to be able to efficiently check if the $\delta$ function contains a number $< 0$ or $> 0$. If for a given $i, j$ this can be done in constant time, all the above $\delta$-constraints can be efficiently checked.
 
-In order to facilitate this, the $\delta$ function is viewed as a $n \times n$ matrix. From unit monotonicity the entries $< 0$ must be located in the top left part, and the entries $> 0$ must be in the bottom right path as illustrated by \cref{fig:delta-example}. Basically the idea now is to trace two separating paths, separating the entries $< 0$ and the ones $> 0$ from the rest. The separating bath for the entries $< 0$ are called $r_{hi}$ and the other is called $r_{lo}$.
+To facilitate this check, the $\delta$ function is viewed as a $n \times n$ matrix. From unit monotonicity the entries $< 0$ must be located in the top left part, and the entries $> 0$ must be in the bottom right path as illustrated by \cref{fig:delta-example}. Basically the idea now is to trace two separating paths, separating the entries $< 0$ and the ones $> 0$ from the rest. The separating path for the entries $< 0$ are called $r_{hi}$ and the other is called $r_{lo}$.
 
 \begin{figure}[!htb]
   \centering
@@ -1638,7 +1652,7 @@ In order to facilitate this, the $\delta$ function is viewed as a $n \times n$ m
   \label{fig:delta-example}
 \end{figure}
 
-Each of these paths are of length exactly $2n$, and the idea is to represent a path, say $r_{hi}$ as an array $r_{hi}$ of length $2n$ such that an entry on the path is given by
+Each of these paths is of length exactly $2n$, and the idea is to represent a path, say $r_{hi}$, as an array $r_{hi}$ of length $2n$ such that an entry on the path is given by
 \[
   \left( \frac{r_{hi}(d) - d}{2}, \frac{r_{hi}(d) + d}{2} \right)
 \]
@@ -1652,7 +1666,7 @@ Similarly if the path should go right, then set $r_{hi}(d + 1) = r_{hi}(d) + 1$ 
   \frac{r_{hi}(d + 1) - (d + 1)}{2} &= \frac{r_{hi}(d) + 1 - (d + 1)}{2} = \frac{r_{hi}(d) - d}{2} \quad \text{and} \\
   \frac{r_{hi}(d + 1) + (d + 1)}{2} &= \frac{r_{hi}(d) + 1 + (d + 1)}{2} = \frac{r_{hi}(d) - d}{2} + 1.
 \end{align*}
-Exactly the same encoding of the path is used for $r_{lo}$. In order to actually trace the separating paths, it is required that a $\delta$ entry called the \textit{witness}, adjacent to the current position in the path can be queried in constant time. For the high path, the witness is the entry just above the current entry and for the low path it is the one immediately to the right of the current position. In order to compute the witness in constant time, the approach taken in \cref{lemma:simple-unit-monge-query-next} can be almost directly reused as the $\delta$ function is a combination of sums over two permutation matrices.
+Exactly the same encoding is used for the $r_{lo}$ path. In order to actually trace the separating paths, it is required that a $\delta$-entry called the \textit{witness}, adjacent to the current position in the path can be queried in constant time. For the high path, the witness is the entry just above the current position and for the low path it is the one immediately to the right of the current position. In order to compute the witness in constant time, the approach taken in \cref{lemma:simple-unit-monge-query-next} can be almost directly reused as the $\delta$ function is a combination of sums over two permutation matrices.
 
 Since the witness can be computed in constant time, it takes $O(n)$ times to build the two separating paths. Now the $\delta$ checks can be simplified as follows:
 \begin{description}
@@ -1805,7 +1819,7 @@ Also, it can be seen that the algorithm behaves as expected wrt. to the input ty
 
 \begin{figure}[!htb]
   \centering
-  \includegraphics[width=8cm]{distance-mult/max-dist-mult-cpu}
+  \includegraphics[width=10cm]{distance-mult/max-dist-mult-cpu}
   \caption{Normalized instruction count for the Maximum Distance Multiplication benchmarks.}
   \label{fig:benchmark:max-distance-cpu}
 \end{figure}
@@ -1959,9 +1973,11 @@ Since the alphabet is finite, the input strings can be made to compress arbitrar
 
 It is also worth noticing that the simple algorithm may be improved. \cite{LasseFourRussian} experimented with the Four Russian algorithm for sequence alignment and found a speedup factor of $\approx 6-8$. Therefore the algorithm implemented in this thesis is not feasible to use to align DNA sequences.
 
-The situation is different for Fibonacci input, which is compressed such that $n = O(\log{N})$\todo{$\log^2$?}. This means that the total running time of the algorithm for Fibonacci input becomes $O\left( N\log{N} \sqrt{\log{\frac{N}{\log{N}}}} \right) = O(N\log{N}\sqrt{\log{N}})$. Therefore running time of the LCS Blow-up method should improve by a factor $O\left( \frac{N}{\log^{\frac{3}{2}}{N}} \right)$.
+The situation is different for Fibonacci input, which by \cref{sec:compression:benchmarks} is compressed such that $n = O(\log^2{N})$. This means that the total running time of the algorithm for Fibonacci input becomes $O\left( N\log^2{N} \sqrt{\log{\frac{N}{\log^2{N}}}} \right) = O(N\log^{\frac{5}{2}}{N})$. Therefore the running time of the LCS Blow-up method should improve by a factor $\Omega\left( \frac{N}{\log^{\frac{5}{2}}{N}} \right)$ over the simple algorithm.
 
-From \cref{fig:benchmark:simple-vs-lcsblowup} it can be seen that the speedup continues to improve as the length of the Fibonacci input grows. However, in order for the implementation to be faster than the simple algorithm, the length of the Fibonacci input should be longer than $\approx 2^{15} = 30000$.
+It can be seen on \cref{fig:benchmark:simple-vs-lcsblowup-fib} that the actual speed-up factor seems to conform to theory. The actual speedup seems to be a bit better than the expression in the theoretical bound. The reason for the better asymptotic performance can mainly be explained by the $n = O(\log^2{N})$ SLP compression bound for the Fibonacci input contains some slack.
+
+However, from \cref{fig:benchmark:simple-vs-lcsblowup} it can be seen that the length of the Fibonacci input should be longer than $\approx 2^{15} = 30000$ in order for the SLP-based algorithm to be faster than the simple edit-distance algorithm.
 
 The benchmarks suggests that the algorithm is able to achieve a speedup in the edit distance computation for highly repetitive strings. However, in order to actually see any speedup the strings should be long. Moreover, it may be hard to think of practical input data that has fulfill the highly repeating structure. Therefore, the simple algorithm will for almost all practical purposes be a better choice.
 
@@ -1970,6 +1986,13 @@ The benchmarks suggests that the algorithm is able to achieve a speedup in the e
   \includegraphics[width=10cm]{combined/simple_vs_lcs}
   \caption{Plot of the running time improvement of the LCS Blow-up algorithm compared to the Simple algorithm.}
   \label{fig:benchmark:simple-vs-lcsblowup}
+\end{figure}
+
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[width=10cm]{combined/simple-vs-lcs-fib}
+  \caption{Comparison of the actual speed-up factor versus the theoretical speed-up factor for Fibonacci input.}
+  \label{fig:benchmark:simple-vs-lcsblowup-fib}
 \end{figure}
 
 \chapter{Conclusion}

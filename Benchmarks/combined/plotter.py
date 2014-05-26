@@ -344,3 +344,16 @@ ax1.set_position([box.x0, box.y0 + box.height * 0.2,
 
 plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), fancybox=True, shadow=True, ncol = 3)
 plt.savefig('simple_vs_lcs.pdf')
+
+
+
+plt.figure()
+plt.title("Fibonacci speedup compared to theoretical bound ")
+plt.xscale('log', basex=2)
+plt.xlabel('N')
+plt.ylabel('Normalized speedup factor')
+
+fib_N = fibonacci_total['A_len'] + fibonacci_total['B_len']
+plt.plot(fib_N, (simple_fibonacci['median'] / fibonacci_total['median']) / (fib_N / np.power(np.log2(fib_N), 5 / 2)), label="Fibonacci")
+
+plt.savefig('simple-vs-lcs-fib.pdf')
