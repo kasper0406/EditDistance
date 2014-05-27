@@ -53,6 +53,7 @@ plt.savefig('fib-normalized.pdf')
 
 # Random string plots
 plt.figure()
+ax = plt.subplot(111)
 plt.title("Compression quality")
 plt.xscale('log', basex=2)
 plt.ylabel('Compression ratio')

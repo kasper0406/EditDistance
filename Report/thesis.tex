@@ -40,6 +40,9 @@
 \newcommand{\DIST}{\operatorname{DIST}}
 \newcommand{\EditDist}{\operatorname{EditDist}}
 
+\newcommand{\xfactor}{\ensuremath{\mathit{xfactor}}}
+\newcommand{\ffactor}{\ensuremath{\mathit{ffactor}}}
+
 \newcommand{\substr}[3]{#1\langle #2, #3 \rangle}
 \newcommand{\str}[3]{#1[#2, #3]}
 \newcommand*{\circled}[1]{\tikz[baseline=(char.base)]{
@@ -76,7 +79,7 @@
 \pagestyle{empty} 
 \pagenumbering{roman} 
 \vspace*{\fill}\noindent{\rule{\linewidth}{1mm}\\[4ex]
-{\Huge\sf Computation of Edit Distance in Compressed Strings}\\[2ex]
+{\Huge\sf Acceleration of Edit-Distance\\using Compression}\\[2ex]
 {\huge\sf Kasper Nielsen, 20091182}\\[2ex]
 \noindent\rule{\linewidth}{1mm}\\[4ex]
 \noindent{\Large\sf Master's Thesis, Computer Science\\[1ex] 
@@ -120,7 +123,7 @@ Edit distance is a measure of how similar or dissimilar two string are. The edit
 
 The main focus of this thesis is based on the algorithm described in \cite{Gawrychowski:2012:FAC:2422024.2422048} which builds on top of the approaches described in \cite{DBLP:journals/corr/abs-1004-1194} and \cite{DBLP:journals/corr/abs-0707-3619}. To this date, this is the asymptotically best known algorithm in the RAM for computation of edit distance in strings encoded by SLPs. Given two input strings $A$ and $B$ of length respectively $k$ and $l$, the algorithm runs in time $O(n N \sqrt{\log{\frac{N}{n}}})$, where $N = k + l$ and $n$ is the sum of sizes of the compressed strings (a formal definition on how $n$ is measured is given in \cref{ch:compressing-strings}). It is a open problem if the running time can be reduced to $O(nN)$. This is a bit further discussed in \cref{sec:conclusion:future-work}.
 
-This thesis has a two-fold objective. First and foremost to implement the algorithm and benchmark it to see how the technique performs in practice. The second objective is to give a coherent description of the algorithm and argue that it is correct. The proof in order to establish the correctness follow the ones presented in \cite{DBLP:journals/corr/abs-0707-3619}, \cite{Gawrychowski:2012:FAC:2422024.2422048} and \cite{Tiskin:2010:FDM:1873601.1873704}. The proofs supplied in this report are in many cases more thorough, detailed and is a bit closer to the actual implementation.
+This thesis has a two-fold objective. First and foremost to implement the algorithm and benchmark it to see how the technique performs in practice. The second objective is to give a coherent description of the algorithm and argue that it is correct. The proofs in order to establish the correctness follow the ones presented in \cite{DBLP:journals/corr/abs-0707-3619}, \cite{Gawrychowski:2012:FAC:2422024.2422048} and \cite{Tiskin:2010:FDM:1873601.1873704}. The proofs supplied in this report are in many cases more thorough, detailed and is a bit closer to the actual implementation.
 
 The algorithm for speeding up the edit distance computation using compressed strings, can be divided into two major steps. The first is compressing the input strings, which is described in \cref{ch:compressing-strings} and the second step is the actual edit distance computation which uses the compressed strings as input. The algorithm for the actual computation is described in \cref{ch:algorithm}.
 
@@ -343,7 +346,7 @@ The main memory size of the machine was 16 Gb. The computer was running Mac OS X
 
 Before doing the actual measurements, a small warm-up round was performed, ensuring that the code was in the CPU cache etc. This helped to greatly reduce the variance of the running time measurements yielding more consistent results.
 
-All running times was measured as wall-time, and all tests were repeated 5 times where the measurement with the median running times is the one used for data-analysis in this report. The reason for choosing the median measurement, is that an unexpected amount of machine activity in one of the trials should not penalize the result, but at the same time, some tasks done by the operating system may be needed for the algorithm to function, which is why the minimum time was not selected. However, for larger inputs the relative standard deviation was almost always less than $5\%$, meaning that measurements across trails are close to each other.
+All running times was measured as wall-time, and all tests were repeated 5 times where the measurement with the median running times is the one used for data-analysis in this report. The reason for choosing the median measurement, is that an unexpected amount of machine activity in one of the trials should not penalize the result, but at the same time, some tasks done by the operating system may be needed for the algorithm to function, which is why the minimum time was not selected. However, for larger inputs the relative standard deviation was almost always less than $2.5\%$, meaning that measurements across trails are close to each other.
 
 All the tested input sizes have been grown by a factor of $1.7$. This has been chosen to have a exponential growth with a reasonable step size that is not a power of $2$. The reason for not choosing a power of $2$ is that this could give worse measurement results than would be seen for other input sizes, primarily due to cache associativity. Since inputs in practice are typically not strict powers of $2$ the artifacts by cache associativity is not desired.
 
@@ -371,12 +374,12 @@ where
                  \end{cases}
     \quad \text{ for } \quad a, b \in \Sigma.
 \]
-The base case where a string is aligned to the empty string is trivially the length of the non-empty string. Therefore the edit distance between two string can be computed using both $O(nm)$ time and space. Notice that an easy optimization where only the last row used is stored in memory reduces the space consumption to $O(\min\{n, m\})$.
+The base case where a string is aligned to the empty string is trivially the length of the non-empty string. If the simple algorithm is implemented by dynamical programming it uses $\Theta(nm)$ time and space. Notice that an easy optimization where only the last row used is stored in memory reduces the space consumption to $O(\min\{n, m\})$.
 
 \subsection{Backtracking}
 If the actual alignment of the strings is desirable, it can be found by a standard back-tracking approach on the computed matrix.
 
-This however implies that the simple space optimization from before does not work, as all entries in the computed table potentially is needed for the backtracking. However, a divide-and-conquer algorithm was given by Hirshberg\todo{Cite} that reduces the space consumption of $O(\min\{n, m\})$ without asymptotically increasing the running time.
+This however implies that the simple space optimization from before does not work, as all entries in the computed table potentially is needed for the backtracking. However, a divide-and-conquer algorithm was given by Hirshberg\cite[p. 254]{gusfield1997algorithms} that reduces the space consumption of $O(\min\{n, m\})$ without asymptotically increasing the running time.
 
 The same approach can be used to find the alignment for the main algorithm in this report. However, a more practical approach may be to use the simple algorithm with pruning when the known optimal score is known, and then use backtracking directly on the grid. From now on, only the actual edit distance is considered to be of interest.
 
@@ -502,9 +505,9 @@ It is required to be able to efficiently find the nodes in the current SLP which
 
 The only step of the SLP construction algorithm not thoroughly described in \cite{Rytter2003211}, is how to compute the LZ-factorization of a string efficiently. They only state that it can be done efficiently using a suffix tree. Although the algorithm is quite simple, it is included in this report for completeness.
 
-First the suffix tree for the input string is generated. Then every node $v$ in the tree is annotated with the first index in the string where the substring spelled out from the root to $v$ occurs. This is done by traversing the tree bottom up where all leafs are marked by their suffix numbers and for any parent the minimum of their children is chosen.
+First the suffix tree for the input string is generated. Then every node $v$ in the tree is annotated with the first index in the string where the substring spelled out from the root to $v$ occurs. This is done by traversing the tree bottom up. Any leaf is annotated by its suffix numbers and any non-leaf is annotated by the minimum over its children.
 
-Having the described suffix tree, the LZ-factorization can be found by scanning the input string and follow the corresponding path in the suffix tree. While the string has already occurred before the path is extended, and when it is not a new LZ factor is added and the search begins from the top of the suffix tree. Pseudo code for the algorithm is given in \cref{alg:compression:lz-factorization}. The algorithm could potentially be improved a bit by following an entire suffix tree edge in every iteration. However, since the SLP construction is not the time consuming part of the algorithm this has not been implemented as the gain will be almost non noticeable.
+Having the described suffix tree, the LZ-factorization can be found by scanning the input string and follow the corresponding path in the suffix tree. While the string has already occurred before in the string, the path is extended. Otherwise a new LZ factor is added and the search begins from the top of the suffix tree. Pseudo code for the algorithm is given in \cref{alg:compression:lz-factorization}. The algorithm could potentially be improved a bit by following an entire suffix tree edge in every iteration. However, since the SLP construction is not the time consuming part of the algorithm this has not been implemented as the gain will be almost non noticeable.
 
 \begin{center}
   \begin{algorithm}[!htb]
@@ -683,7 +686,7 @@ hence $\Omega(\log{n!}) = \Omega(n \log{n})$ bits are required to represent the 
   for all $i, j \in \{ 0, \dots, n - 1 \}$.
 \end{mydef}%
 The distribution and density operators always have the useful relation stated by the following claim.
-\begin{claim}[\reftiskin{p. 1288}{remarked}]
+\begin{claim}[\reftiskin{p. 1288}{mentioned but not proved}]
   \label{claim:sigma-box-identity}
   For any matrix $A$ of size $n \times n$ it is the case that
   \[
@@ -800,10 +803,11 @@ An important observation required for the algorithm described in \cref{sec:algor
 
 \begin{mydef}[\reftiskin{p. 1289}{Definition 3.1}]
   \label{def:minimum-distance-product}
-  Given two matrices $A, B$ both of size $n \times n$ the minimum distance product of the two matrices is
+  Given two matrices $A, B$ both of size $n \times n$ their minimum distance product is a $n \times n$ matrix denoted by $A \odot B$ and is given by
   \[
     (A \odot B)(i, j) = \min_{k \in \{ 0, \dots, n - 1 \}} \left( A(i, k) + B(k, j) \right)
   \]
+  for all $i, j \in \{0, \dots, n - 1\}$.
   The maximum distance product is defined analogously but where the $\min$ is replaced by $\max$.
 \end{mydef}
 The algorithm relies on the following claim, which implies the minimum distance product of two simple unit-Monge can be succinctly represented by a permutation matrix.
@@ -823,13 +827,13 @@ The algorithm follows the steps of \cref{sec:edit-dist-on-slps-steps}, however i
   The longest common subsequence (LCS) problem is given two input strings (or SLPs) $\str{A}{0}{m}$ and $\str{B}{0}{n}$. The result is the longest substring occurring in both strings.
 \end{mydef}
 
-The LCS problem can up to a simple transformation of the result be seen as the edit distance, but where substitutions are not allowed. This transformation is given by
+The LCS problem can up to a simple transformation of the result be seen as a restricted type of edit distance where substitutions are not allowed. This transformation is given by
 \[
   \EditDist'(A, B) = n + m - 2 \cdot lcs(A, B)
 \]
 and follows since the above expression counts the number of unmatched symbols, which is the only cost in the edit distance when substitutions are not allowed. As described later in this section, it is possible to simulate the substitution operation by modifying the input strings.
 
-The simple algorithm for calculating the LCS between two strings is almost the same as the simple algorithm for computing the edit distance given in \cref{sec:intro:simple}. Therefore, the same terminology with the dynamic programming grid is still valid. From this point on the dynamic programming grid will always refer to the one in the LCS problem.
+There exists a simple algorithm for computing the LCS between two strings that is almost the same as the simple algorithm for computing the edit distance (\cref{sec:intro:simple}). Therefore, the same terminology with the dynamic programming grid still applies. From this point on the dynamic programming grid will always refer to the one in the LCS problem.
 
 The following definition describes how the dynamic programming table will be split into blocks that can be reused for similar productions.
 
@@ -907,7 +911,7 @@ Both of the SLPs will be blocked in the same way. The blocking process consists 
 
 The key productions are identified by traversing the unfolded SLP bottom up. If the string derived by the current production has length less than $x$ it is annotated with an associated string, which in this case is the string it derives\footnote{In practice the actual associated string is not needed, but only the length of the associated string. Hence in the code only the length of the associated string is stored.}. If the length is greater than $x$ and both its children have length less than x, then the production is marked as a key production and its associated string is also set to the string it derives. Otherwise no other action is taken.
 
-All the selected key productions covers some part of the string. In order to cover the rest of the input strings extra productions needs to be added, which are called the second type of productions. In order to find these, the path between two adjacent key productions is traversed. This is done by first finding the lowest common ancestor of the two key productions, and then traversing the paths from both of the key productions to the lowest common ancestor bottom up. Notice that all productions hanging from the traversed paths must all have derived strings with length less than $x$ since they would be marked as key productions otherwise which is a contradiction with the current choice of the key productions. See \cref{fig:slp-2nd-type} for an illustration.
+All the selected key productions covers some part of the string. In order to cover the rest of the input strings extra productions need to be added, which are called the second type of productions. In order to find these, the path between two adjacent key productions is traversed. This is done by first finding the lowest common ancestor of the two key productions, and then traversing the paths from both of the key productions to the lowest common ancestor bottom up. Notice that all productions hanging from the traversed paths must all have derived strings with length less than $x$ since they would be marked as key productions otherwise which is a contradiction with the current choice of the key productions. See \cref{fig:slp-2nd-type} for an illustration.
 
 \begin{figure}[!htb]
   \centering
@@ -916,7 +920,7 @@ All the selected key productions covers some part of the string. In order to cov
   \label{fig:slp-2nd-type}
 \end{figure}
 
-When traversing up the left path, the strings derived by the productions hanging of to the right are associated to the production on the path. These strings are merged bottom up in such a way that they have length less than $2x$. Every time a string of length greater than $x$ is generated, the production generating it is selected, and its associated string is the merged string on the path. This process is done analogously for the right path.
+When traversing the left path, the strings derived by the productions hanging of to the right are associated to the production on the path. These strings are merged bottom up in such a way that they have length less than $2x$. Every time a string of length greater than $x$ is generated, the production generating it is selected, and its associated string is the merged string on the path. This process is done analogously for the right path.
 
 There is a special case with the beginning and end of the string, as there are not necessarily a key production spanning the first and the last part of the string. However, these cases be accommodated by the path traversing algorithm, where there is only one left path for the beginning and one right path for the end.
 
@@ -977,9 +981,9 @@ However, by representing the $\DIST$ tables in a clever way, the time required t
 
 \subsection{Combining the two steps}
 \label{sec:combining-the-two-steps}
-In order to reduce the running time, the idea is to asymptotically balance the time used to compute the $\DIST$ repository and to fill out the grid. In order to do this, define $f = \frac{N}{n}$, which is the compression ratio of the input strings.
+In order to reduce the running time, the idea is to balance the time used to compute the $\DIST$ repository and to fill out the grid. In order to do this, define $f = \frac{N}{n}$ to be the inverse compression ratio of the input strings.
 
-The size of the $\DIST$ tables $x$ is defined to be $x = \frac{f}{\sqrt{\log{f}}}$. This choice of $x$ results in the $\DIST$ repository taking
+The size parameter for the SLP blocking $x$ is defined to be $x = \frac{f}{\sqrt{\log{f}}}$. This choice results in the $\DIST$ repository taking
 \begin{align*}
   O(n^2 x\log{x})
     &= O\left( n^2 \frac{f}{\sqrt{\log{f}}} \log\left( \frac{f}{\sqrt{\log{f}}} \right) \right)
@@ -994,9 +998,9 @@ time to build. The grid can be filled in time
     = O\left( \frac{N^2 \sqrt{\log{f}}}{f} \right)
     = O\left( Nn\sqrt{\log{\frac{N}{n}}} \right).
 \]
-Since the SLP construction algorithm runs in time $O(N\log{N})$ which will always be less, the combined running time for the entire combined algorithm becomes $O\left( Nn\sqrt{\log{\frac{N}{n}}} \right)$. In the big-O notation this running time is always superior to $O(N^2)$ which is the time required by the simple algorithm.
+Since the SLP construction algorithm runs in time $O(N\log{N})$ which will always be less, the combined running time for the entire combined algorithm becomes $O\left( Nn\sqrt{\log{\frac{N}{n}}} \right)$. In the big-O notation this running time is always superior to $\Theta(N^2)$ which is the time required by the simple algorithm.
 
-The theoretical combined running time from this section remains valid when $f$ and $x$ are multiplied by arbitrary constants. Call these constants respectively $ffactor$ and $xfactor$ such that $f = ffactor \cdot \frac{N}{n}$ and $x = xfactor \cdot \frac{f}{\sqrt{\log{f}}}$. It is likely that changing these constants will have a big influence on the actual running time of the algorithm. Therefore the effect of different choices have been examined in \cref{sec:benchmark:slp-partition-factors}.
+The theoretical combined running time from this section remains valid when $f$ and $x$ are multiplied by arbitrary constants. Call these constants respectively $\ffactor$ and $\xfactor$ such that $f = \ffactor \cdot \frac{N}{n}$ and $x = \xfactor \cdot \frac{f}{\sqrt{\log{f}}}$. It is likely that changing these constants will have a big influence on the actual running time of the algorithm. Therefore the effect of different choices have been examined in \cref{sec:benchmark:slp-partition-factors}.
 
 \section{Representation of $\DIST$s}
 As mentioned in the previous section, representing the $\DIST$s in a succinct way is crucial in order to obtain the desired running time.
@@ -1019,7 +1023,7 @@ A different way of describing the LCS between these prefix-suffix pairs, is by t
 
 \begin{mydef}[\refbook{p.-48}{Definition 4.8}]
   \label{def:H-table}
-  Let $\str{A}{0}{m}$ and $\str{B}{0}{n}$ be strings, then for $i, j \in \{ 0, \dots, m + n \}$
+  Let $\str{A}{0}{m}$ and $\str{B}{0}{n}$ be strings, then for $i, j \in \{ 0, \dots, m + n \}$ define
   \[
     H_{A,B}(i, j) := \begin{cases}
                         j - (i - m)                         & \text{if j < i - m} \\
@@ -1028,11 +1032,14 @@ A different way of describing the LCS between these prefix-suffix pairs, is by t
   \]
   where $? \not\in \Sigma$ denotes a wildcard character matching all other symbols.
 \end{mydef}
-The first case in the $H_{A,B}$ definition is introduced because of the entries in the corresponding $\DIST$ table that are not well-defined. The $H$-table entries corresponding to these undefined $\DIST$ entries are simply chosen to make everything work out as they should in order to make the $H$-tables easy representable. In almost all the following calculations it has been chosen not to include this case as it is straight forward that the choice will work. This is due to the definition of the $\Sigma$-operator and that unit-Monge matrices are closed under minimum distance multiplication.
+The first case in the $H_{A,B}$ definition is introduced because these entries in the corresponding $\DIST$ table are not well-defined. The values for these entries of the $H$-table are simply chosen to make everything work out as they should in order to make the $H$-tables easy representable. In almost all the following calculations it has been chosen not to include this case as it is straight forward that the choice will work. This is due to the definition of the $\Sigma$-operator and that unit-Monge matrices are closed under minimum distance multiplication.
 
-The precise correspondence between the $H$-table of \cref{def:H-table} and the $\DIST$ tables, is given by the following lemma.
+When it is clear which strings a $\DIST$- or $H$-table are based upon they may be omitted from the notation in order to simplify the look of the expressions.
+
+The precise correspondence between a $H$-table as defined in \cref{def:H-table} and a $\DIST$ table as defined by \cref{defn:dist-table} is given by the following lemma.
 \begin{lemma}[\refbook{p.-48}{mentioned but not proved}]
   \label{lemma:dist-H-relation}
+  Given a $\DIST$ table $\DIST$ from \cref{defn:dist-table} and a $H$-table $H$ from \cref{def:H-table} on the same strings $A$ and $B$, they are connected by the relation
   \[
   DIST[i, j] = H(i, j) + \left\{
     \begin{array}{ll}
@@ -1041,7 +1048,7 @@ The precise correspondence between the $H$-table of \cref{def:H-table} and the $
       (i - m) + (n - j) & \text{if } i < m, j \geq n \\
       n - j             & \text{if } i \geq m, j \geq n
     \end{array}
-  \right.
+  \right. .
   \]
   \begin{proof}
     The lemma follows almost directly by the definition of the DIST, $H$-table and $lcs$ function, by splitting the claim up into the four different cases of the statement.
@@ -1093,7 +1100,7 @@ An important property of the $H$-table is that it is almost simple unit-Monge.
     \end{align*}
     for all $i,j$. By \cref{def:H-table} the adjacent entries of the $H$-table in the above equation correspond to the LCS of a fixed string with a string where a character is possibly extended in both ends. The situation is illustrated in \cref{fig:H-permutation-representation:monge} where the top of the illustration corresponds to the left hand side of the inequality and the bottom corresponds to the right hand side.
 
-    It is clear that the part between $i + 1$ and $j$ will always ensure some fixed contribution to all of the intervals. Now assume that the top contribution is strictly more than two times this fixed contribution. This can happen if it is possible to match an unmatched symbol by introducing cell $i$ or $j + 1$. It is easy to see that if this is the case, then it is easy to do the same for one (or both) of the bottom intervals. Therefore the bottom intervals will always match more than the top intervals, which gives the inequality and thereby the Monge property.
+    It is clear that the part between $i + 1$ and $j$ will always ensure some fixed contribution to all of the intervals. Now assume that the top contribution is strictly more than two times this fixed contribution. This can happen if it is possible to match an unmatched symbol by introducing cell $i$ or $j + 1$. Notice that if this is the case, then the same can be done for one (or both) of the bottom b intervals. Therefore the bottom intervals will always match more than the top intervals, which gives the inequality and thereby the Monge property.
     \begin{figure}[h!]
       \centering
       \includegraphics[width=11cm]{images/monge-condition-illustration}
@@ -1141,7 +1148,7 @@ What remains is to ensure that the merge and apply operations operations on the 
 \label{sec:merging-dists}
 The following definition will come in handy:
 \begin{mydef}
-  Let $P_{A'}$ and $P_{A''}$ be permutation matrices describing the $\DIST$ tables for the strings $\str{A'}{0}{m'}$ and $\str{A''}{0}{m''}$ respectively. Then define the following index change matrices
+  Let $P_{A'}$ and $P_{A''}$ be permutation matrices describing the $\DIST$ tables for the strings $\str{A'}{0}{m'}$ and $\str{A''}{0}{m''}$ with $B$ respectively. Then define the following index change matrices
   \[
     IC'_{P_{A'}} = \begin{pmatrix}
       I^{m'' \times m''} & 0 \\
@@ -1169,7 +1176,7 @@ The following convenient fact that will be useful later, follows directly from t
 where $\varsigma$ denotes the $\Sigma$ operator, but where the last row and the first column are removed.
 
 \subsubsection{Vertical merge}
-Now it will be explained how a vertical merge between $A'$ and $A''$ can be found only giving the succinct representation of the DIST tables $\DIST_{A',B}$ and $\DIST_{A'',B}$. From a straight forward analysis of the LCS graph described by the $\DIST$ tables, it is found that:
+It will now be explained how to vertically merge $\DIST_{A',B}$ and $\DIST_{A'',B}$ only given their succinct representations. From a straight forward analysis of the LCS graph described by the $\DIST$ tables, it is found that:
 \begin{claim}
   \label{claim:dist-vertical-merge}
   \item[\circled{1}]: For $i \leq m'', j \leq n + m''$:
@@ -1196,7 +1203,9 @@ Now it will be explained how a vertical merge between $A'$ and $A''$ can be foun
   \end{proof}
 \end{claim}
 %
-For case \circled{3}, the result from \cref{claim:dist-vertical-merge} can be further expanded to find
+The next pages will show that all the tree cases can be unified into a single minimum distance product computation. First the result will be derived for case \circled{3} and then it is shown that case \circled{2} and \circled{1} are also handled correctly by the same computation.
+
+First consider case \circled{3}. Using \cref{claim:dist-vertical-merge} the case can be expanded to find that
 \begin{align*}
   \DIST_{A'A'',B}[i, j] &= \max_{k \in \{0, \dots, n\} } \left\{ \DIST_{A',B}[i - m'', k] + \DIST_{A'',B}[m'' + k, j] \right\} \\
               &=  \begin{aligned}
@@ -1214,26 +1223,26 @@ For case \circled{3}, the result from \cref{claim:dist-vertical-merge} can be fu
                     \right\}
                  \end{aligned}\\
               &= \max_k \left\{ H_{A',B}(i - m'', k) + H_{A'',B}(m'' + k, j) \right\}
-                  + \begin{cases}
+                  \\ &\quad\quad+ \begin{cases}
                       (i - m) + (n - j)   & \text{if } i < m, j \geq n \\
                       i - m               & \text{if } i < m, j < n \\
                       n - j               & \text{if } i \geq m, j \geq n \\
                       0                   & \text{if } i \geq m, j < n
                     \end{cases}.
 \end{align*}
-Therefore \cref{lemma:dist-H-relation} now implies that $H_{A'A'',B}(i, j) = \max_k \left\{ H_{A',B}(i - m'', k) + H_{A'',B}(m'' + k, j) \right\}$. This expression can further be written out, to find
+Using the previous expression in \cref{lemma:dist-H-relation} it is found that $H_{A'A'',B}(i, j) = \max_k \left\{ H_{A',B}(i - m'', k) + H_{A'',B}(m'' + k, j) \right\}$. This expression can further be written out as
 \begin{align*}
   H_{A'A'',B}(i, j) &= \max_k \left\{ H_{A',B}(i - m'', k) + H_{A'',B}(m'' + k, j) \right\} \\
                     &= \max_k \left\{ k - (i - m'' - m') - P_{A'}^{\Sigma}(i - m'', k) + j - (k + m'' - m'') - P_{A''}^{\Sigma}(k + m'', j) \right\} \\
                     &= j - (i - m) + \max_k \left\{ -\left( P_{A'}^{\Sigma}(i - m'', k) + P_{A''}^{\Sigma}(k + m'', j) \right)  \right\} \\
                     &= j - (i - m) - \min_k \left\{ P_{A'}^{\Sigma}(i - m'', k) + P_{A''}^{\Sigma}(k + m'', j) \right\}.
 \end{align*}
-Now \cref{lemma:H-permutation-representation} gives that
+This can be used in \cref{lemma:H-permutation-representation} which gives that
 \begin{align*}
   P_{A'A''}^{\Sigma}(i, j) &= \min_k \left\{ P_{A'}^{\Sigma}(i - m'', k) + P_{A''}^{\Sigma}(k + m'', j) \right\} \\
-                           &= \min_k \{ {IC'_{P_{A'}}}^{\Sigma}(i, k) + {IC''_{P_{A''}}}^{\Sigma}(k, j) \},
+                           &= \min_k \{ {IC'_{P_{A'}}}^{\Sigma}(i, k) + {IC''_{P_{A''}}}^{\Sigma}(k, j) \}.
 \end{align*}
-which reduces this case to min-multiplying two simple unit-Monge matrices, which can be solved in time $O(n \log{n})$ by an algorithm given by \cite{Tiskin:2010:FDM:1873601.1873704} and described in \cref{sec:algorithm:min-mult-two-unit-monge}.
+Therefore the permutation matrix can be found by computing the minimum distance product between the two simple unit-Monge matrices ${IC'_{P_{A'}}}^{\Sigma}$ and ${IC''_{P_{A''}}}^{\Sigma}$. For simple unit-Monge input matrices of size $O(x)$ their minimum distance product can be computed in time $O(x \log{x})$ by an algorithm given by \cite{Tiskin:2010:FDM:1873601.1873704} and described in \cref{sec:algorithm:min-mult-two-unit-monge}.
 
 For case \circled{1} where $i \leq m'', j \leq n + m''$, the definition of the $\DIST$ table yields
 \begin{align*}
@@ -1396,7 +1405,7 @@ which directly gives that $\circled{*} = P_{A'}^{\Sigma}(i - m'', j - m'')$. The
 
 \subsubsection{Horizontal merge}
 The horizontal merge will be carried out by means of a vertical merge. In order to do this, it should be efficient to compute $\DIST_{B,A}$ from $\DIST_{A,B}$. It turns out that this indeed easy. In order to see this, first notice that
-\begin{claim}[\refbook{p.-52}{Lemma 4.14, no proof}]
+\begin{claim}[\refbook{p.-52}{Lemma 4.14, mentioned but not proved}]
   \label{claim:H_string_switch_relation}
   For all $i, j \in \{0, \dots, n + m\}$ the following identity holds
   \[
@@ -1447,16 +1456,24 @@ The horizontal merge will be carried out by means of a vertical merge. In order 
       = j - i + P_{B,A}^{\Sigma}(m + n - i, m + n - j)
   \]
   \begin{proof}
-    Since $P_{B,A}$ is a permutation matrix, it contains exactly one $1$ in every row/column. Therefore the sum over the top-right area, can be found by taking the sum over the entire matrix and subtract the left and bottom part, and then add the double counted overlap \todo{See figure ...}. This gives that
+    Since $P_{B,A}$ is a permutation matrix, it contains exactly one $1$ in every row/column. Therefore the sum over the top-right area, can be found by taking the sum over the entire matrix and subtract the left and bottom part, and then add the double counted overlap see \cref{fig:sum-top-described-as-sum-bottom}.
+    \begin{figure}[!htb]
+      \centering
+      \includegraphics[width=2.6cm]{images/claim-matrix-division}
+      \caption{Illustration of how the entries are counted.}
+      \label{fig:sum-top-described-as-sum-bottom}
+    \end{figure}
+
+    This gives that
     \begin{align*}
       &\sum_{\substack{ \hat{i} \in \{i, \dots, n + m - 1\} \\ \hat{j} \in \{ 0, \dots, j - 1 \}}} P_{B,A}(m + n - \hat{i}, m + n - \hat{j}) \\
-      = &(n + m) - (m + n - j) - ((m + n) - (m + n - i)) + P_{B,A}^{\Sigma}(m + n - i, m + n - j) \\
+      = &\underbrace{(n + m)}_{\text{Entire matrix}} - \underbrace{(m + n - j)}_{\text{Left}} - \underbrace{((m + n) - (m + n - i))}_{\text{Right}} + \underbrace{P_{B,A}^{\Sigma}(m + n - i, m + n - j)}_{\text{Overlap}} \\
       = &j - i + P_{B,A}^{\Sigma}(m + n - i, m + n - j).
     \end{align*}
   \end{proof}
 \end{claim}
 
-\begin{lemma}[\refbook{p.-52}{Lemma 4.14, no proof}]
+\begin{lemma}[\refbook{p.-52}{Lemma 4.14, mentioned but not proved}]
   \label{lemma:swap_strings}
   Assuming $P_{A,B}$ is the permutation matrix encoding $\DIST_{A,B}$, the $\DIST$-table $\DIST_{B,A}$ is encoded by the permutation matrix $P_{B,A}$ where,
   \[
@@ -1490,7 +1507,7 @@ This completes the description on how to build the $\DIST$-repository within the
 
 \subsection{Applying a $\DIST$ table}
 \label{sec:applying-a-dist-table}
-What remains is to show how the $\DIST$-repository can be used to fill the dynamic programming grid efficiently. Assume that the outputs of a block in the grid with input $I$ should be computed (\todo{figure?}). The outputs are given by \cref{eqn:dist-application} which by \cref{lemma:dist-H-relation} can be re-written as
+What remains is to show how the $\DIST$-repository can be used to fill the dynamic programming grid efficiently. Assume that the outputs of a block in the grid with input $I$ should be computed. The outputs are given by \cref{eqn:dist-application} which by \cref{lemma:dist-H-relation} can be re-written as
 \begin{align*}
   O[j] &= \max_i \left\{ I[i] + \DIST[i, j] \right\} \\
     &= \max_i \left\{ I[i] + H(i, j) + \left\{
@@ -1779,7 +1796,7 @@ In order to get the best possible performance for the minimum distance product c
 
 \Cref{fig:benchmark:min-distance:bc} plots the running time normalized by $n\log{n}$ of the algorithm when varying the base case size. The general form of the plot is as expected: A small base case size leads to a larger running time, and a too large base case size will also yield a larger running time. The best compromise seems to be around base case size $k \approx 20$. For all the following measurements in this report a base case size of $k = 20$ has been used.
 
-Another thing to notice about \cref{fig:benchmark:min-distance:bc} is that it looks like, for a fixed base case size, that the normalized running time converges to a constant. This suggests that the theoretical running time is also satisfied in practice.
+Another thing to notice about \cref{fig:benchmark:min-distance:bc} is that it looks like, for a fixed base case size, that the normalized running time converges to a constant. This suggests that the theoretical running time is satisfied in practice.
 
 \begin{figure}[h!]
   \centering
@@ -1831,7 +1848,7 @@ In the end it will be checked that all the steps combined into the complete algo
 
 \subsubsection{Determining SLP partitioning factors}
 \label{sec:benchmark:slp-partition-factors}
-In \cref{sec:combining-the-two-steps} two factors called $ffactor$ and $xfactor$ was introduced. These factors control how large the partitions of the SLPs should be. In this section these factors will be experimentally determined for use in all following benchmarks.
+In \cref{sec:combining-the-two-steps} two factors called $\ffactor$ and $\xfactor$ was introduced. These factors control how large the partitions of the SLPs should be. In this section these factors will be experimentally determined for use in all following benchmarks.
 
 The compressibility of the input may have a big influence on how the factors are optimally chosen. In order to determine what factors to use, an experiment varying the factors while measuring the running time of aligning two Fibonacci strings of length 610 and two random strings of length 610 was performed. The choice of these two input types is due to their very different compression characteristics.
 
@@ -1849,15 +1866,15 @@ The compressibility of the input may have a big influence on how the factors are
     \caption{Aligning two Fibonacci string of length 610.}
     \label{fig:benchmark:estimating-factors:fib}
   \end{subfigure}
-  \caption{Plots showing the running time of the edit distance computation when varying $ffactor$ and $xfactor$.}
+  \caption{Plots showing the running time of the edit distance computation when varying $\ffactor$ and $\xfactor$.}
   \label{fig:benchmark:estimating-factors}
 \end{figure}
 
 It can be seen on \cref{fig:benchmark:estimating-factors} that the effect of different factors are behaving differently for different input types. This shows that the theoretically choice from \cref{sec:combining-the-two-steps} is a simplification of the real world. In practice the best thing to do is to have a more advanced procedure determining the factors for the given input strings.
 
-\Cref{fig:benchmark:estimating-factors:random} shows that the factors minimizing the running time was $xfactor = 0.4$ and $ffactor = 2$. For the following benchmarks this choice will be used for both the random string and the human genome test cases. The reason for choosing the same factors for the human genome is because the compression characteristics of the human genome and a random string was found to be similar in \cref{sec:compression:benchmarks}.
+\Cref{fig:benchmark:estimating-factors:random} shows that the factors minimizing the running time was $\xfactor = 0.4$ and $\ffactor = 2$. For the following benchmarks this choice will be used for both the random string and the human genome test cases. The reason for choosing the same factors for the human genome is because the compression characteristics of the human genome and a random string was found to be similar in \cref{sec:compression:benchmarks}.
 
-For the Fibonacci string \cref{fig:benchmark:estimating-factors:fib} shows that the best running time is obtained by choosing $xfactor = 2$ and $ffactor = 2$. Therefore this choice is used in the following benchmarks for Fibonacci strings.
+For the Fibonacci string \cref{fig:benchmark:estimating-factors:fib} shows that the best running time is obtained by choosing $\xfactor = 2$ and $\ffactor = 2$. Therefore this choice is used in the following benchmarks for Fibonacci strings.
 
 \subsubsection{DIST Repository and grid computation}
 This section will present measurements on the two most time consuming parts of the algorithm. Namely construction of the DIST repository and the grid computation.
@@ -1927,7 +1944,7 @@ It can be seen that the time for constructing and blocking the SLP takes almost 
 
 For the Fibonacci input, it can be seen that the running time between the grid computation and the DIST repository construction is more or less balanced. This is opposed to other the three inputs (the human genome combinations and the random string) where almost all the time is spend by the grid computation.
 
-The time distribution is a result of the choice of the $ffactor$ and $xfactor$ from \cref{sec:benchmark:slp-partition-factors}. An interesting observation is that for random and human genome inputs the partition size is in the interval $[2, 3]$. This is the same block size giving the optimal running time for the Four Russian algorithm \cite{LasseFourRussian}. It was also found in \cite{LasseFourRussian} that the Four Russian algorithm used almost all the time filling out the grid. This indicates that the Four Russian algorithm will be a better choice for aligning these types of data, since the Four Russian algorithm uses a simpler algorithm for using the precomputed blocks.
+The time distribution is a result of the choice of the $\ffactor$ and $\xfactor$ from \cref{sec:benchmark:slp-partition-factors}. An interesting observation is that for random and human genome inputs the partition size is in the interval $[2, 3]$. This is the same block size giving the optimal running time for the Four Russian algorithm \cite{LasseFourRussian}. It was also found in \cite{LasseFourRussian} that the Four Russian algorithm used almost all the time filling out the grid. This indicates that the Four Russian algorithm will be a better choice for aligning these types of data, since the Four Russian algorithm uses a simpler algorithm for using the precomputed blocks.
 
 Because Fibonacci inputs compress better the longer the input is, the partition size is increasing with the input size for the Fibonacci input. This is also why relatively the $\DIST$ repository computation takes up longer time for the Fibonacci input.
 

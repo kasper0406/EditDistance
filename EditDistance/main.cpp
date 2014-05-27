@@ -102,7 +102,7 @@ int main(int argc, char* argv[])
     Benchmark::benchmark_compression(trials, Benchmark::FibonacciInput(30));
     Benchmark::benchmark_compression(trials, Benchmark::UniformRandomInput(max_len));
     
-    Benchmark::benchmark_compression(trials, Benchmark::FastaInput("hg_repetitive.fa", max_len));
+    // Benchmark::benchmark_compression(trials, Benchmark::FastaInput("hg_repetitive.fa", max_len));
     
     return 0;
     
