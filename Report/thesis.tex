@@ -32,6 +32,8 @@
 \SetAlCapFnt{\large}
 \SetAlCapNameFnt{\large}
 
+\newcommand{\thesisurl}{\url{http://github.com/kasper0406/EditDistance}}
+
 \graphicspath{ {../Benchmarks/} }
 
 \renewcommand*\ttdefault{txtt}
@@ -83,7 +85,8 @@
 {\huge\sf Kasper Nielsen, 20091182}\\[2ex]
 \noindent\rule{\linewidth}{1mm}\\[4ex]
 \noindent{\Large\sf Master's Thesis, Computer Science\\[1ex] 
-\monthname\ \the\year  \\[1ex] Advisor: Christian Nørgaard Storm Pedersen\\[15ex]}\\[\fill]}
+\monthname\ \the\year  \\[1ex] Advisor: Christian Nørgaard Storm Pedersen\\[5ex]
+\Large\sf \thesisurl\\[15ex]}\\[\fill]}
 \epsfig{file=logo.eps}\clearpage
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -129,6 +132,8 @@ The algorithm for speeding up the edit distance computation using compressed str
 
 Both of the chapters are finished by presenting benchmarks. The benchmark section of \cref{ch:compressing-strings} describes how well different types of strings compresses and verifies the theoretical running time of the compression algorithm. Especially the compressibility of different types of inputs is of great interest since it bounds the speedup of the computation. The benchmark section of \cref{ch:algorithm} verifies the theoretical running time of the algorithm, compares how well the compression based algorithm performs to a simple edit distance algorithm and lastly examines the time usage by the different steps (see \cref{sec:edit-dist-on-slps-steps}) of the compression based algorithm.
 
+\paragraph{Availability:} All code, raw measurement data, plots and literature referred to and used in this thesis can be found at \thesisurl. A description of the structure of the code is also supplied on the website, together with a short description of how to build and run the code.
+
 \section{Overview}
 This section is intended to give an overview of the implemented algorithms, how the proofs of correctness relates and the main steps of the algorithm.
 
@@ -139,7 +144,7 @@ The main steps of the implemented algorithm based on string compression are the 
   \item Compute a structure called a DIST repository. This is a structure that for every pair of blocks in the two SLPs contains whats known as a DIST table. A DIST table is a representation of how the two blocks compares wrt. the computation.
   \item Compute the actual result by utilizing the DIST repository.
 \end{itemize}
-In order to gain the speedup a succinct representation of the DIST repository is used. This representation encodes a DIST table as a permutation of the identity matrix and theoretically turns out to facilitate both fast construction and usage of the DIST repository.
+In order to gain a speedup the DIST repository is represented using a succinct representation. This representation encodes a DIST table as a permutation of the identity matrix and theoretically turns out to facilitate both fast construction and usage of the DIST repository.
 
 The algorithm relies on the following list of sub-algorithms which all have been implemented as part of writing this thesis:
 \begin{itemize}
@@ -298,7 +303,7 @@ In order to understand and prove the correctness of the algorithm a collection o
 \end{figure}
 
 \section{Notation and definition of edit-distance}
-A string $\str{A}{0}{m}$ denotes a sequence of $m$ characters with random access, where the first is inclusive and the last is exclusive. That is, for $i \in \{0, \dots, m - 1\}$ the $i$'th character in the string can be accessed by $A[i] \in \Sigma$. Throughout this report it is assumed that the alphabet $\Sigma$ is finite.
+A string $\str{A}{0}{m}$ denotes a sequence of $m$ characters with random access, where the first is inclusive and the last is exclusive. That is, for $i \in \{0, \dots, m - 1\}$ the $i$'th character in the string can be accessed by $A[i] \in \Gamma$. Throughout this report it is assumed that the alphabet $\Gamma$ is finite\footnote{In this thesis it has been chosen to use $\Gamma$ for the alphabet which strings are drawn from, since the $\Sigma$-symbol is used later to describe a matrix operation.}.
 
 The substring of a string $\str{A}{0}{m}$ is denoted by $\substr{A}{i}{j} = A[i]A[i+1]\dots A[j - 1]$ where $i, j \in \{0, \dots, m\}$. If $j \leq i$ then $\substr{A}{i}{j}$ denotes the empty string.
 
@@ -311,18 +316,18 @@ The scores could be generalized to other constants, but also to arbitrary functi
 
 \section{Test data}
 \label{sec:intro:test-data}
-In order to test the algorithms, some test data needs to be selected. As the algorithm relies on compression of the input, it is natural to choose test input with different compressibility characteristics. It is also worth noticing that the alphabet size does not directly influence the running time of the algorithm, however a smaller alphabet will result in less compressibility of the strings.
+In order to test the algorithms, some test data need to be selected. As the algorithm relies on compression of the input, it is natural to choose test input with different compressibility characteristics. It is also worth noticing that the alphabet size does not directly influence the running time of the computations in the compression based algorithm. However, a larger alphabet will make the strings less compressible. Also, the algorithm compressing the strings relies on a suffix tree which have a $O(\log |\Gamma|)$ factor for following an edge. The compression algorithm however has a much better theoretical running time than the computation step, whereby this extra factor is negligible.
 
 The following inputs have been chosen for benchmarking:
 \begin{description}
-  \item[Fibonacci strings] A Fibonacci string is a string over the alphabet $\Sigma = \{a,b\}$. The $n$'th Fibonacci string $F_n$ is given by the following recurrence:
+  \item[Fibonacci strings] A Fibonacci string is a string over the alphabet $\Gamma = \{a,b\}$. The $n$'th Fibonacci string $F_n$ is given by the following recurrence:
     \begin{align*}
       F_1 &= \text{a} \\
       F_2 &= \text{ab} \\
-      F_{n} &= F_{n - 2} F_{n - 1} \quad\quad \text{for } n \geq 3
+      F_{n} &= F_{n - 1} F_{n - 2} \quad\quad \text{for } n \geq 3
     \end{align*}
     It follows from the definition that these strings are very repetitive, and is therefore expected to compress very well. In \cref{sec:compressing-Fibonacci-strings} it is argued that there exists a SLP of size $O(\log{n})$ generating $F_n$.
-  \item[Human genome] The human genome is from the perspective of this thesis a very long DNA sequence over the alphabet $\Sigma = \{A,G,C,T\}$. For practical purposes the human genome, or similar DNA sequences, may be the most realistic type of input. Furthermore DNA are said to contain a lot of repetitions which may result in a smaller SLP generating the string.
+  \item[Human genome] The human genome is from the perspective of this thesis a very long DNA sequence over the alphabet $\Gamma = \{A,G,C,T\}$. For practical purposes the human genome, or similar DNA sequences, may be the most realistic type of input. Furthermore DNA are said to contain a lot of repetitions which may result in a smaller SLP generating the string.
 
    The used human genome is \textbf{hg38} from \cite{HumanGenome}. The genome is divided into two categories: Repeating areas and non-repeating areas. The benchmarks in this report will use the following configurations for testing
   \begin{itemize}
@@ -332,9 +337,9 @@ The following inputs have been chosen for benchmarking:
   \end{itemize}
   It is expected that this type of input will be less compressible than Fibonacci strings, but better compressible than random strings due to the repetitive structure of DNA.
 
-  \item[Uniformly random strings] This type of strings are generated by sampling every character in the string uniformly random from the alphabet $\Sigma = \{A,G,C,T\}$. This means that all characters are independent from each other, and should therefore be very incompressible in nature. Therefore this type of input should represent worst-case input for the algorithm, since it heavily relies on compression to obtain a speedup.
+  \item[Uniformly random strings] This type of strings are generated by sampling every character in the string uniformly random from the alphabet $\Gamma = \{A,G,C,T\}$. This means that all characters are independent from each other, and should therefore be very incompressible in nature. Therefore this type of input should represent worst-case input for the algorithm, since it heavily relies on compression to obtain a speedup.
 \end{description}
-In \cref{sec:compression:benchmarks} the actual compressibility of all the above input types are investigated. \Cref{sec:algorithm:benchmarks} test how fast the compression based algorithm is able to handle the different input types.
+In \cref{sec:compression:benchmarks} the actual compressibility of all the above input types are examined. \Cref{sec:algorithm:benchmarks} test how fast the compression based algorithm is able to handle the different types of input.
 
 \section{Implementation and test setup}
 All measurements presented in this report were performed on a computer with an Intel i5-4258U CPU with the following technical specifications:
@@ -346,12 +351,12 @@ The main memory size of the machine was 16 Gb. The computer was running Mac OS X
 
 Before doing the actual measurements, a small warm-up round was performed, ensuring that the code was in the CPU cache etc. This helped to greatly reduce the variance of the running time measurements yielding more consistent results.
 
-All running times was measured as wall-time, and all tests were repeated 5 times where the measurement with the median running times is the one used for data-analysis in this report. The reason for choosing the median measurement, is that an unexpected amount of machine activity in one of the trials should not penalize the result, but at the same time, some tasks done by the operating system may be needed for the algorithm to function, which is why the minimum time was not selected. However, for larger inputs the relative standard deviation was almost always less than $2.5\%$, meaning that measurements across trails are close to each other.
+All running times were measured as wall-time, and all tests were repeated 5 times where the measurement with the median running times is the one used for data-analysis in this report. The reason for choosing the median measurement, is that an unexpected amount of machine activity in one of the trials should not penalize the result, but at the same time, some tasks done by the operating system may be needed for the algorithm to function, which is why the minimum time is not selected. However, for larger inputs the relative standard deviation was almost always less than $2.5\%$, meaning that measurements across trails are close to each other.
 
-All the tested input sizes have been grown by a factor of $1.7$. This has been chosen to have a exponential growth with a reasonable step size that is not a power of $2$. The reason for not choosing a power of $2$ is that this could give worse measurement results than would be seen for other input sizes, primarily due to cache associativity. Since inputs in practice are typically not strict powers of $2$ the artifacts by cache associativity is not desired.
+All the tested input sizes have been grown by a factor of $1.7$. This has been chosen to have a exponential growth with a reasonable step size that is rarely a power of $2$. The reason for not choosing a power of $2$ is that this could give worse measurement results than would be seen for other input sizes, primarily due to cache associativity. Since inputs in practice are typically not strict powers of $2$ the artifacts by cache associativity is not desired.
 
 \subsubsection{Correctness}
-In order to verify the correctness of the implementation, the result has been checked up against the simple algorithm described in \cref{sec:intro:simple}. Also, unit tests have been made to individually test parts of the algorithm, and during debugging and testing a lot of consistency checks are performed on every run. There are no known bugs in the implementation.
+In order to verify the correctness of the implementation, the results of all tests has been checked up against the simple algorithm described in \cref{sec:intro:simple}. Also, unit tests have been made to individually test parts of the algorithm and during debugging and testing a lot of consistency checks are performed on every run. There are no known bugs in the implementation.
 
 \chapter{Edit Distance approaches}
 There are multiple ways to compute the edit distance between two strings. Some of the relevant contributions with respect to this thesis is mentioned in this chapter.
@@ -363,7 +368,8 @@ A standard dynamic programming algorithm for solving the edit distance problem, 
   T[i, j] = \max \left\{ \begin{array}{lll}
               T[i - 1, j - 1] + \delta(A[i - 1], A[j - 1]) & \text{if } i, j \geq 1 & \text{Match} \\
               T[i - 1, j] + 1       & \text{if } i \geq 1, j \geq 0       & \text{Insert} \\
-              T[i, j - 1] + 1       & \text{if } i \geq 0, j \geq 1       & \text{Delete}
+              T[i, j - 1] + 1       & \text{if } i \geq 0, j \geq 1       & \text{Delete} \\
+              0                     & \text{if } i = 0, j = 0             & \text{Base case}
             \end{array} \right.
 \]
 where
@@ -372,16 +378,16 @@ where
                    0 & \text{if } a = b \\
                    1 & \text{o/w.}
                  \end{cases}
-    \quad \text{ for } \quad a, b \in \Sigma.
+    \quad \text{ for } \quad a, b \in \Gamma.
 \]
 The base case where a string is aligned to the empty string is trivially the length of the non-empty string. If the simple algorithm is implemented by dynamical programming it uses $\Theta(nm)$ time and space. Notice that an easy optimization where only the last row used is stored in memory reduces the space consumption to $O(\min\{n, m\})$.
 
 \subsection{Backtracking}
 If the actual alignment of the strings is desirable, it can be found by a standard back-tracking approach on the computed matrix.
 
-This however implies that the simple space optimization from before does not work, as all entries in the computed table potentially is needed for the backtracking. However, a divide-and-conquer algorithm was given by Hirshberg\cite[p. 254]{gusfield1997algorithms} that reduces the space consumption of $O(\min\{n, m\})$ without asymptotically increasing the running time.
+This however implies that the simple space optimization from before does not work, as all entries in the computed table potentially is needed for the backtracking. However, a divide-and-conquer algorithm was given by Hirshberg \cite[p. 254]{gusfield1997algorithms} that reduces the space consumption of $O(\min\{n, m\})$ without asymptotically increasing the running time.
 
-The same approach can be used to find the alignment for the main algorithm in this report. However, a more practical approach may be to use the simple algorithm with pruning when the known optimal score is known, and then use backtracking directly on the grid. From now on, only the actual edit distance is considered to be of interest.
+The same approach can be used to find the alignment for the compression based algorithm in this report. However, a more practical approach may be to use the simple algorithm with pruning when the known optimal score is known, and then use backtracking directly on the grid. From now on, only the actual edit distance is considered to be of interest.
 
 \subsection{Optimizations}
 The simple algorithm can for most practical inputs be improved. This can be done by only computing the dynamical programming matrix around its diagonal, and then extend the area if the path is not contained in the computed region. If the diagonal area is extended by powers of $2$, the running time will at most increase by a factor of $2$.
@@ -391,7 +397,7 @@ Another optimization for the simple algorithm is parallelization. However, both 
 More detail on how to parallelize the compression based algorithm is given in \cref{sec:conclusion:future-work}.
 
 \section{Compression based algorithms}
-There exists other approaches for speeding up the computation of the edit distance between two strings. This section presents a short overview of some of the approaches that relates to the approach investigated in this thesis.
+There exist other approaches for speeding up the computation of the edit distance between two strings. This section presents a short overview of some of the approaches that relates to the approach investigated in this thesis.
 
 One approach for speeding up the computation of edit distance, is to compress the input strings, and then in some way do the edit distance computation using the compressed strings, which for many cases will be shorter than the original input.
 
@@ -451,7 +457,14 @@ The algorithm examined in this thesis is working over straight-line programs (SL
   \end{itemize}
   The size of a SLP is defined to be $|V \cup T|$, which is only a constant from the actual space consumption of a simple pointer-based SLP implementation.
 \end{mydef}
-From this definition it is not possible for a SLP to generate the empty string, however this poses no problem in practice as that case can be handled separately.
+From this definition it is not possible for a SLP to generate the empty string, however this poses no problem in practice as that case can be handled separately. An example of a SLP is shown in \cref{fig:slp-example}.
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[width=8cm]{images/slp-example}
+  \caption{An example of a SLP generating the string \texttt{AAAABBABAAAAB}. The SLP is generated using the algorithm described in \cref{sec:compression:alg}.}
+  \label{fig:slp-example}
+\end{figure}
+
 \begin{problem}
   \label{compression:problem:minimum-slp}
   Given an input string $\str{A}{0}{m}$ find a SLP $\SLP{A}$ of minimum size generating $A$.
@@ -460,16 +473,16 @@ It is known from \cite[p. 212]{Rytter2003211} that this problem is NP-complete, 
 
 A small theoretical improvement was given in \cite{Rytter2003211}, reducing the approximation factor to $O(\log{\frac{n}{g^*}})$ where $g^*$ denotes the size of the minimal SLP compression. As suggested by \cite{Rytter2003211} the improvement is mostly cosmetic, and from the description of the approach, I find it very likely that the approach will significantly increase the constant in front of the big-$O$ notation. Therefore, I have not chosen to implement this theoretical improvement.
 
-For computing the LZ-factorization a suffix tree is used. Suffix tress often comes with a large constant space overhead, making them undesirable in practice in some cases. \cite{Sakamoto2005416} gave another algorithm for solving \cref{compression:problem:minimum-slp} which also actives the $O(\log{\frac{n}{g^*}})$ approximation factor, but does it based on the RE-PAIR encoding scheme, which can be made to work without using a suffix tree. The reason for not implementing this approach, is that I find the LZ-factorization approach more intuitive, and for the benchmarks in this report the space consumption of the suffix tree has not been a problem.
+For computing the LZ-factorization a suffix tree is used. Suffix tress often comes with a large constant space overhead, making them undesirable in practice in some cases. \cite{Sakamoto2005416} gave another algorithm for solving \cref{compression:problem:minimum-slp} which also achieves the $O(\log{\frac{n}{g^*}})$ approximation factor, but does it based on the RE-PAIR encoding scheme, which can be made to work without using a suffix tree. The reason for not implementing this approach, is that I find the LZ-factorization approach more intuitive, and for the benchmarks in this report the space consumption of the suffix tree has not been a problem.
 
 In other areas of lossless compression, ex. bzip2 compression, the input string is encoded using a Burrows-Wheeler transform (BWT) \cite{BurrowsWheeler}. The intuition why the BWT works, is that it permutes the string in such a way that highly repetitive parts of the string are group together, making them easier to compress. However building the SLP over the BWT of the input string will not work because the BTW permutes the string, such that productions of the SLP does not corresponds to a continuous area in the input string. I have not been able to find any articles able to take advantage of the BWT for SLP based compression.
 
 In lossless compression there exist Entropy-based encoding schemes. Such schemes uses the frequencies of the appearing alphabet symbols in the string to compress them to use as few bits as possible. This type of compression is not of significant interest in this context, since we are only interest in minimizing the number of productions in the resulting SLP.
 
 \paragraph{Notes about size}
-Given input strings over the finite alphabet $\Sigma$, all strings over this alphabet can trivially be encoded using $\ceil{\log_2 |\Sigma|}$ bits per symbol. However, for a direct representation of the SLP using pointers a left and a right pointer has to be stored together with the symbol, which on a new machine uses up $64$ bits each. Moreover, the algorithms working on the SLPs are likely to require more information annotated to each node in the tree. This results in a huge constant blow up on the space required to store the input string, especially for strings not compressing very well.
+Given input strings over the finite alphabet $\Gamma$, all strings over this alphabet can trivially be encoded using $\ceil{\log_2 |\Gamma|}$ bits per symbol. However, for a direct representation of the SLP using pointers, a left and a right pointer has to be stored together with the symbol, which on a new machine uses up $64$ bits each. Moreover, the algorithms working on the SLPs are likely to require more information annotated to each node in the tree. This results in a huge constant blow up on the space required to store the input string, especially for strings not compressing very well.
 
-It could be both of practical and theoretical interest to find a succinct representation of a SLP, in order to make the space consumption smaller, making the SLP approach practical for long strings that does not compress very well.
+It could be both of practical and theoretical interest to find a succinct representation of a SLP, in order to make the space consumption smaller. This would potentially make the SLP approach practical for long strings that does not compress very well.
 
 \section{Algorithm}
 \label{sec:compression:alg}
@@ -485,14 +498,17 @@ The idea behind the algorithm is to iteratively build the SLP for the string. Th
     $\SLP{A} = Concat(\SLP{A}, \SLP{S})$\;
   }
   \Return $\SLP{A}$
-  \caption{Algorithm for generating $\log{n}$ approximation of minimal SLP of input string $\str{A}{0}{m}$.}
+  \caption{Algorithm for generating a $O(\log{n})$ approximation of the minimal SLP of the input string $\str{A}{0}{m}$.}
 \end{algorithm}
 
 When building the SLP it will be considered as an AVL-tree. Therefore it is known how to search and concatenate two SLPs in a way that keeps the resulting SLP balanced. The idea is to add a repeating factor in the string one at a time. The repeating factor is added by reusing the productions already in the SLP generating the factor. During the concatenating operation of SLPs, the resulting tree is balanced using appropriate AVL-tree rotations.
 
 The $Concat$ process referenced in the code, is function almost the same way as concatenating two AVL trees. The only difference is that productions in the SLP may be shared, hence when adding nodes and making rotations, special care needs to be taken in order to ensure the balance of the tree and that the derived string is correct. This is easy to fix simply by introducing a constant number of new productions for every insertion and rotation. Amortized, the number of rotations that happen on every concatenation is constant and therefore only a constant number of extra productions are added every time $Concat$ is called.
 
-The factors iteratively added to the SLP are the LZ-factors of the input string $\str{A}{0}{m}$. The LZ-factors of a string is found by scanning the string from left to right. Assume that the current position is $i \in \{0, \dots, m - 1\}$, then the next LZ factor is found by finding the longest string starting at position $i$ that have occurred in the input string before position $i$. \Cref{fig:lz-factor} illustrates the situation.
+\paragraph{LZ-Factorization}
+The factors iteratively added to the SLP are the LZ-factors of the input string $f_1 f_2 \dots f_k = \str{A}{0}{m}$, where $f_1 = A[0]$ and for $i \in \{2 \dots k\}$ $f_i$ is the longest prefix of $f_i \dots f_k$ occurring in $f_1 \dots f_{i - 1}$.
+
+The LZ-factors of a string is found by scanning the string from left to right. Assume that the current position is $i \in \{0, \dots, m - 1\}$, then the next LZ factor is found by finding the longest string starting at position $i$ that have occurred in the input string before position $i$. \Cref{fig:lz-factor} illustrates the situation.
 
 \begin{figure}[!htb]
   \centering
@@ -501,13 +517,16 @@ The factors iteratively added to the SLP are the LZ-factors of the input string 
   \label{fig:lz-factor}
 \end{figure}
 
-It is required to be able to efficiently find the nodes in the current SLP which generates a LZ factor. In order to do this, the LZ factors of the string are specified by their first occurrence in the input string by indices. Using these indices it is easy to find the corresponding productions in the SLP by annotating the derived length for each of the productions, and then make a top-down decent of the tree checking if the indices overlaps the current node.
+It is required to be able to efficiently find the nodes in the current SLP which generates a LZ factor. In order to do this, the LZ factors of the string are specified by their first occurrence in the input string by indices. That is, $f_i$ is identified by two indices $p, q$ such that $f_i = \substr{A}{p}{q}$ where $p,q \in \mathbb{N}$ and $p < q \leq |f_1 \dots f_{i - 1}|$.
 
+Using these indices it is easy to find the corresponding productions in the SLP by annotating the derived length for each of the productions, and then make a top-down decent of the tree checking if the interval overlaps the current node.
+
+\paragraph{Computing the LZ-factorization}
 The only step of the SLP construction algorithm not thoroughly described in \cite{Rytter2003211}, is how to compute the LZ-factorization of a string efficiently. They only state that it can be done efficiently using a suffix tree. Although the algorithm is quite simple, it is included in this report for completeness.
 
 First the suffix tree for the input string is generated. Then every node $v$ in the tree is annotated with the first index in the string where the substring spelled out from the root to $v$ occurs. This is done by traversing the tree bottom up. Any leaf is annotated by its suffix numbers and any non-leaf is annotated by the minimum over its children.
 
-Having the described suffix tree, the LZ-factorization can be found by scanning the input string and follow the corresponding path in the suffix tree. While the string has already occurred before in the string, the path is extended. Otherwise a new LZ factor is added and the search begins from the top of the suffix tree. Pseudo code for the algorithm is given in \cref{alg:compression:lz-factorization}. The algorithm could potentially be improved a bit by following an entire suffix tree edge in every iteration. However, since the SLP construction is not the time consuming part of the algorithm this has not been implemented as the gain will be almost non noticeable.
+Having the described suffix tree, the LZ-factorization can be found by scanning the input string and follow the corresponding path in the suffix tree. While the string spelled out from the root to the current node has already occurred before in the string, the path is extended. Otherwise a new LZ factor is added and the search begins from the top of the suffix tree. Pseudo code for the algorithm is given in \cref{alg:compression:lz-factorization}. The algorithm could potentially be improved a bit by following an entire suffix tree edge in every iteration. However, since the SLP construction is not the time consuming part of the algorithm this has not been implemented as the gain will be almost non noticeable.
 
 \begin{center}
   \begin{algorithm}[!htb]
@@ -551,17 +570,18 @@ Having the described suffix tree, the LZ-factorization can be found by scanning 
   \end{algorithm}
 \end{center}
 
-The implementation uses a pointer based representation of the SLP. It is worth noticing that in the context of standard binary heaps pointer based implementation typically performs worse than an implicit array representation due to the extra overhead of lookup pointers and jumping in memory. In a previous project \cite[p. 9]{AA13Project1} the penalty of using pointers was found to be around $2$.
+\paragraph{Implementation details}
+The implementation uses a pointer based representation of the SLP. It is worth noticing that in the context of standard binary heaps, pointer based implementation typically performs worse than an implicit array representation due to the extra overhead of lookup pointers and jumping in memory. In a previous project \cite[p. 9]{AA13Project1} the penalty of using pointers was found to be around a running time factor of $2$.
 
 It is also expected that a pointer based SLP will suffer for such a penalty when traversing the tree. However, since the SLP does not have a fixed topology, the pointer based solution is the easiest way to represent the topology. It may be the case that this could be encoded in some clever way in combination with a succinct representation of a SLP, but this is outside the scope of this thesis.
 
 \clearpage
 \section{Benchmarks}
 \label{sec:compression:benchmarks}
-This section will examine how well different types of string can be compressed to a SLP. It will also check that the theoretical running time of $O(n\log{n})$ is satisfied in practice.
+This section will examine how well different types of strings can be compressed to SLPs. It will also verified that the theoretical running time of $O(n\log{n})$ is satisfied in practice.
 
 \subsection{Compression quality}
-First the quality of the compressions is examined for the different type of inputs as described in \cref{sec:intro:test-data}.
+First the quality of the compressions is examined for the different types of inputs as described in \cref{sec:intro:test-data}.
 
 \subsubsection{Fibonacci strings}
 \label{sec:compressing-Fibonacci-strings}
@@ -569,11 +589,23 @@ When evaluating the quality of compressed Fibonacci strings, it is useful to con
 \begin{align*}
   F_1 &= \text{a} \\
   F_2 &= \text{ab} \\
-  F_{i} &= F_{i - 2} F_{i - 1} \quad\quad \text{for } i \geq 3
+  F_{i} &= F_{i - 1} F_{i - 2} \quad\quad \text{for } i \geq 3
 \end{align*}
-Notice directly by definition, $F_1$ can be represented by a SLP of size $1$ and $F_2$ can be represented by a SLP of size $3$. Constructing $F_{i + 1}$ for $i > 2$ can be done by adding one extra production to the SLP describing $F_{i}$. Notice that no smaller SLP can describe the Fibonacci strings, since $F_{i+1}$ is a super string of $F_i$, and by induction the SLP representation of $F_i$ is optimal.
+Notice directly by definition, $F_1$ can be represented by a SLP of size $1$ and $F_2$ can be represented by a SLP of size $3$. Constructing $F_{i + 1}$ for $i > 2$ can be done by adding one extra production to the SLP describing $F_{i}$.
 
-Therefore Fibonacci strings compresses very well to a SLP, where a representation of $F_{i}$ uses only $i + 1$ productions for $i \geq 2$. Therefore the quality of the compressed Fibonacci strings can be measured relative to the optimal SLP. \Cref{fig:compression:quality:fibonacci} shows a plot where the blue line shows how big a factor the computed SLP is bigger than the optimal SLP.
+Therefore Fibonacci strings compress very well to a SLP, where a representation of $F_{i}$ uses only $i + 1$ productions for $i \geq 2$. It is noticed in \cref{claim:fib-slp-optimal} that there are no smaller grammar generating Fibonacci strings.
+
+\begin{claim}
+  \label{claim:fib-slp-optimal}
+  The described SLPs for the Fibonacci strings are optimal.
+  \begin{proof}
+    From the definition of Fibonacci strings it can be seen that the $i$'th Fibonacci string, $F_i$, has $i$ LZ-Factors. This follows since the $F_{i-2}$ factor in $F_i = F_{i - 1} F_{i - 2}$ will always occur before in the strings and therefore will contribute exactly one LZ-factor.
+
+    By a slight modification of \cite[Theorem 1]{Rytter2003211} where it is used that a SLP for a Fibonacci strings must have at least two non-terminals, it is found that for all grammars $G_i$ deriving $F_i$ it must be the case that $|LZ(F_i)| + 1 \leq |G_i|$. Therefore it must be the case that $i + 1 \leq |G_i|$, hence the previously described grammar for Fibonacci strings is optimal.
+  \end{proof}
+\end{claim}
+
+Therefore the quality of the compressed Fibonacci strings can be measured relative to the optimal SLP. \Cref{fig:compression:quality:fibonacci} shows a plot where the blue line shows how big a factor the computed SLP is bigger than the optimal SLP.
 
 By the proof in \cite{Rytter2003211} this overhead should be bounded by $O(\log{n})$. The red line of \cref{fig:compression:quality:fibonacci} plots the production overhead normalized by $\log{n}$. From theory this should converge towards a constant, which also seems to be the case in practice.
 
@@ -669,6 +701,9 @@ The algorithm stores a lot of permutation matrices in memory. It is therefore in
   \ln{n!} = n \ln{n} - n + O(\ln{n}),
 \]
 hence $\Omega(\log{n!}) = \Omega(n \log{n})$ bits are required to represent the permutation matrix, which is also what is used in the row/column-permutation representation.
+
+\paragraph{Permutation matrix properties}
+This section will defined and classify different useful properties about matrices, where especially permutation matrices are of interest. 
 %
 \begin{mydef}
   The distribution matrix $A^{\Sigma}$ of a $n \times n$ matrix $A$ is a $(n + 1) \times (n + 1)$ matrix defined as
@@ -1230,7 +1265,7 @@ First consider case \circled{3}. Using \cref{claim:dist-vertical-merge} the case
                       0                   & \text{if } i \geq m, j < n
                     \end{cases}.
 \end{align*}
-Using the previous expression in \cref{lemma:dist-H-relation} it is found that $H_{A'A'',B}(i, j) = \max_k \left\{ H_{A',B}(i - m'', k) + H_{A'',B}(m'' + k, j) \right\}$. This expression can further be written out as
+Using the previous expression in \cref{lemma:dist-H-relation} it is found that
 \begin{align*}
   H_{A'A'',B}(i, j) &= \max_k \left\{ H_{A',B}(i - m'', k) + H_{A'',B}(m'' + k, j) \right\} \\
                     &= \max_k \left\{ k - (i - m'' - m') - P_{A'}^{\Sigma}(i - m'', k) + j - (k + m'' - m'') - P_{A''}^{\Sigma}(k + m'', j) \right\} \\
@@ -1242,9 +1277,9 @@ This can be used in \cref{lemma:H-permutation-representation} which gives that
   P_{A'A''}^{\Sigma}(i, j) &= \min_k \left\{ P_{A'}^{\Sigma}(i - m'', k) + P_{A''}^{\Sigma}(k + m'', j) \right\} \\
                            &= \min_k \{ {IC'_{P_{A'}}}^{\Sigma}(i, k) + {IC''_{P_{A''}}}^{\Sigma}(k, j) \}.
 \end{align*}
-Therefore the permutation matrix can be found by computing the minimum distance product between the two simple unit-Monge matrices ${IC'_{P_{A'}}}^{\Sigma}$ and ${IC''_{P_{A''}}}^{\Sigma}$. For simple unit-Monge input matrices of size $O(x)$ their minimum distance product can be computed in time $O(x \log{x})$ by an algorithm given by \cite{Tiskin:2010:FDM:1873601.1873704} and described in \cref{sec:algorithm:min-mult-two-unit-monge}.
+Therefore the permutation matrix can be found by computing the minimum distance product between the two simple unit-Monge matrices ${IC'_{P_{A'}}}^{\Sigma}$ and ${IC''_{P_{A''}}}^{\Sigma}$. For simple unit-Monge input matrices of size $O(x)$ their minimum distance product can be computed in time $O(x \log{x})$ by an algorithm given by \cite{Tiskin:2010:FDM:1873601.1873704}. The algorithm is described in \cref{sec:algorithm:min-mult-two-unit-monge} of this thesis.
 
-For case \circled{1} where $i \leq m'', j \leq n + m''$, the definition of the $\DIST$ table yields
+It will now be shown that this computation also gives the result for case \circled{1} where $i \leq m'', j \leq n + m''$. The definition of the $\DIST$ table yields
 \begin{align*}
   \DIST_{A'A'',B}[i, j] &= H_{A'A'',B}(i, j) + \left\{
     \begin{array}{ll}
@@ -1265,7 +1300,7 @@ For case \circled{1} where $i \leq m'', j \leq n + m''$, the definition of the $
     \end{array}
   \right.
 \end{align*}
-By a similar analysis of the statement given by \cref{claim:dist-vertical-merge}, it is found that:
+By a similar analysis of the statement given by \cref{claim:dist-vertical-merge}, it is found that
 \begin{align*}
   \DIST_{A'A'',B}[i, j] &= \DIST_{A'',B}[i, j] = H_{A'',B}(i, j) + \left\{
     \begin{array}{ll}
@@ -1273,16 +1308,21 @@ By a similar analysis of the statement given by \cref{claim:dist-vertical-merge}
       (i - m'') + (n - j) & \text{if } j \geq n
     \end{array}
   \right. \\
-  &= \dots = j - P_{A'',B}^{\Sigma}(i, j) + \left\{
+  &= j - (i - m'') - P_{A'',B}^{\Sigma}(i, j) +
+      \begin{array}{ll}
+        i - m''             & \text{if } j < n \\
+        (i - m'') + (n - j) & \text{if } j \geq n
+      \end{array} \\
+  &= j - P_{A'',B}^{\Sigma}(i, j) + \left\{
     \begin{array}{ll}
-      0             & \text{if } j \geq n \\
-      n - j         & \text{if } j < n
+      0             & \text{if } j < n \\
+      n - j         & \text{if } j \leq n
     \end{array}
-  \right.
+  \right. .
 \end{align*}
-Subtracting the two expressions yields $P_{A'',B}^{\Sigma}(i, j) = P_{A'A'',B}^{\Sigma}(i, j)$. It can be noticed that this conforms nicely with the computation carried out in case \circled{1}. Writing from the computation from case \circled{1},
+Subtracting the two expressions yields $P_{A'',B}^{\Sigma}(i, j) = P_{A'A'',B}^{\Sigma}(i, j)$. It will now be verified that this indeed what is computed by the minimum distance product from case \circled{3}. Writing from the minimum distance product, it is found that
 \begin{align*}
-  \circled{*} &= \min_{k \in \{0,\dots,n+m\}} \{ {IC'_{P_{A'}}}^{\Sigma}(i, k) + {IC''_{P_{A''}}}^{\Sigma}(k, j) \} \\
+  \circled{$\star$} &= \min_{k \in \{0,\dots,n+m\}} \{ {IC'_{P_{A'}}}^{\Sigma}(i, k) + {IC''_{P_{A''}}}^{\Sigma}(k, j) \} \\
   &= \min\left\{
        \min_{k \in \{0,\dots,i\}}{P_{A'',B}^{\Sigma}(k, j)},
        \min_{k \in \{i + 1, n + m\}}\left\{ k - i + \left\{ % A row <= m'' in IC' is like: 0 ... 0 1 2 3 4 ...
@@ -1294,6 +1334,8 @@ Subtracting the two expressions yields $P_{A'',B}^{\Sigma}(i, j) = P_{A'A'',B}^{
      \right\}.
 \end{align*}
 %
+In order to simplify the expression the following claim is useful.
+%
 \begin{claim}
   \label{claim:bounding-sigma}
   The following bound is valid $\forall k \in \mathbb{N}: i + k \leq n + m''$:
@@ -1304,10 +1346,10 @@ Subtracting the two expressions yields $P_{A'',B}^{\Sigma}(i, j) = P_{A'A'',B}^{
     Follows almost directly from decreasing unit monotonicity of the $\Sigma$-operator used on permutation matrices in both coordinates (only the $i$ coordinate monotonicity used here).
   \end{proof}
 \end{claim}
-Using \cref{claim:bounding-sigma} at the boundary condition $i + k = n + m''$, it is found that $P_{A''}^{\Sigma}(i, j) \leq n + m'' - i + P_{A''}^{\Sigma}(n + m'', j) = n + m'' - i$. Hence, by first using decreasing unit monotonicity of the $\Sigma$-operator and \cref{claim:bounding-sigma} followed by the claim at the boundary condition, it is found that:
+Using \cref{claim:bounding-sigma} at the boundary condition $i + k = n + m''$, it is found that $P_{A''}^{\Sigma}(i, j) \leq n + m'' - i + P_{A''}^{\Sigma}(n + m'', j) = n + m'' - i$. Hence, by first using decreasing unit monotonicity of the $\Sigma$-operator and \cref{claim:bounding-sigma} followed by the claim at the boundary condition, it follows that
 \[
-  \circled{*} = \min\{ P_{A''}^{\Sigma}(i, j), \min_{k \in \{n+m'', \dots, n+m\}} \{ k - i \} \}
-              = P_{A''}^{\Sigma}(i, j)
+  \circled{$\star$} = \min\{ P_{A''}^{\Sigma}(i, j), \min_{k \in \{n+m'', \dots, n+m\}} \{ k - i \} \}
+                    = P_{A''}^{\Sigma}(i, j) .
 \]
 Hence, the min-product computed in case \circled{3} also gives the correct result for case \circled{1}.
 
@@ -1343,9 +1385,9 @@ Similarly writing out directly from the definition, it is found that
       0     & \text{if } i \geq m
     \end{cases}
 \end{align*}
-This implies that $P_{A'A'',B}^{\Sigma}(i, j) = P_{A',B}^{\Sigma}(i - m'', j - m'')$. As will be seen, this is also what is computed by the min-multiplication in case \circled{3}. Writing out the result of the min-multiplication, it is found that
+This implies that $P_{A'A'',B}^{\Sigma}(i, j) = P_{A',B}^{\Sigma}(i - m'', j - m'')$. As will be seen, this is also what is computed by the minimum distance multiplication in case \circled{3}. Writing out the result of the minimum distance multiplication, it is found that
 \begin{align*}
-  \circled{*} &= \min_{k\in \{ 0, \dots, n + m \}} { {IC'_{P_{A'}}}^{\Sigma}(i, k) + {IC''_{P_{A''}}}^{\Sigma}(k, j) } \\
+  \circled{$\dagger$} &= \min_{k\in \{ 0, \dots, n + m \}} { {IC'_{P_{A'}}}^{\Sigma}(i, k) + {IC''_{P_{A''}}}^{\Sigma}(k, j) } \\
               &=  \begin{aligned} \min
                     &\left\{
                       \min_{k \in \{0, \dots, m''\}} { P_{A'}^{\Sigma}(k, n + m'') + I^{\Sigma}(0, j - (n + m'')) }, \right. \\
@@ -1358,7 +1400,7 @@ This implies that $P_{A'A'',B}^{\Sigma}(i, j) = P_{A',B}^{\Sigma}(i - m'', j - m
 \end{align*}
 Notice that the second case always dominates the first, hence the second case can safely be removed from the minimization. Furthermore, the third case can be spitted to obtain
 \begin{align*}
-  \circled{*} &=  \begin{aligned} \min
+  \circled{$\dagger$} &=  \begin{aligned} \min
                     &\left\{
                       n + m'' + j - n - m'',
                       \min_{k \in \{n + m'', j\}} {j - k + P_{A'}^{\Sigma}(i - m'', k - m'')}, \right. \\
@@ -1374,6 +1416,7 @@ Notice that the second case always dominates the first, hence the second case ca
                     \right\}
                   \end{aligned}
 \end{align*}
+The following claim will help to simplify the expression.
 \begin{claim}
   \label{claim:bounding-sigma-col}
   The following bound is valid $\forall a \in \mathbb{N}: j - a \geq 0$:
@@ -1388,11 +1431,11 @@ By applying \cref{claim:bounding-sigma-col} with $a = j - k$, it is found that
 \[
   P_{A'}^{\Sigma}(i - m'', j - m'') \leq (j - k) + P_{A'}^{\Sigma}(i - m'', j - m'' - (j - k)) = (j - k) + P_{A'}^{\Sigma}(i - m'', k - m'').
 \]
-This eliminates the middle case of the minimization in $\circled{*}$. Moreover, \cref{claim:bounding-sigma-col} is used to find that
+This eliminates the middle case of the minimization in $\circled{$\dagger$}$. Moreover, \cref{claim:bounding-sigma-col} is used to find that
 \[
   P_{A'}^{\Sigma}(i - m'', j - m'') \leq (j - m'') + P_{A'}^{\Sigma}(i - m'', 0) = j - m'' \leq j,
 \]
-which directly gives that $\circled{*} = P_{A'}^{\Sigma}(i - m'', j - m'')$. Therefore the min-multiplication can also be used to solve case \circled{2}. The above calculations establish the following important theorem.
+which directly gives that $\circled{$\dagger$} = P_{A'}^{\Sigma}(i - m'', j - m'')$. Therefore the minimum distance multiplication can also be used to solve case \circled{2}. The above calculations establish the following important theorem.
 \begin{theorem}[\refbook{p.-55}{Theorem 4.19}]
   \label{thm:dist-vertical-merge}
   Given two $\DIST$ tables $DIST_{A',B}$ and $\DIST_{A'',B}$ with representations $P_{A'}$ and $P_{A''}$ they can be merged into $\DIST_{A'A'',B}$ with representation $P_{A'A''}^{\Sigma}$ by setting
@@ -1401,10 +1444,10 @@ which directly gives that $\circled{*} = P_{A'}^{\Sigma}(i - m'', j - m'')$. The
   \]
 \end{theorem}
 
- Therefore two $\DIST$ tables can be merged vertically by a single min-multiplication taking $O(x \log{x})$ time using the described in \cref{sec:algorithm:min-mult-two-unit-monge}.
+ Therefore two $\DIST$ tables can be merged vertically by a single minimum distance multiplication taking $O(x \log{x})$ time using the described in \cref{sec:algorithm:min-mult-two-unit-monge}.
 
 \subsubsection{Horizontal merge}
-The horizontal merge will be carried out by means of a vertical merge. In order to do this, it should be efficient to compute $\DIST_{B,A}$ from $\DIST_{A,B}$. It turns out that this indeed easy. In order to see this, first notice that
+The horizontal merge will be carried out by means of a vertical merge. In order to do this, it should be efficient to compute $\DIST_{B,A}$ from $\DIST_{A,B}$. It turns out that this indeed is the case. In order to see this, the following claim provides an insightful result.
 \begin{claim}[\refbook{p.-52}{Lemma 4.14, mentioned but not proved}]
   \label{claim:H_string_switch_relation}
   For all $i, j \in \{0, \dots, n + m\}$ the following identity holds
@@ -1448,6 +1491,8 @@ The horizontal merge will be carried out by means of a vertical merge. In order 
   \end{proof}
 \end{claim}
 %
+The observation in the following claim will be useful later.
+%
 \begin{claim}
   \label{claim:sum_top_described_as_sum_bottom}
   For all $i, j \in \{0, \dots, n + m\}$ it is the case that
@@ -1459,7 +1504,7 @@ The horizontal merge will be carried out by means of a vertical merge. In order 
     Since $P_{B,A}$ is a permutation matrix, it contains exactly one $1$ in every row/column. Therefore the sum over the top-right area, can be found by taking the sum over the entire matrix and subtract the left and bottom part, and then add the double counted overlap see \cref{fig:sum-top-described-as-sum-bottom}.
     \begin{figure}[!htb]
       \centering
-      \includegraphics[width=2.6cm]{images/claim-matrix-division}
+      \includegraphics[width=3.5cm]{images/claim-matrix-division}
       \caption{Illustration of how the entries are counted.}
       \label{fig:sum-top-described-as-sum-bottom}
     \end{figure}
@@ -1472,7 +1517,9 @@ The horizontal merge will be carried out by means of a vertical merge. In order 
     \end{align*}
   \end{proof}
 \end{claim}
-
+%
+It is now possible to show how the representation of the two $\DIST$ tables $\DIST_{A,B}$ and $\DIST_{B,A}$ relate. The relation is given in the following lemma.
+%
 \begin{lemma}[\refbook{p.-52}{Lemma 4.14, mentioned but not proved}]
   \label{lemma:swap_strings}
   Assuming $P_{A,B}$ is the permutation matrix encoding $\DIST_{A,B}$, the $\DIST$-table $\DIST_{B,A}$ is encoded by the permutation matrix $P_{B,A}$ where,
@@ -1507,7 +1554,7 @@ This completes the description on how to build the $\DIST$-repository within the
 
 \subsection{Applying a $\DIST$ table}
 \label{sec:applying-a-dist-table}
-What remains is to show how the $\DIST$-repository can be used to fill the dynamic programming grid efficiently. Assume that the outputs of a block in the grid with input $I$ should be computed. The outputs are given by \cref{eqn:dist-application} which by \cref{lemma:dist-H-relation} can be re-written as
+What remains is to show how the $\DIST$-repository can be used to fill the dynamic programming grid efficiently. Assume that the outputs of a block in the grid with input $I$ need to be computed. The outputs are given by \cref{eqn:dist-application} which by \cref{lemma:dist-H-relation} can be re-written as
 \begin{align*}
   O[j] &= \max_i \left\{ I[i] + \DIST[i, j] \right\} \\
     &= \max_i \left\{ I[i] + H(i, j) + \left\{
@@ -1533,7 +1580,7 @@ What remains is to show how the $\DIST$-repository can be used to fill the dynam
 Hence, the output can be evaluated by max-multiplying the $H$ table with a slight perturbation of the input array, followed by an addition for every resulting output. \cite{Gawrychowski:2012:FAC:2422024.2422048} gave a linear time algorithm for max-multiplying an arbitrary vector with a $H$-table which is described in \cref{sec:algorithm:max-mult-H-table-with-vector}. This gives a linear time algorithm for applying a $\DIST$ table.
 
 \section{Efficient simple unit-Monge operations}
-The two basic building blocks for merging and applying DIST tables are the following two algorithms described in this section. They both rely on properties of simple unit-Monge matrices in order to gain faster computation that otherwise possible.
+The two basic building blocks for merging and applying DIST tables are the algorithms for computing the minimum/maximum distance product. They both rely on properties of simple unit-Monge matrices in order to obtain faster computation that otherwise possible.
 
 \subsection{Min-multiplication of two simple unit-Monge matrices}
 \label{sec:algorithm:min-mult-two-unit-monge}
@@ -1560,16 +1607,16 @@ Notice that all of these sub-problems are rectangular matrices of size $n \times
 \[
   P_{C,lo} = P_{A,lo} \boxdot P_{B,lo}, \quad P_{C,hi} = P_{A,hi} \boxdot P_{B,hi}.
 \]
-As a result from the recursive calls these matrices are of size $\frac{n}{2}$. However, by doing the inverse index remapping from the above step, they can be considered as matrices of size $n$ and with the property that $P_{C,lo} + P_{C,hi}$ is a permutation matrix, since they come from disjoint ranges. From this point on $P_{C,lo}$ and $P_{C,hi}$ will be considered as matrices of size $n$. Notice that when the $\Sigma$-operator is applied to the sub-problem matrices, all the rows (columns) that contain all zeros in the sub-problem matrix will be identical to the previous row (column) in the $\Sigma$'ed version. Therefore all the sub-problem matrices where $\Sigma$ is applied will be indexed as $n \times \frac{n}{2}$ or $\frac{n}{2} \times n$ matrices as this eases index notation.
+The results from the two recursive calls are of size $\frac{n}{2}$. However, by doing the inverse index remapping from the above step, they can be considered as matrices of size $n$ and they satisfy that $P_{C,lo} + P_{C,hi}$ is a permutation matrix since they come from disjoint ranges. From this point on $P_{C,lo}$ and $P_{C,hi}$ will be considered as matrices of size $n$. Notice that when the $\Sigma$-operator is applied to the sub-problem matrices, all the rows (columns) that contain all zeros in the sub-problem matrix will be identical to the previous row (column) in the $\Sigma$'ed version. Therefore all the sub-problem matrices where $\Sigma$ is applied will be indexed as $n \times \frac{n}{2}$ or $\frac{n}{2} \times n$ matrices as this eases index notation.
 
-In the implementation the index transformation is done by sending vectors containing the current subset of rows and columns that should be considered for the subproblem. Using these vectors and the original input matrices, it is easy to construct and represent a constant time mapping to and from indices in the sub-problem matrices and the original input matrices in both $O(n)$ time and space. Since the mapping is constant time, it is possible to query the position of the $1$ entry in a row or column in the sub-problem matrices.
+In the implementation the index transformation is done by supplying vectors containing the current subset of rows and columns that should be considered for the subproblem. Using these vectors and the original input matrices, it is easy to construct and represent a constant time mapping to and from indices in the sub-problem matrices and the original input matrices in both $O(n)$ time and space. Since the mapping is constant time, it is possible to query the position of the $1$ entry in a row or column in the sub-problem matrices.
 
 In the following calculations, let $i, j \in \{0, \dots, n\}$. First notice that the desired result can be written as
 \begin{align*}
   P_C^{\Sigma}(i, j) &= \min_{k \in \{0, \dots n\}} \left( P_A^{\Sigma}(i, k) + P_B^{\Sigma}(k, j) \right) \\
     &= \min\left( \min_{k \in \{0, \dots, \frac{n}{2}\}} {P_A^{\Sigma}(i, k) + P_B^{\Sigma}(k, j)}, \min_{k \in \{\frac{n}{2}, \dots, n\}} {P_A^{\Sigma}(i, k) + P_B^{\Sigma}(k, j)} \right).
 \end{align*}
-The goal is to reduce the two sums inside the minimization to a constant number of table lookups in the results from the recursive calls. To do this notice that
+The goal is to reduce the two sums inside the minimization to a constant number of lookups in the two results from the recursive calls. To do this notice that
 \begin{align*}
   P_{C,hi}^{\Sigma}(0, j) &= \min_{k \in \{0, \dots, \frac{n}{2}\}} \left( P_{A,hi}^{\Sigma}(0, k) + P_{B,hi}^{\Sigma}(k, j) \right) \\
     &= \min_{k \in \{0, \dots, \frac{n}{2}\}} \left( k + P_{B,hi}^{\Sigma}(k, j) \right) = P_{B,hi}^{\Sigma}(0, j)
@@ -1578,7 +1625,7 @@ The goal is to reduce the two sums inside the minimization to a constant number 
     &= \min_{k \in \{0, \dots, \frac{n}{2}\}} \left( P_{A,lo}^{\Sigma}(i, k) + \frac{n}{2} - k \right)
     = P_{A,lo}^{\Sigma}(i, \frac{n}{2})
 \end{align*}
-where the last equality in both statements follows since $P_{B,hi}$ and $P_{A,lo}$ are sub-permutation\footnote{A sub-permutation matrix is a permutation matrix but where some of the $1$ entries may be omitted.} matrices and hence can decrease by at most one every time $k$ is increased. These two observations can be used to find that
+where the last equality in both statements follows since $P_{B,hi}$ and $P_{A,lo}$ are sub-permutation matrices\footnote{A sub-permutation matrix is a permutation matrix but where some of the $1$ entries may be omitted.} and hence can decrease by at most one every time $k$ is increased. These two observations can be used to find that
 \begin{align*}
   \min_{k \in \{0, \dots, \frac{n}{2}\}} \left( P_A^{\Sigma}(i, k) + P_B^{\Sigma}(k, j) \right)
     &= \min_{k \in \{0, \dots, \frac{n}{2}\}} \left( P_{A,lo}^{\Sigma}(i, k) + P_{B,lo}^{\Sigma}(k, j) + P_{B,hi}^{\Sigma}(0, j) \right) \\
@@ -1701,12 +1748,13 @@ Since the witness can be computed in constant time, it takes $O(n)$ times to bui
     \iff &r_{hi}(j - i) \leq i + j
   \end{align*}
 
-  \item[$\delta(i + 1, j + 1) > 0, \delta(i, j) < 0$]: This happens iff $(i + 1, j + 1)$ is under $r_{lo}$ and $(i, j)$ is above $r_{hi}$. Notice that the number of steps required to reach any of these entries is $d = j - i$. Therefore using the same reasoning as in the previous two cases the condition is satisfied iff both of the following statements are satisfied
+  \item[$\delta(i + 1, j + 1) > 0, \delta(i, j) < 0$]: This happens iff $(i + 1, j + 1)$ is under $r_{lo}$ and $(i, j)$ is above $r_{hi}$. Notice that the number of steps required to reach any of these entries is $d = j - i$. Therefore using the same reasoning as in the previous two cases, the condition is satisfied iff both of the following statements are satisfied
   \begin{itemize}
   \item $r_{lo}(j - i) < j + i + 2$
-  \item $r_{hi}(j - i) > j + i$
+  \item $r_{hi}(j - i) > j + i$,
   \end{itemize}
-  Or summarized into a single line iff $r_{lo}(j - i) - 2 < j + i < r_{hi}(j - i)$.
+  or summarized into a single line iff $r_{lo}(j - i) - 2 < j + i < r_{hi}(j - i)$.
+  
   By the unit monotonicity of $\delta$, $r_{lo}$ will be located below $r_{hi}$. For this reason, it will be the case that $r_{lo}(d') \geq r_{hi}(d')$ for all $d' \in \{-n, \dots, n\}$, which squeezes the possible values of $r_{hi}(j - i) \in \{r_{lo}(j - i), r_{lo}(j - i) + 1\}$. However, by construction it must always be the case that $r(d') + d'$ is even, for both $r_{lo}$ and $r_{hi}$. Hence it follows that the condition is satisfied iff $r_{hi}(j - i) = r_{lo}(j - i)$.
 \end{description}%
 %
@@ -1716,9 +1764,9 @@ The check if $P_C(i, j)$ should contain a $1$ can now be formulated as
   &P_{C,hi}(i, j) = 1 \text{ and } r_{hi}(j - i) \leq i + j \\
   &r_{lo}(j - i) = r_{hi}(j - i).
 \end{align}
-The first two cases can be checked by looping through all the $1$'s in both $P_{C,lo}$ and $P_{C,hi}$ and then for each of them check the corresponding path condition. Each check takes constant time and there are in total $n$ $1$'s in the two matrices. The $1$'s from the first two cases can thereby be computed in time $O(n)$.
+The first two cases can be checked by looping through all the $1$'s in both $P_{C,lo}$ and $P_{C,hi}$ and then for each of them check the corresponding path condition. Each check takes constant time and there are a total of $n$ $1$'s in the two matrices. The $1$'s from the first two cases can thereby be computed in time $O(n)$.
 
-For the last case the idea is to loop through all $d \in \{-n, \dots, n\}$ and then check if $r_{lo}(d) = r_{hi}(d)$. If this is the case, then the position corresponding to that path position should be set to $1$. The corresponding path position is by definition given to be
+For the last case, the idea is to loop through all $d \in \{-n, \dots, n\}$ and then check if $r_{lo}(d) = r_{hi}(d)$. If this is the case, then the position corresponding to that path position should be set to $1$. The corresponding path position is by definition given to be
 \[
   (i, j) = \left( \frac{r(d) - d}{2}, \frac{r(d) + d}{2} \right).
 \]
@@ -1732,7 +1780,7 @@ which is well known and solves to $O(n \log{n})$.
 
 \subsection{Max-multiplication of $H$-table with vector}
 \label{sec:algorithm:max-mult-H-table-with-vector}
-In order to apply the DIST tables to fill out the grid, it is required to be able to compute the maximum distance product between an arbitrary vector and a $H$-table. This is a description of the algorithm given in \cite[Lemma 2, p. 234]{Gawrychowski:2012:FAC:2422024.2422048}.
+In order to apply the DIST tables to fill out the grid, it is required to be able to compute the maximum distance product between an arbitrary vector and a $H$-table. This section will describe the algorithm of \cite[Lemma 2, p. 234]{Gawrychowski:2012:FAC:2422024.2422048} which gives a linear time algorithm for solving the problem.
 
 Let $v$ denote the input vector of size $n$ and assume we are given a $n \times n$ $H$-table $H$. The algorithm incrementally computes the maximum distance product where each iteration takes $O(1)$ time, leading to a $O(n)$ time algorithm. The output of the algorithm should be
 \[
@@ -1986,7 +2034,7 @@ This section will present measurements on how the algorithm performs compared to
 
 For all the human genome inputs and the random inputs it can be seen that the algorithm performs $\approx 2^{8} = 256$ times slow than the simple algorithm. This is a quite disappointing result from the perspective of using the algorithm for DNA alignment and comparison. One natural thought is if there is something in the code that is directly responsible for the large slow down, but no such areas in the code was found by profiling. It is probably the case that some parts of the implementation can be optimized\footnote{Possible optimizations include double-dispatching without dynamic casts and better memory control.}. However, these optimizations should not be able to speed up the computation nowhere near the measured slowdown.
 
-Since the alphabet is finite, the input strings can be made to compress arbitrarily well by making the strings sufficiently long. The rate of this compression happens by a factor of $O(\log_{\Sigma}{n})$ whereby the running time of the combined algorithm for all strings should be bounded by $O\left( N^2 \frac{\sqrt{\log{\log{N}}}}{\log{N}} \right)$. Since $O(\log{N})$ grows quite slow and the tremendous overhead in the compressed edit distance algorithm, the compression based algorithm will never be better than the simple algorithm for input that does not compress well under the SLP compression scheme.
+Since the alphabet is finite, the input strings can be made to compress arbitrarily well by making the strings sufficiently long. The rate of this compression happens by a factor of $O(\log_{|\Gamma|}{n})$ whereby the running time of the combined algorithm for all strings should be bounded by $O\left( N^2 \frac{\sqrt{\log{\log{N}}}}{\log{N}} \right)$. Since $O(\log{N})$ grows quite slow and the tremendous overhead in the compressed edit distance algorithm, the compression based algorithm will never be better than the simple algorithm for input that does not compress well under the SLP compression scheme.
 
 It is also worth noticing that the simple algorithm may be improved. \cite{LasseFourRussian} experimented with the Four Russian algorithm for sequence alignment and found a speedup factor of $\approx 6-8$. Therefore the algorithm implemented in this thesis is not feasible to use to align DNA sequences.
 

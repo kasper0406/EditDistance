@@ -36,6 +36,22 @@ int main(int argc, char* argv[])
   cout << "Running in RELEASE MODE!" << endl << endl;
 #endif
   
+  for (int64_t i = 1; i < 30; ++i) {
+    cout << i << "\t" << Compression::DIST::LZFactorize::lz_factorize(Benchmark::fib_string(i)).size() << endl;
+  }
+  
+  return 0;
+  
+  // const string test_string = "AAAABBAABAAAAAABB";
+  const string test_string = "AAAABBABAAAAB";
+  
+  auto slp = Compression::DIST::LZSLPBuilder::build(test_string);
+  // auto slp = Compression::DIST::SimpleCompressionSLPBuilder::build(test_string);
+  
+  cout << Compression::DIST::SLPFoldedPrinter::toDot(*slp) << endl;
+  
+  return 0;
+  
   Test::TestSuite::run_tests();
   
   {

@@ -296,17 +296,20 @@ namespace Compression {
         if (seen.count(nonTerminal) > 0) return;
         seen.insert(nonTerminal);
         
-        ss_ << "\"n" << nonTerminal << "\" [label=\"X" << nonTerminal->name() << ", height=" << nonTerminal->height() << ", rc=" << nonTerminal->reclaimCount() << ", lzlen=" << nonTerminal->lzbuilder_length << "\"];" << endl;
-        ss_ << "\"n" << nonTerminal << "\" -- \"n" << nonTerminal->left() << "\";" << endl;
+        // ss_ << "\"n" << nonTerminal << "\" [label=\"X" << nonTerminal->name() << ", height=" << nonTerminal->height() << ", rc=" << nonTerminal->reclaimCount() << ", lzlen=" << nonTerminal->lzbuilder_length << "\"];" << endl;
+        
+        ss_ << "\"n" << nonTerminal << "\" [label=\"X" << nonTerminal->name() << "\"];" << endl;
+        
+        ss_ << "\"n" << nonTerminal << "\" -> \"n" << nonTerminal->left() << "\";" << endl;
         nonTerminal->left()->accept(this);
-        ss_ << "\"n" << nonTerminal << "\" -- \"n" << nonTerminal->right() << "\";" << endl;
+        ss_ << "\"n" << nonTerminal << "\" -> \"n" << nonTerminal->right() << "\";" << endl;
         nonTerminal->right()->accept(this);
       }
       
       static string toDot(const SLP& slp) {
         SLPFoldedPrinter printer;
         
-        printer.ss_ << "graph G {" << endl;
+        printer.ss_ << "digraph G {" << endl;
         printer.ss_ << "graph [ordering=\"out\"];" << endl;
         slp.root()->accept(&printer);
         printer.ss_ << "}" << endl;
@@ -461,60 +464,7 @@ namespace Compression {
         
         return factors;
       }
-      
-      /**
-       * I think this approach has an error on the last edge!
-       * Slowscan is probably required on that edge.
-       */
-      static vector<pair<uint64_t,uint64_t>> experimental_fast_scan_lz_factorize(string str) {
-        cst_sct3<> cst;
-        construct_im(cst, str.c_str(), 1);
-        vector<pair<uint64_t,uint64_t>> factors;
-        
-        vector<int64_t> first_time_seen(cst.nodes(), numeric_limits<int64_t>::max());
-        for (auto iter = cst.begin(); iter != cst.end(); ++iter) {
-          auto current_id = cst.id(*iter);
-          
-          // cout << current_id << endl;
-          
-          if (cst.is_leaf(*iter)) {
-            first_time_seen[current_id] = cst.sn(*iter); // str.length() - cst.depth(*iter);
-          }
-          
-          if (cst.root() != *iter && first_time_seen[current_id] != numeric_limits<uint64_t>::max()) {
-            auto parent_id = cst.id(cst.parent(*iter));
-            first_time_seen[parent_id] = min(first_time_seen[parent_id], first_time_seen[current_id]);
-          }
-        }
-        
-        int64_t i = 0;
-        while (i < str.length()) {
-          int64_t start = i, edgeLength = 0;
-          auto currentNode = cst.root();
-          auto previousNode = currentNode;
-          while (first_time_seen[cst.id(currentNode)] + i - start - 1 < start) {
-            previousNode = currentNode;
             
-            currentNode = cst.child(currentNode, str[i]);
-            assert(currentNode != cst.root());
-            edgeLength = cst.depth(currentNode) - cst.depth(previousNode);
-            
-            i += edgeLength;
-          }
-          
-          if (previousNode == cst.root()) {
-            factors.push_back({ start, start });
-            i -= edgeLength - 1;
-          } else {
-            const auto firstPos = first_time_seen[cst.id(previousNode)];
-            const int64_t length = i - edgeLength - start;
-            factors.push_back({ firstPos, firstPos + length - 1 });
-            i -= edgeLength;
-          }
-        }
-        return factors;
-      }
-      
       static vector<pair<uint64_t,uint64_t>> lz_factorize(string str) {
         cst_sct3<> cst;
         construct_im(cst, str.c_str(), 1);
@@ -605,6 +555,9 @@ namespace Compression {
                 right.push_back(production);
               }
             }
+            
+            // cout << "ls = " << left.size() << endl;
+            // cout << "rs = " << right.size() << endl;
             
             root = concat(root, concat(concat(left), concat(right)));
           }
