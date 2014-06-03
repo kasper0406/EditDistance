@@ -36,6 +36,7 @@ int main(int argc, char* argv[])
   cout << "Running in RELEASE MODE!" << endl << endl;
 #endif
   
+  /*
   for (int64_t i = 1; i < 30; ++i) {
     cout << i << "\t" << Compression::DIST::LZFactorize::lz_factorize(Benchmark::fib_string(i)).size() << endl;
   }
@@ -51,8 +52,11 @@ int main(int argc, char* argv[])
   cout << Compression::DIST::SLPFoldedPrinter::toDot(*slp) << endl;
   
   return 0;
+   */
   
   Test::TestSuite::run_tests();
+  
+  return 0;
   
   {
     auto parameter_test_fib = [] (double xfactor, double ffactor) {
