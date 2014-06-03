@@ -1792,9 +1792,9 @@ where $P$ is the permutation matrix representation of the $H$-table. By defining
 \[
   u'(j) = \max_i v'(i) - P^{\Sigma}(i, j).
 \]
-In the implementation it is not necessary to copy the input, but the slightly modified input and output vectors can be "simulated" directly from the original input. However, the redefinition makes the description of the algorithm a bit more clear, and makes it follow \cite[Lemma 2, p. 234]{Gawrychowski:2012:FAC:2422024.2422048}.
+In the implementation it is not necessary to copy the input because the slightly modified input and output vectors can be "simulated" directly from the original input. However, the redefinition makes the description of the algorithm a bit more clear, and makes it follow \cite[Lemma 2, p. 234]{Gawrychowski:2012:FAC:2422024.2422048}.
 
-Define $t_j(i) := v'(i) - P^{\Sigma}(i, j)$. That is, for a fixed $j$ it contains all the entries from where the maximum entry needs to be found. Assume there exist two indices $i < i'$ such that $t_j(i) \leq t(i')$, then because $P$ is a permutation matrix and by the definition of the $\Sigma$-operator, there are two possibilities:
+Define $t_j(i) := v'(i) - P^{\Sigma}(i, j)$. That is, for a fixed $j$ it contains all the entries from where the maximum entry needs to be found. Assume there exist two indices $i < i'$ such that $t_j(i) \leq t_j(i')$, then because $P$ is a permutation matrix and by the definition of the $\Sigma$-operator, there are two possibilities:
 \begin{description}
   \item[$P^{\Sigma}(i', j) = P^{\Sigma}(i', j + 1) - 1$]: In this case it follows by the definition of the $\Sigma$-operator and that $P$ is a permutation matrix that $P^{\Sigma}(i, j) = P^{\Sigma}(i, j + 1) - 1$.  This can be used to find that
   \begin{align*}
@@ -1818,7 +1818,7 @@ The idea now is to store a list of candidates that can attain the maximum possib
 
 The first such index list is easy to compute by sweeping from right to left and then pick out the sequence of strictly increasing $t$-values.
 
-Notice that by the definition of the $\Sigma$-operator, all entries $t(1), \dots, t(k)$ should be decreased by $1$, where $k$ is the row number of the $1$ entry in row $j$ in $P$. In order to be able to do this in constant time, the selected candidates of $t$ are represented by their relative difference. A bit more details on this is given in \cite[Lemma 2, p. 234]{Gawrychowski:2012:FAC:2422024.2422048}.
+Notice that by definition of the $\Sigma$-operator, all entries $t(1), \dots, t(k)$ should be decreased by $1$ when increasing $j$, where $k$ is the row number of the $1$ entry in row $j$ in $P$. In order to be able to do this in constant time, the selected candidates of $t$ are represented by their relative difference. A bit more details on this is given in \cite[Lemma 2, p. 234]{Gawrychowski:2012:FAC:2422024.2422048}.
 
 Doing this, a prefix of the entries can be decreased by decreasing the first entry, and then find the leftmost entry $> k$, and increase this difference by $1$. If some difference reaches $0$ it is removed from the list, as this can never again be a candidate from the condition above.
 
@@ -1835,14 +1835,14 @@ The interval union find data-structure implemented is the one of \cite{Itai06lin
 \clearpage
 \section{Benchmarks}
 \label{sec:algorithm:benchmarks}
-This section will benchmark the compression based edit distance algorithm. Both with respect to the theoretical running time and also by comparing it to the performance of the simple algorithm. First it will be verified that the distance product algorithms performs as expected, and then the combined algorithm for computing the edit distance of compressed strings will be evaluated.
+This section will benchmark the compression based edit distance algorithm. Both with respect to the theoretical running time and also by comparing it to the performance of the simple algorithm. First it will be verified that the distance product algorithms performs as expected and then the combined algorithm for computing the edit distance of compressed strings will be evaluated.
 
 \subsection{Distance products}
 In this section the distance product operations on unit-Monge matrices will be benchmarked and optimized for later use.
 
 \subsubsection{Minimum distance product}
 \label{sec:min-dist-mult-bc}
-In order to get the best possible performance for the minimum distance product computation, the size of the base case of the algorithm described in \cref{sec:algorithm:min-mult-two-unit-monge} should be determined. Notice that when benchmarking the algorithm, the same amount of work should be done no matter the input. Therefore the running time should not depend on the content of the input, but only on its size. Therefore, all the benchmarks of the minimum distance product algorithms have been done with random permutation matrices of a specific size.
+In order to get the best possible performance for the minimum distance product computation, the size of the base case of the algorithm described in \cref{sec:algorithm:min-mult-two-unit-monge} should be determined. Notice that when benchmarking the algorithm, the same amount of work should be done no matter the input. Therefore the running time should not depend on the content of the input, but only on its size. Therefore, all the benchmarks of the minimum distance product algorithms have been performed with permutation matrices sampled from a uniformly random distribution over all possible permutation matrices of size $n$.
 
 \Cref{fig:benchmark:min-distance:bc} plots the running time normalized by $n\log{n}$ of the algorithm when varying the base case size. The general form of the plot is as expected: A small base case size leads to a larger running time, and a too large base case size will also yield a larger running time. The best compromise seems to be around base case size $k \approx 20$. For all the following measurements in this report a base case size of $k = 20$ has been used.
 
@@ -1865,17 +1865,19 @@ Notice that the normalized running times for the base case size of $50$ experien
 \end{figure}
 
 \subsubsection{Maximum distance product}
-This section will examine if the maximum distance product algorithm runs within the theoretical running time, and its running time will be compared to a simple unfolding algorithm.
+This section will examine if the maximum distance product algorithm runs within the theoretical running time. Also, its running time will be compared to a naive $O(n^2)$ time unfolding algorithm.
 
-This algorithm is a bit more input sensitive than the one for computing the minimum distance product, since a candidate list of possible solutions is maintained. The length of this list does have an influence on the running time. It has been chosen to verify the running time using a permutation matrix sampled uniformly at random. This choice should not have any significant influence on the running time, since the permutation matrix does not directly control the length of the candidate list. For the input vector, three different inputs have been benchmarked:
+The efficient maximum distance product algorithm is a bit more input sensitive than the one for computing the minimum distance product, since a candidate list of possible solutions is maintained. The length of this list does have an influence on the running time. It has been chosen to verify the running time using a permutation matrix sampled uniformly at random. This choice should not have any significant influence on the running time, since the permutation matrix does not directly control the length of the candidate list. For the input vector, three different inputs have been benchmarked:
 \begin{description}
   \item[Increasing input] is given by $v_i = i$ for all entries $i$. This type of input should make the candidate list to only be of length 1.
-  \item[Decreasing input] is given by the input vector $v_i = 2 \cdot (N - i)$ where $N$ is the input size. This type should make the length of the candidate list as long as possible.
-  \item[Random permutation] is a vector $v = \sigma(1, \dots, N)$ where $\sigma \in S_N$. Ie. $v$ is a random permutation of the values $1, \dots, N$.
+  \item[Decreasing input] is given by the input vector $v_i = 2 \cdot (n - i)$ where $n$ is the input size. This type should make the length of the candidate list as long as possible.
+  \item[Random permutation] is a vector $v = \sigma(1, \dots, n)$ where $\sigma \in S_n$. Ie. $v$ is a random permutation of the values $1, \dots, n$.
 \end{description}
-\Cref{fig:benchmark:max-distance} plots the normalized running time of both the naive $O(n^2)$ algorithm, and the efficient $O(n)$ algorithm of \cite{Gawrychowski:2012:FAC:2422024.2422048}. It can be seen that the algorithm of \cite{Gawrychowski:2012:FAC:2422024.2422048} is superior to the naive algorithm even for relatively small.
+\Cref{fig:benchmark:max-distance} plots the normalized running time of both the naive $O(n^2)$ algorithm, and the efficient $O(n)$ algorithm of \cite{Gawrychowski:2012:FAC:2422024.2422048}. It can be seen that the algorithm of \cite{Gawrychowski:2012:FAC:2422024.2422048} is superior to the naive algorithm even for relatively small input sizes.
 
-Also, it can be seen that the algorithm behaves as expected wrt. to the input types. The input generating the longest candidate list takes the longest time, and the one with only one candidate is the fastest. It can also be seen that the normalized running times seems to be bounded by a constant, which indicates that the theoretical running time is satisfied. However, for large input sizes a small increase in normalized running time for the long candidate list input. From \cref{fig:benchmark:max-distance-cpu} it can be seen that the normalized CPU instructions remain constant as the input size grows. Therefore the increase in running time can be explained by a mismatch with the RAM model and the actual realization of a computer. The measurements from the experiments suggest that the blame is not cache misses as they also approaches a constant when normalized. Therefore it is not exactly known which part of the CPU is responsible for the slight increase in running time, but reasonable guesses could be TLB misses or branch mispredictions.
+Also, it can be seen that the algorithm behaves as expected wrt. to the different types of input. The input generating the longest candidate list takes the longest time and the one with only one candidate is the fastest.
+
+It can also be seen that the normalized running times seems to be bounded by a constant, which indicates that the theoretical running time is satisfied. However, for large input sizes a small increase in normalized running time for the long candidate list input. From \cref{fig:benchmark:max-distance-cpu} it can be seen that the normalized CPU instructions remain constant as the input size grows. Therefore the increase in running time can be explained by a mismatch with the RAM model and the actual realization of a computer. The measurements from the experiments suggest that the blame is not cache misses as they also approaches a constant when normalized. Therefore it is not exactly known which part of the CPU is responsible for the slight increase in running time, but reasonable guesses could be TLB misses or branch mispredictions.
 
 \begin{figure}[h!]
   \centering
