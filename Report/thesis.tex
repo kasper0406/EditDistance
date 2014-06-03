@@ -1900,7 +1900,7 @@ In the end it will be checked that all the steps combined into the complete algo
 
 \subsubsection{Determining SLP partitioning factors}
 \label{sec:benchmark:slp-partition-factors}
-In \cref{sec:combining-the-two-steps} two factors called $\ffactor$ and $\xfactor$ was introduced. These factors control how large the partitions of the SLPs should be. In this section these factors will be experimentally determined for use in all following benchmarks.
+In \cref{sec:combining-the-two-steps} two factors called $\ffactor$ and $\xfactor$ were introduced. These factors control how large the partitions of the SLPs should be. In this section these factors will be experimentally determined for use in all following benchmarks.
 
 The compressibility of the input may have a big influence on how the factors are optimally chosen. In order to determine what factors to use, an experiment varying the factors while measuring the running time of aligning two Fibonacci strings of length 610 and two random strings of length 610 was performed. The choice of these two input types is due to their very different compression characteristics.
 
@@ -1929,7 +1929,7 @@ It can be seen on \cref{fig:benchmark:estimating-factors} that the effect of dif
 For the Fibonacci string \cref{fig:benchmark:estimating-factors:fib} shows that the best running time is obtained by choosing $\xfactor = 2$ and $\ffactor = 2$. Therefore this choice is used in the following benchmarks for Fibonacci strings.
 
 \subsubsection{DIST Repository and grid computation}
-This section will present measurements on the two most time consuming parts of the algorithm. Namely construction of the DIST repository and the grid computation.
+This section will present measurements on the two main steps of the algorithm. Namely construction of the DIST repository and the grid computation.
 
 \paragraph{DIST repository}
 First the time taken to build the $\DIST$ repository will be examined. \Cref{fig:benchmark:dist-repo-time} shows the normalized running time for the different input types.
@@ -1955,7 +1955,7 @@ Therefore it is concluded that the theoretical running time is satisfied.
 % \end{figure}
 
 \paragraph{Grid computation}
-It will not be verified that the time to fill out the dynamical programming grid satisfies the theoretical running time. \Cref{fig:benchmark:fill-grid-time} plots the normalized running time for the different types of input. It can be seen that all the normalized running times seem to be bounded by a constant.
+It will now be checked if the time to fill out the dynamical programming grid satisfies the theoretical running time. \Cref{fig:benchmark:fill-grid-time} plots the normalized running time for the different types of input. It can be seen that all the normalized running times seem to be bounded by a constant.
 % \Cref{fig:benchmark:fill-grid-cpu} shows a plot indicating that the number of CPU instructions executed follows the theoretical bound, but an increase in L3 cache misses is seen when the running time begins to increase. Therefore this increase in running time can be explained by the hierarchical memory layout of a computer.
 
 % Another interesting thing to notice about the plots in \cref{fig:benchmark:fill-grid-time} is that the normalized running time does not stabilize around a constant before $N \approx 2^7 = 128$ which is surprisingly long sequences. This behavior can be explained by the maximum distance multiplication from \cref{sec:algorithm:max-mult-H-table-with-vector} that relies on interval union-find and a candidate list which may have an overhead in setup time for small input sizes.
@@ -1992,7 +1992,7 @@ It can be seen that the constant of the normalized running time for the random d
 \paragraph{Running time distribution}
 It will now be examined how much of the running time is spend on the different parts of the algorithm for different input types and sizes. \Cref{fig:benchmark:relative-runningtime} shows how the relative time distribution is for the different input types.
 
-It can be seen that the time for constructing and blocking the SLP takes almost all of the time for input sizes up to $\approx 2^9 = 512$. This is due to the high running time constant of building the suffix tree, used to compute the LZ-factorization. However, as the input size gets larger, the relative time for computing the SLP gets negligible in the total running time. This is also what is predicted by the theoretical running times.
+It can be seen that the time for constructing and blocking the SLP takes almost all of the time for input sizes up to $\approx 2^9 = 512$. This is due to the high running time constant of building the suffix tree used to compute the LZ-factorization. However, as the input size gets larger, the relative time for computing the SLP gets negligible in the total running time. This is also what is predicted by the theoretical running times.
 
 For the Fibonacci input, it can be seen that the running time between the grid computation and the DIST repository construction is more or less balanced. This is opposed to other the three inputs (the human genome combinations and the random string) where almost all the time is spend by the grid computation.
 
@@ -2034,21 +2034,21 @@ Because Fibonacci inputs compress better the longer the input is, the partition 
 \end{figure}
 
 \subsubsection{Comparison with simple algorithms}
-This section will present measurements on how the algorithm performs compared to the simple algorithm. \Cref{fig:benchmark:simple-vs-lcsblowup} plots the speedup factor obtained over the simple algorithm for the different inputs.
+This section will present measurements on how the compression based algorithm performs compared to the simple algorithm. \Cref{fig:benchmark:simple-vs-lcsblowup} plots the speedup factor obtained over the simple algorithm for the different inputs.
 
 For all the human genome inputs and the random inputs it can be seen that the algorithm performs $\approx 2^{8} = 256$ times slow than the simple algorithm. This is a quite disappointing result from the perspective of using the algorithm for DNA alignment and comparison. One natural thought is if there is something in the code that is directly responsible for the large slow down, but no such areas in the code was found by profiling. It is probably the case that some parts of the implementation can be optimized\footnote{Possible optimizations include double-dispatching without dynamic casts and better memory control.}. However, these optimizations should not be able to speed up the computation nowhere near the measured slowdown.
 
-Since the alphabet is finite, the input strings can be made to compress arbitrarily well by making the strings sufficiently long. The rate of this compression happens by a factor of $O(\log_{|\Gamma|}{n})$ whereby the running time of the combined algorithm for all strings should be bounded by $O\left( N^2 \frac{\sqrt{\log{\log{N}}}}{\log{N}} \right)$. Since $O(\log{N})$ grows quite slow and the tremendous overhead in the compressed edit distance algorithm, the compression based algorithm will never be better than the simple algorithm for input that does not compress well under the SLP compression scheme.
+Since the alphabet is finite, the input strings can in theory be made to compress arbitrarily well by making the strings sufficiently long. The rate of this compression happens by a factor of $\Omega(\log_{|\Gamma|}{N})$ whereby the running time of the combined algorithm for all strings should be bounded by $O\left( N^2 \frac{\sqrt{\log{\log{N}}}}{\log{N}} \right)$. Because $\log{N}$ grows quite slow and the tremendous overhead in the compressed edit distance algorithm, the compression based algorithm will never be better than the simple algorithm for practical sized inputs that does not compress well under the SLP compression scheme.
 
-It is also worth noticing that the simple algorithm may be improved. \cite{LasseFourRussian} experimented with the Four Russian algorithm for sequence alignment and found a speedup factor of $\approx 6-8$. Therefore the algorithm implemented in this thesis is not feasible to use to align DNA sequences.
+It is also worth noticing that the simple algorithm may be improved. \cite{LasseFourRussian} experimented with the Four Russian algorithm for sequence alignment and found a speedup factor of $\approx 6-8$. Therefore the algorithm implemented in this thesis is not feasible for use in DNA sequence alignment.
 
-The situation is different for Fibonacci input, which by \cref{sec:compression:benchmarks} is compressed such that $n = O(\log^2{N})$. This means that the total running time of the algorithm for Fibonacci input becomes $O\left( N\log^2{N} \sqrt{\log{\frac{N}{\log^2{N}}}} \right) = O(N\log^{\frac{5}{2}}{N})$. Therefore the running time of the LCS Blow-up method should improve by a factor $\Omega\left( \frac{N}{\log^{\frac{5}{2}}{N}} \right)$ over the simple algorithm.
+The situation is different for Fibonacci inputs, which by \cref{sec:compression:benchmarks} is compressed such that $n = O(\log^2{N})$. This means that the total running time of the algorithm for Fibonacci input becomes $O\left( N\log^2{N} \sqrt{\log{\frac{N}{\log^2{N}}}} \right) = O(N\log^{\frac{5}{2}}{N})$. Therefore the running time of the LCS Blow-up method should improve by a factor $\Omega\left( \frac{N}{\log^{\frac{5}{2}}{N}} \right)$ over the simple algorithm.
 
-It can be seen on \cref{fig:benchmark:simple-vs-lcsblowup-fib} that the actual speed-up factor seems to conform to theory. The actual speedup seems to be a bit better than the expression in the theoretical bound. The reason for the better asymptotic performance can mainly be explained by the $n = O(\log^2{N})$ SLP compression bound for the Fibonacci input contains some slack.
+It can be seen on \cref{fig:benchmark:simple-vs-lcsblowup-fib} that the actual speed-up factor seems to conform to theory. The actual speed-up in fact seems to be a bit better than the expression in the theoretical bound. The reason for the better asymptotic performance can mainly be explained by the $n = O(\log^2{N})$ SLP compression bound for the Fibonacci input contains some slack.
 
-However, from \cref{fig:benchmark:simple-vs-lcsblowup} it can be seen that the length of the Fibonacci input should be longer than $\approx 2^{15} = 30000$ in order for the SLP-based algorithm to be faster than the simple edit-distance algorithm.
+However, from \cref{fig:benchmark:simple-vs-lcsblowup} it can be seen that the length of the Fibonacci input should be longer than $\approx 2^{15} \approx 30000$ in order for the SLP-based algorithm to be faster than the simple edit-distance algorithm.
 
-The benchmarks suggests that the algorithm is able to achieve a speedup in the edit distance computation for highly repetitive strings. However, in order to actually see any speedup the strings should be long. Moreover, it may be hard to think of practical input data that has fulfill the highly repeating structure. Therefore, the simple algorithm will for almost all practical purposes be a better choice.
+The benchmarks suggests that the algorithm is able to achieve a speedup in the edit distance computation for highly repetitive strings. However, in order to actually see any speedup the strings should be long. Moreover, it may be hard to think of practical input data that fulfill the highly repetitive structure. Therefore, the simple algorithm will for almost any practical purpose be a better choice.
 
 \begin{figure}[!htb]
   \centering
@@ -2068,32 +2068,33 @@ The benchmarks suggests that the algorithm is able to achieve a speedup in the e
 \label{chapter:conclusion}
 During the work with this thesis, the algorithm for computing the Edit Distance described in \cite{Gawrychowski:2012:FAC:2422024.2422048} has been described, implemented and tested in practice.
 
-The compression to SLPs of the input strings provides the foundation for obtaining a speedup. For the Fibonacci input, the inputs can be compressed to a size of $O(\log{n})$ where the original input size is $n$. This results in an asymptotic improvement in the theoretical running time for the compression based algorithm over the simple algorithm.
+The compression to SLPs of the input strings provides the foundation for obtaining a speedup. For the Fibonacci input, the inputs can automatically be compressed to a size of $O(\log^2{n})$ where the original input size is $n$. This results in an asymptotic improvement by a factor of $\Omega\left( \frac{N}{\log^{\frac{5}{2}}{N}} \right)$ for the theoretical running time of the compression based algorithm over the simple algorithm.
 
 For the human genome and the random input, they obtain a compression to something above $0.2N$ for all tested input sizes, which was tested up to $\approx 4\cdot 10^6$ symbols. Therefore, for all practical applications, the algorithm on such input data has a theoretical running no better than the simple algorithm. Therefore all benchmarks with the human genome and random input the competition in practice becomes a battle on constants.
 
-The running time of the algorithm when testing on Fibonacci input was found to be faster than the simple algorithm, when the input was longer than $\approx 30000$ symbols. This shows that there exist classes of inputs that does give a speedup in practice. However, it has not been possible to find any real world problems where the edit distance between such highly repetitive string is desirable.
+The running time of the algorithm when testing on Fibonacci input was found to be faster than the simple algorithm, when the input was longer than $\approx 30000$ symbols. This shows that there exist classes of inputs that does give a speedup in practice. However, it has not been possible to find any real world problems where the edit distance between such highly repetitive strings is desirable.
 
 More practical input data is represented by the human genome. The human genome performed much the same way as a random string in the algorithm. For both types of input the compression based algorithm was found to be a factor of $\approx 256$ slower than the simple algorithm. This indicates that the practical applications of the compression based algorithm in its current form are very limited.
 
-Another important thing to notice, is that the code for the compression based algorithm is immensely more complicated than the code for the simple algorithm. Also the Four Russian approach briefly described in \cref{sec:4-russian} is less extensive to implement.
+Another important thing to notice, is that the code for the compression based algorithm is immensely more complicated than the code for the simple algorithm. Also the Four Russian approach briefly described in \cref{sec:4-russian} is significantly less extensive to understand and implement.
 
 Therefore the algorithm in its current form is not practical, as the simple algorithm or the Four Russian algorithm is superior except for very long inputs when computing on highly structured strings. However, it may be possible to improve the practicality of the algorithm so it can compete with the simple algorithm. Some ideas in order to improve the practicality of the algorithm is given in the following section.
 
 \section{Future work}
 \label{sec:conclusion:future-work}
-During the project, a number of ideas for potentially improving (mostly of practical concerns) the approach of computing edit distance based on SLPs have been considered. These ideas are shortly described and motivated in the following list:
+During the project, a number of ideas (of which most are of practical concerns) for potentially improving the approach of computing the edit distance based on SLPs have been considered. These ideas are shortly described and motivated in the following list:
 
 \begin{itemize}
-  \item Parallelization of the algorithm: The two SLP representations can easily be computed in parallel. Inside the construction of the SLPs the parallelization is not obvious.
-  For the expensive parts of the algorithm (constructing the DISTs and filling the dynamical programming grid), parallelization is easy. For construction of the dist, parallelization can be applied to every invocation of \texttt{build}, which happens for every pair of selected SLP productions and every recursive call.
-  For filling out the grid, the algorithm can be parallelized in the same way as the simple algorithm, by choosing a suitable order to fill out the blocks.
-
   \item The algorithm for min-multiplying two unit-Monge matrices runs in time $O(n \log{n})$, however no lower bound other than $\Omega(n)$ is known. It could be interesting to close this gap. If is is possible to make a $\Theta(n)$ algorithm, the time for building the DIST tables can be reduced to $O(n^2 x)$, and by picking $x = \frac{N}{n}$, the total running time of the algorithm becomes $O(\underbrace{n^2 x}_{\DIST} + \underbrace{\frac{N^2}{x}}_{\text{Grid}}) = O(nN)$, which is an asymptotic improvement.
 
-  \item Consider if the compressed strings could be reused, such that a lot of compressed strings can be entangled into one SLP. This would make it possible for a lot of strings to share DIST tables, and also possible do a better compression of highly similar strings. This could be of interest when computing the edit distance between all pairs of a large number of sequences, which is useful when approximating a phylogeny from sequence data.
+  \item Consider if the compressed strings can be reused, such that multiple strings can be entangled into one SLP. This would make it possible for a lot of strings to share DIST tables, and also possible do a better compression of highly similar strings. This could be of interest when computing the edit distance between all pairs of a large number of sequences, which is useful when approximating a phylogeny from sequence data.
 
-  \item As mentioned in \cref{ch:compressing-strings}, the space consumption of the SLP has a very high constant when measured in terms of the number of productions in the SLP. As mentioned in the report, this is directly will not make the approach applicable to strings not compressing well, however a succinct representation of the SLP for given strings may be of interest in other problems working on SLPs.
+  \item As mentioned in \cref{ch:compressing-strings}, the space consumption of the SLP has a very high constant when measured in terms of the number of productions in the SLP. As previously noted, this will mean that the approach is not applicable to long strings not compressing well. For the measurements performed in this thesis it did not turn out as a problem, however a succinct representation of a SLP may be of interest if it is possible to improve the running time of the algorithm.
+
+  \item Another more direct way of obtaining a speedup is to parallelize the algorithm. The two SLP representations can easily be computed in parallel. Inside the construction of the SLPs the parallelization is not obvious, however, it was found in the benchmarks that this part only contribute a small fraction of the running time. Therefore the lack of parallelization in this step will not be a problem.
+
+  For the expensive parts of the algorithm (constructing the DISTs and filling the dynamical programming grid), efficient parallelization is easy. For construction of the DIST repository, parallelization can be applied on every recursive merge, which happens for every pair of selected SLP productions and every recursive call.
+  For filling out the grid, the algorithm can be parallelized in the same way as the simple algorithm, by choosing a suitable order to fill out the blocks.
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
