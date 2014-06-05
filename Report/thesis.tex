@@ -92,15 +92,36 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \pagestyle{plain}
-% \chapter*{Abstract}
-% \addcontentsline{toc}{chapter}{Abstract}
 
-% \todo{in English\dots}
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+\begingroup
+\let\cleardoublepage\clearpage
 
-% \chapter*{Resum\'e}
-% \addcontentsline{toc}{chapter}{Resum\'e}
+This thesis examines how and if computation of Edit-Distance can be accelerated by means of a specific type of string compression.
 
-% \todo{in Danish\dots}
+Edit-Distance is a measure of the similarity between two strings and has applications including automatic spelling correction and DNA/Protein alignment. A well known dynamic-programming algorithm by Wagner and Fischer, in this thesis known as the simple algorithm, exists for computing the Edit-Distance between two input strings.
+
+The thesis is based on the algorithm described in \cite{Gawrychowski:2012:FAC:2422024.2422048} which is the latest paper in an ongoing refinement process of the algorithm. The objective of the thesis is to give a coherent description of the algorithm, prove that it works and implement and benchmark the algorithm to examine its practical feasibility.
+
+The string compression method used, converts the input string into a restricted form of a context free grammar called a straight-line program (SLP). By utilizing a succinct representations of intermediate structures in the algorithm, it is possible to gain a theoretical speedup for compressible input.
+
+In practice it was found that the compression based algorithm is only faster for highly repetitive input (for example Fibonacci strings and strings from a singleton alphabet) of length longer than $\approx 30000$ characters. For all other inputs the simple Edit-Distance algorithm performed better. Therefore the compression based algorithm of \cite{Gawrychowski:2012:FAC:2422024.2422048}, in its current state, is not found to be favourable in any real-world practical problems.
+
+\chapter*{Resum\'e}
+\addcontentsline{toc}{chapter}{Resum\'e}
+
+Dette speciale undersøger hvordan og om det er muligt at accelerere udregningen af Edit-Distance ved at komprimere inputtet til algoritmen.
+
+Edit-Distance er et mål for ensheden mellem to strenge og har anvendelser indenfor bl.a. automatisk stavekontrol samt DNA/Protein alignment. Edit-Distance målet kan beregnes af en velkendt dynamisk-programmerings algoritme givet af Wagner og Fischer. Denne algoritme omtales i dette speciale som den simple algoritme.
+
+Specialet er baseret på algoritmen beskrevet i \cite{Gawrychowski:2012:FAC:2422024.2422048}, som er det senest offentliggjorte resultat i en løbende raffinering af algoritmen. Målet med specialet er at give en sammenhængende beskrivelse af algoritmen, bevise at fremgangsmåden virker samt at implementerer og teste algoritmens opførsel i praksis.
+
+Streng-komprimeringsmetoden der benyttes er en restringeret form for kontekstfri grammatik kaldet et straight-line program (SLP). Ved at bruge en koncis representation af de interne strukturer i algoritmen, er det muligt at opnå en teoretisk hastighedsforbedring for Edit-Distance udregningen på komprimerbare inputs.
+
+I praksis blev det fundet, at den komprimerings basered algoritme kun er hurtiger ved meget repetitivt input (for eksempel Fibonacci strenge eller strenge fra et singleton alpfabet) med længde større end $\approx 30000$ tegn. For alle andre inputs blev det fundet at den simple algoritme præsterede bedre. Derfor er den komprimeringsbasered Edit-Distance algoritme fra \cite{Gawrychowski:2012:FAC:2422024.2422048}, i dens nuværende form, ikke et foretrukket alternativ for nogen praktiske problemer i den virkelige verden.
+
+\endgroup
 
 % \chapter*{Acknowledgements}
 % \addcontentsline{toc}{chapter}{Acknowledgments}
@@ -304,7 +325,7 @@ In order to understand and prove the correctness of the algorithm a collection o
 \end{figure}
 
 \section{Notation and definition of edit-distance}
-A string $\str{A}{0}{m}$ denotes a sequence of $m$ characters from the alphabet $\Gamma$\footnote{In this thesis it has been chosen to denote the alphabet by $\Gamma$. This is because the $\Sigma$-symbol which is typically used to denote the alphabet is used later to describe a matrix operation.}. The $i$'th character can be accessed by $A[i]$ for $i \in \{0, \dots, m - 1\}$, i.e. strings are 0-indexed. Throughout this report it is assumed that the alphabet $\Gamma$ is finite.
+A string $\str{A}{0}{m}$ denotes a sequence of $m$ characters from the alphabet $\Gamma$\footnote{In this thesis it has been chosen to denote the alphabet by $\Gamma$. This is because the $\Sigma$-symbol which is typically used to denote the alphabet is used later to describe a matrix operation.}. The $i$'th character can be accessed by $A[i]$ for $i \in \{0, \dots, m - 1\}$, i.e. strings are 0-indexed. Throughout this report it is assumed that the alphabet $\Gamma$ is finite and that its size is constant.
 
 The substring of a string $\str{A}{0}{m}$ is denoted by $\substr{A}{i}{j} = A[i]A[i+1]\dots A[j - 1]$ where $i, j \in \{0, \dots, m\}$. If $j \leq i$ then $\substr{A}{i}{j}$ denotes the empty string.
 
@@ -622,7 +643,7 @@ All following benchmarks in the report are using the SLP constructed by the appr
 \end{figure}
 
 \subsubsection{Random strings}
-In these benchmarks the compressibility as function of the string length has been examined by selecting prefixes of the input string and then measured how much a prefix of a certain length is able to be compressed. For random input this should be alright, since the starting position does not affect the distribution.
+In these benchmarks the compressibility in terms on the compression ratio to the original input is examined. A new random string has been generated for every benchmarked input length.
 
 Random strings contains no systematic patterns, and will by design maximize the average information rate, which by information theory should make them very hard to compress. The only type of compression in this type of string occurs since the alphabet is finite and the strings are of arbitrary length.
 
@@ -636,7 +657,7 @@ It can be seen on \cref{fig:compression:quality:random} that the compression rat
 \end{figure}
 
 \subsubsection{Human Genome}
-It has been chosen to adopt the same way of benchmarking compressibility as for the random strings. That is, prefixes of the human genome sequences have been selected and tested for compressibility. The choice of always selecting a prefix may be a bit misleading for small prefix lengths since the distribution of nucleotides may be different in the beginning of the string than in other parts. However, as the selected prefixes gets longer this should even out, and the actual compressibility of the string should be accurately measured.
+Like for the random strings, the compressibility of the human genome is examined by considering how the compression ratio is behaving. Since there only is one human genome of a specific length, it is not possible to directly vary the input size as for the random strings. Instead it has been chosen to use prefix of the human genome sequences. This choice may be a bit misleading for small prefix lengths since the distribution of nucleotides may be different in the beginning of the string than in other parts. However, as the selected prefixes gets longer this should even out, and the actual compressibility of the string should be accurately measured.
 
 \Cref{fig:compression:quality:hg} shows a plot of the compression ratios for the human genome data sets. It can be seen that the non-repetitive part of the human genome is close to the compression ratio of a random string. It drops somewhat below the compression ratio for random string around $m = 2^{18}$, however as the string size grows, it seems to converge to the compression ratio for the random string again.
 
@@ -945,7 +966,14 @@ In order to be able to save time, the idea is to pre-compute DIST tables based o
 
 Both of the input SLPs will be blocked in the same way. The blocking process applied is from \cite[Section 4]{DBLP:journals/corr/abs-1004-1194} and consists of two steps. First what will be known as \textit{key productions} are selected and then productions in between the key productions are selected.
 
-The key productions are identified by traversing the unfolded SLP bottom up. If the string derived by the current production has length less than $x$ it is annotated with an associated string, which in this case is the string it derives\footnote{In practice the actual associated string is not needed, but only the length of the associated string. Therefore only the length of the associated string is stored in the implementation.}. If the length is greater than $x$ and both its children have length less than x, then the production is marked as a key production and its associated string is also set to the string it derives. Otherwise no action is taken.
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[width=14cm]{images/key-production-example}
+  \caption{Illustrates how productions are selected that cover the entire string for the SLP given in \cref{fig:slp-example} and using $x = 3$.}
+  \label{fig:key-production-selection}
+\end{figure}
+
+The key productions are identified by traversing the unfolded SLP bottom up. If the string derived by the current production has length less than $x$ it is annotated with an associated string, which in this case is the string it derives\footnote{In practice the actual associated string is not needed, but only the length of the associated string. Therefore only the length of the associated string is stored in the implementation.}. If the length is greater than $x$ and both its children have length less than $x$, then the production is marked as a key production and its associated string is also set to the string it derives. Otherwise no action is taken. An illustration of how key productions are selected can be seen on \cref{fig:key-production-selection}.
 
 All the selected key productions covers some part of the string. In order to cover the rest of the input string extra productions need to be added. These are called second type productions. In order to find these, the path between two adjacent key productions is traversed. This is done by first finding the lowest common ancestor of the two key productions, and then traversing the paths from both of the key productions to the lowest common ancestor bottom up. Notice that all productions hanging from the traversed paths must all have derived strings with length less than $x$ since they would be marked as key productions otherwise, which is a contradiction with the current choice of the key productions. See \cref{fig:slp-2nd-type} for an illustration.
 
@@ -1352,7 +1380,7 @@ Using \cref{claim:bounding-sigma} at the boundary condition $i + k = n + m''$, i
   \circled{$\star$} = \min\{ P_{A''}^{\Sigma}(i, j), \min_{k \in \{n+m'', \dots, n+m\}} \{ k - i \} \}
                     = P_{A''}^{\Sigma}(i, j) .
 \]
-Hence, the min-product computed in case \circled{3} also gives the correct result for case \circled{1}.
+Therefore, the minimum distance product computed in case \circled{3} also gives the correct result for case \circled{1}.
 
 Case \circled{2} follows by almost the same arguments as case \circled{1}. First \cref{lemma:dist-H-relation} and the definition of the $H$-table is used on \cref{claim:dist-vertical-merge} yielding
 \begin{align*}

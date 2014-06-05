@@ -18,7 +18,7 @@ import numpy as np
 
 # Min distance product base case plot
 plt.figure()
-plt.title("Minimum Distance Product running time")
+plt.title("Maximum Distance Product running time")
 ax1 = plt.subplot(111)
 plt.xscale('log', basex=2)
 #plt.yscale('log', basey=2)
@@ -46,7 +46,7 @@ plt.savefig('max-dist-mult.pdf')
 
 # Min distance product cpu intrinsics plot
 plt.figure()
-plt.title("Minimum Distance Product cpu intrinsics")
+plt.title("Maximum Distance Product cpu intrinsics")
 ax1 = plt.subplot(111)
 plt.xscale('log', basex=2)
 #plt.yscale('log', basey=2)

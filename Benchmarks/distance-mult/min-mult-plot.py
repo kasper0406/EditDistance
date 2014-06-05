@@ -18,7 +18,7 @@ import numpy as np
 
 # Min distance product base case plot
 plt.figure()
-plt.title("Varying base case size")
+plt.title("Effect of varying the base case size for the Minimum Distance Product algorithm")
 ax = plt.subplot(111)
 plt.xscale('log', basex=2)
 plt.yscale('log', basey=2)
@@ -47,7 +47,7 @@ plt.savefig('min-dist-mult-bc.pdf')
 
 # bcs = 50 examination
 plt.figure()
-plt.title("Examination of base case size 50")
+plt.title("Examination of periodic normalized running time when base case size is 50")
 ax1 = plt.subplot(111)
 plt.xscale('log', basex=2)
 plt.yscale('log', basey=2)

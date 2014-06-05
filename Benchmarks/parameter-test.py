@@ -46,7 +46,7 @@ ax.set_yticklabels(xlabels, minor=False)
 ax.set_ylim([0, int(xlimit / xstep) - 1])
 ax.set_xlim([0, int(flimit / fstep) - 1])
 
-ax.set_title("Block size parameters")
+ax.set_title("Varying block size parameters for random strings")
 ax.set_xlabel("ffactor")
 ax.set_ylabel("xfactor")
 
@@ -85,7 +85,7 @@ ax.set_yticklabels(xlabels, minor=False)
 ax.set_ylim([0, int(xlimit / xstep) - 1])
 ax.set_xlim([0, int(flimit / fstep) - 1])
 
-ax.set_title("Block size parameters")
+ax.set_title("Varying block size parameters for Fibonacci strings")
 ax.set_xlabel("ffactor")
 ax.set_ylabel("xfactor")
 
