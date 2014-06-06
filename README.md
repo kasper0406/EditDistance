@@ -1,7 +1,7 @@
 EditDistance
 ============
 
-This repository provides the implementation for my Master's Thesis on accelerating the computation of Edit-Distance using compression.
+This repository provides the implementation, benchmark results and plots for my Master's Thesis on accelerating the computation of edit distance using compression.
 
 The implemented algorithm is described in [8] and uses straight-line programs (SLPs) to encode the input strings.
 
@@ -9,32 +9,32 @@ The content of the repository include:
  - The Master's Thesis itself in the `report` folder.
  - The source code for the implemented algorithms in the `EditDistance` folder.
  - Raw measurements for all benchmarks discussed in the thesis. Located in the `Benchmarks` folder.
- - Plots and Python generators for all plots in the thesis. Also located in the `Benchmarks` folder.
+ - Plots and Python generators for all plots in the thesis. These are also located in the `Benchmarks` folder.
  
 
 ### Running the program
-All the implemented algorithms have been implemented in C++11 and has been compiled using the Clang 3.4 compiler. The implementation relies on the [SDSL lite](https://github.com/simongog/sdsl-lite) library and [Intel Performance Counter Monitor](https://software.intel.com/en-us/articles/intel-performance-counter-monitor-a-better-way-to-measure-cpu-utilization). The project uses `cmake` for building.
+All the implemented algorithms have been implemented in C++11 and have been compiled using the Clang 3.4 compiler. The implementation relies on the [SDSL lite](https://github.com/simongog/sdsl-lite) library and [Intel Performance Counter Monitor](https://software.intel.com/en-us/articles/intel-performance-counter-monitor-a-better-way-to-measure-cpu-utilization). The project uses `cmake` for building.
 
-In order to build and run the implementation the following list of steps need to be completed:
+In order to build and run the implementation, the following steps need to be completed:
  - Generate the make-file by running `cmake` in the `EditDistance` folder.
  - Build the implementation by running `make`.
- - Run the program by executing `./EditDistance`.
+ - Run the program by running `./EditDistance`.
 
-Depending on the computer configuration, it may be necessary to change the include and lib directories in the `CMakeLists.txt` file.
+Depending on the computer configuration, it may be necessary to change the `include` and `lib` directories in the `CMakeLists.txt` file.
 
-### Structure of code
+### Structure of the code
 The following is a list with a short description of the most interesting code files:
 
 | File | Description |
 | --- | --- |
 | main.cpp | Driver code for running tests and computations. |
 | test/tests.hpp | Unit-tests for the implemented algorithms. |
-| utils/unionfind.hpp | Implementation of the interval union-find algorithm |
-| benchmark/benchmarker.hpp | Code for running benchmarks and measuring the running time / CPU intrinsics |
+| utils/unionfind.hpp | Implementation of the interval union-find algorithm. |
+| benchmark/benchmarker.hpp | Code for running benchmarks and measuring the running time / CPU intrinsics. |
 | simple/simple.hpp | Implementation of the simple algorithm for computing Edit-Distance and LCS. |
 | compression/SLP.hpp | Code for representing, building and doing operations on straight-line programs (SLPs). |
 | compression/DIST.hpp | Code for building and using the DIST repository. |
-| compression/slpalign.hpp | Code doing the actual Edit-Distance calculation by utilizing the DIST repository and SLPs |
+| compression/slpalign.hpp | Code doing the actual Edit-Distance calculation by utilizing the DIST repository and SLPs. |
 
 ### Literature
 1. Bioinformatics, UCSC Genome. 2013. “GRCh38 Genome Reference Consortium Human Reference 38.” <http://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips/>. December. <http://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips/>.
