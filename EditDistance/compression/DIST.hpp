@@ -1229,14 +1229,6 @@ namespace Compression {
               
               return result;
             };
-            
-            for (int i = 0; i < n; ++i) {
-              for (int j = 0; j < n; ++j) {
-                cout << slow_delta(i, j) << " ";
-              }
-              cout << endl;
-            }
-            cout << endl;
 #endif
       
             /*

@@ -36,27 +36,7 @@ int main(int argc, char* argv[])
   cout << "Running in RELEASE MODE!" << endl << endl;
 #endif
   
-  /*
-  for (int64_t i = 1; i < 30; ++i) {
-    cout << i << "\t" << Compression::DIST::LZFactorize::lz_factorize(Benchmark::fib_string(i)).size() << endl;
-  }
-  
-  return 0;
-  
-  // const string test_string = "AAAABBAABAAAAAABB";
-  const string test_string = "AAAABBABAAAAB";
-  
-  auto slp = Compression::DIST::LZSLPBuilder::build(test_string);
-  // auto slp = Compression::DIST::SimpleCompressionSLPBuilder::build(test_string);
-  
-  cout << Compression::DIST::SLPFoldedPrinter::toDot(*slp) << endl;
-  
-  return 0;
-   */
-  
   Test::TestSuite::run_tests();
-  
-  return 0;
   
   {
     auto parameter_test_fib = [] (double xfactor, double ffactor) {
@@ -65,23 +45,19 @@ int main(int argc, char* argv[])
       const int trials = 1;
       
       return [xfactor, ffactor, max_seq_len, fib_len, trials] () -> int {
-        /*
         Benchmark::run_benchmark<Compression::LCSBlowUpAligner<SLP::LZSLPBuilder, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>>>(trials, xfactor, ffactor, Benchmark::FastaInput("hg_repetitive.fa", max_seq_len), Benchmark::FastaInput("hg_repetitive.fa", max_seq_len));
         
         Benchmark::run_benchmark<Compression::LCSBlowUpAligner<SLP::LZSLPBuilder, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>>>(trials, xfactor, ffactor, Benchmark::FastaInput("hg_nonrepetitive.fa", max_seq_len), Benchmark::FastaInput("hg_nonrepetitive.fa", max_seq_len));
         
         Benchmark::run_benchmark<Compression::LCSBlowUpAligner<SLP::LZSLPBuilder, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>>>(trials, xfactor, ffactor, Benchmark::FastaInput("hg_combined.fa", max_seq_len), Benchmark::FastaInput("hg_combined.fa", max_seq_len));
-         */
         
         int result = 0;
         
         Compression::LCSBlowUpAligner<SLP::LZSLPBuilder, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>> fibAligner(Benchmark::fib_string(fib_len), Benchmark::fib_string(fib_len), xfactor, ffactor);
         result ^= fibAligner.edit_distance();
         
-        /*
         Compression::LCSBlowUpAligner<SLP::LZSLPBuilder, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>> randomAligner(Benchmark::generate_string(max_seq_len), Benchmark::generate_string(max_seq_len), xfactor, ffactor);
         result ^= randomAligner.edit_distance();
-         */
         
         return result;
       };
@@ -102,17 +78,13 @@ int main(int argc, char* argv[])
       };
     };
     
-    /*
     ofstream out_fib("parameter-test-fib.dat");
     Benchmark::test_partition_constants(parameter_test_fib, out_fib);
     out_fib.close();
-     */
     
-    /*
     ofstream out_random("parameter-test-random.dat");
     Benchmark::test_partition_constants(parameter_test_random, out_random);
     out_random.close();
-     */
   }
   
   {
@@ -122,30 +94,13 @@ int main(int argc, char* argv[])
     Benchmark::benchmark_compression(trials, Benchmark::FibonacciInput(30));
     Benchmark::benchmark_compression(trials, Benchmark::UniformRandomInput(max_len));
     
-    // Benchmark::benchmark_compression(trials, Benchmark::FastaInput("hg_repetitive.fa", max_len));
-    
-    return 0;
-    
-    /*
     Benchmark::benchmark_compression(trials, Benchmark::FastaInput("hg_repetitive.fa", max_len));
     Benchmark::benchmark_compression(trials, Benchmark::FastaInput("hg_nonrepetitive.fa", max_len));
     Benchmark::benchmark_compression(trials, Benchmark::FastaInput("hg_combined.fa", max_len));
-     */
     
-    /*
-    Benchmark::benchmark_compression(trials, Benchmark::FastaInput("genome1.fa", max_len));
-    Benchmark::benchmark_compression(trials, Benchmark::FastaInput("genome2.fa", max_len));
-    Benchmark::benchmark_compression(trials, Benchmark::FibonacciInput(30));
-    Benchmark::benchmark_compression(trials, Benchmark::UniformRandomInput(max_len));
-     */
-    
-    /*
     Benchmark::benchmark_min_multiply(trials);
     Benchmark::benchmark_max_multiply(trials);
     Benchmark::benchmark_slow_max_multiply(trials);
-     */
-    
-    // Benchmark::benchmark_max_multiply(trials);
     
     const uint64_t max_seq_len = 13000;
     const uint64_t fib_len = 30;
@@ -174,28 +129,15 @@ int main(int argc, char* argv[])
     Benchmark::run_benchmark<Compression::LCSBlowUpAligner<SLP::LZSLPBuilder, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>>>
     (trials, xfactor_random, ffactor_random, Benchmark::FastaInput("hg_combined.fa", max_seq_len), Benchmark::FastaInput("hg_combined.fa", max_seq_len));
 
-    /*
     cout << "Fibonacci" << endl;
     Benchmark::run_benchmark<Compression::LCSBlowUpAligner<SLP::LZSLPBuilder, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>>>
     (trials, xfactor_fib, ffactor_fib, Benchmark::FibonacciInput(fib_len), Benchmark::FibonacciInput(fib_len));
     Benchmark::run_benchmark<Simple::EditDistance>(trials, xfactor_fib, ffactor_fib, Benchmark::FibonacciInput(fib_len - 6), Benchmark::FibonacciInput(fib_len - 6));
-     */
 
     cout << "Random strings" << endl;
     Benchmark::run_benchmark<Simple::EditDistance>(trials, xfactor_random, ffactor_random, Benchmark::UniformRandomInput(max_seq_len), Benchmark::UniformRandomInput(max_seq_len));
     Benchmark::run_benchmark<Compression::LCSBlowUpAligner<SLP::LZSLPBuilder, DIST::MergingDISTRepository<DIST::PermutationDISTTable, DIST::PermutationLCSMerger>>>
       (trials, xfactor_random, ffactor_random, Benchmark::UniformRandomInput(max_seq_len), Benchmark::UniformRandomInput(max_seq_len));
-     
-     
-    // Benchmark::run_benchmark<Compression::LCSBlowUpAligner<SLP::SimpleCompressionSLPBuilder, DIST::MergingDISTRepository<DIST::SimpleLCSDISTTable, DIST::SimpleLCSDISTMerger>>>(trials, x);
-    
-    /*
-    Benchmark::run_benchmark<Simple::EditDistance>(trials, x);
-    Benchmark::run_benchmark<Compression::EditDistanceAligner<SLP::SimpleCompressionSLPBuilder, DIST::SimpleDISTRepository<DIST::EditDistanceDISTTable>>>(trials, x);
-    Benchmark::run_benchmark<Compression::EditDistanceAligner<SLP::SimpleCompressionSLPBuilder, DIST::MergingDISTRepository<DIST::EditDistanceDISTTable, DIST::SimpleMerger>>>(trials, x);
-    Benchmark::run_benchmark<Compression::LCSBlowUpAligner<SLP::SimpleCompressionSLPBuilder, DIST::MergingDISTRepository<DIST::SimpleLCSDISTTable, DIST::SimpleLCSDISTMerger>>>(trials, x);
-    Benchmark::run_benchmark<Compression::LCSBlowUpAligner<SLP::SimpleCompressionSLPBuilder, DIST::LCSDISTRepository<DIST::SimpleLCSDISTTable>>>(trials, x);
-     */
   }
 
 #ifdef USE_COUNTING_ALLOCATOR

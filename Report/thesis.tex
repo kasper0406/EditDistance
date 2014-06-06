@@ -119,7 +119,7 @@ Specialet er baseret på algoritmen beskrevet i \cite{Gawrychowski:2012:FAC:2422
 
 Streng-komprimeringsmetoden der benyttes er en restringeret form for kontekstfri grammatik kaldet et straight-line program (SLP). Ved at bruge en koncis representation af de interne strukturer i algoritmen, er det muligt at opnå en teoretisk hastighedsforbedring for Edit-Distance udregningen på komprimerbare inputs.
 
-I praksis blev det fundet, at den komprimerings basered algoritme kun er hurtiger ved meget repetitivt input (for eksempel Fibonacci strenge eller strenge fra et singleton alpfabet) med længde større end $\approx 30000$ tegn. For alle andre inputs blev det fundet at den simple algoritme præsterede bedre. Derfor er den komprimeringsbasered Edit-Distance algoritme fra \cite{Gawrychowski:2012:FAC:2422024.2422048}, i dens nuværende form, ikke et foretrukket alternativ for nogen praktiske problemer i den virkelige verden.
+I praksis blev det fundet, at den komprimerings basered algoritme kun er hurtigere ved meget repetitivt input (for eksempel Fibonacci strenge eller strenge fra et singleton alfabet) med længde større end $\approx 30000$ tegn. For alle andre inputs blev det fundet at den simple algoritme præsterede bedre. Derfor er den komprimeringsbasered Edit-Distance algoritme fra \cite{Gawrychowski:2012:FAC:2422024.2422048}, i dens nuværende form, ikke et foretrukket alternativ for nogen praktiske problemer i den virkelige verden.
 
 \endgroup
 
@@ -151,7 +151,7 @@ This thesis has a two-fold objective. First and foremost to implement the algori
 
 The algorithm for speeding up the edit distance computation using compressed strings, can be divided into two major steps. The first is compressing the input strings, which is described in \cref{ch:compressing-strings} and the second step is the actual edit distance computation which uses the compressed strings as input. The algorithm for the actual computation is described in \cref{ch:algorithm}.
 
-Both of the chapters are finished by presenting benchmarks. The benchmark section of \cref{ch:compressing-strings} describes how well different types of strings compresses and verifies the theoretical running time of the compression algorithm. Especially the compressibility of different types of inputs is of great interest since it bounds the speedup of the computation. The benchmark section of \cref{ch:algorithm} verifies the theoretical running time of the algorithm, compares how well the compression based algorithm performs to a simple edit distance algorithm and lastly examines the time usage by the different steps (see \cref{sec:edit-dist-on-slps-steps}) of the compression based algorithm.
+Both of the chapters are finished by presenting benchmarks. The benchmark section of \cref{ch:compressing-strings} describes how well different types of strings compress and verifies the theoretical running time of the compression algorithm. Especially the compressibility of different types of inputs is of great interest since it bounds the speedup of the computation. The benchmark section of \cref{ch:algorithm} verifies the theoretical running time of the algorithm, compares how well the compression based algorithm performs to a simple edit distance algorithm and lastly examines the time usage by the different steps (see \cref{sec:edit-dist-on-slps-steps}) of the compression based algorithm.
 
 \paragraph{}
 All code, raw measurement data, plots and literature referred to and used in this thesis can be found at \thesisurl. A description of the structure of the code is also supplied on the website, together with a short description of how to build and run the code.
@@ -438,7 +438,7 @@ Because consecutive values in the dynamic programming matrix can change by at mo
 
 It was found by \cite{LasseFourRussian} that the Four Russian approach improves the running time of the simple algorithm by a factor of around $6$ to $8$. This is worth keeping in mind when comparing the performance of the compression based algorithm examined in this thesis to the simple algorithm.
 
-\subsection{Run-Length Encoding}
+\subsection{Run-Length Encoding approach}
 As mentioned in the introduction, the algorithm of \cite{Gawrychowski:2012:FAC:2422024.2422048} implemented and benchmarked in this thesis has a theoretical running time of $O(n N \sqrt{\log{\frac{N}{n}}})$. That is, it depends on the original length of the input and not only the length of the compressed strings.
 
 There exists other approaches where the running time depends only on the lengths of the compressed strings. Such an algorithm was given by \cite{Chen:2010:FCA:1888935.1888984} which is based on run-length encoding. The run-length encoding of a string consist a sequences of runs. A run consist of a count and a symbol and represents the symbol occurring count times. For example, the run-length encoding $\text{\texttt{a}}^4\text{\texttt{c}}^3\text{\texttt{g}}^1\text{\texttt{a}}^2\text{\texttt{t}}^2$ represents the string \texttt{aaaacccgaatt}. Notice that the run-length encoding may use more space than the original string if the input string does not contain a lot of repeating symbols. 
@@ -449,7 +449,7 @@ The running time only depends on the compressed lengths of the strings, however 
 
 An important feature of the algorithm benchmarked in this thesis is that it will never have a theoretically worse running time than the simple algorithm.
 
-\subsection{Compression based on straight-line programs}
+\subsection{Straight-line program approach}
 \label{sec:edit-dist-on-slps-steps}
 This section gives a very brief overview of the algorithm given by \cite{Gawrychowski:2012:FAC:2422024.2422048}, which is the main focus of this thesis. A more detailed description of each of the steps of the algorithm will be given later in this report. 
 
@@ -463,7 +463,7 @@ The algorithm can be seen as a generalization of the Four Russian approach, wher
   \item The dynamical programming table is filled up by using the partition and the precomputed $\DIST$ tables. This step takes time $O\left(\left(\frac{N}{x}\right)^2 \cdot AP(x)\right)$ where $AP(x)$ is the time to apply a DIST table. Using the succinct representation, \cite{Gawrychowski:2012:FAC:2422024.2422048} shows how to make $AP(x) = O(x)$, leading to a total running time of $O(\frac{N^2}{x})$. This step is described in \cref{sec:algorithm:filling-grid-overview}.
 \end{itemize}
 
-\chapter{Compressing input strings}
+\chapter{Compressing input strings to straight-line programs}
 \label{ch:compressing-strings}
 There exist a large number of compression schemes for compressing strings, spanning both lossy and lossless schemes. Since it is desired that the edit distance algorithm always gives the correct result, only lossless compression schemes are considered.
 
@@ -960,7 +960,7 @@ by considering how the alignment relates for the different cases.
 
 This approach results in the strings becoming a factor of $2$ longer. For a simple $O(N^2)$ implementation of the LCS algorithm, this would result in a factor of $2^2 = 4 = O(1)$ slow down. However, for LCS working on compressed strings, the penalty might not be as severe, since the blown up strings will compress well. This follows from, and also gives an algorithm for performing the blow-up: Every terminal in the SLP (of which there are $|\Gamma|$) is replaced by a non-terminal producing the original terminal and a new terminal producing the $\$$ symbol. This results in only $|\Gamma| + 1$ new productions being added to the SLP encoding of the string.
 
-\subsection{Selection of productions}
+\subsection{Selecting SLP productions}
 \label{sec:algorithm:select-productions}
 In order to be able to save time, the idea is to pre-compute DIST tables based on the productions in the SLPs, such that reused productions means that less DIST tables have to be precomputed. Obviously there is not enough time to compute DIST tables for all productions, as this would directly compute the longest common subsequence by looking at the result in the root node of the SLPs. Instead, the SLPs will be chopped into blocks deriving strings of length $O(x)$ for some $x \in \mathbb{N}$, and then the $\DIST$ tables will precomputed for these blocks.
 
@@ -994,7 +994,7 @@ Due to the bottom up nature of the selection process, a repeated production in t
 
 One technical detail to notice for the above approach to work directly, is that a production is only associated with one unique string, even through a production may occur several times in the unfolded SLP. Due to the bottom up selection, this is clear for the key productions. For the second type it follows since the same key productions are selected in different parts of the strings, resulting in the paths between the key productions being unique, so that they always produce the same result.
 
-\subsection{Building DIST repository}
+\subsection{Building the DIST repository}
 \label{sec:algorithm:building-DISTs-overview}
 In the previous step it was described how to selected the productions for which the $\DIST$ repository should be build. This section will focus on how the $\DIST$ repository is constructed. More specifically the $\DIST$ repository contains a $\DIST$ table for every pair of selected productions in the two SLPs. In other words, let $P_\mathcal{A}$ and $P_\mathcal{B}$ denotes the selected productions in respectively the SLPs $\mathcal{A}$ and $\mathcal{B}$. Then the $\DIST$ repository contains a $\DIST$ table $\DIST_{a,b}$ for all $a \in P_\mathcal{A}, b \in P_{\mathcal{B}}$.
 
@@ -1066,8 +1066,8 @@ Since the SLP construction algorithm runs in time $O(N\log{N})$ which will alway
 
 The theoretical combined running time from this section remains valid when $f$ and $x$ are multiplied by arbitrary constants. Call these constants respectively $\ffactor$ and $\xfactor$ such that $f = \ffactor \cdot \frac{N}{n}$ and $x = \xfactor \cdot \frac{f}{\sqrt{\log{f}}}$. It is likely that changing these constants will have a big influence on the actual running time of the algorithm. Therefore the effect of different choices have been examined in \cref{sec:benchmark:slp-partition-factors}.
 
-\section{Representation of $\DIST$s}
-As mentioned in the previous section, representing the $\DIST$s in a succinct way is crucial in order to obtain the desired running time.
+\section{Representing $\DIST$ tables}
+As mentioned in the previous section, representing the $\DIST$ tables in a succinct way is crucial in order to obtain the desired running time.
 
 Given two strings $A$ and $B$, a succinct representation of the LCS $\DIST$ tables should be constructed. By \cref{defn:dist-table} it is known that
 \[
@@ -1096,7 +1096,7 @@ A different way of describing the LCS between these prefix-suffix pairs, is by t
   \]
   where $? \not\in \Gamma$ denotes a wildcard character matching all other symbols.
 \end{mydef}
-The first case in the $H_{A,B}$ definition is introduced because these entries in the corresponding $\DIST$ table are not well-defined. The values for these entries of the $H$-table are simply chosen to make everything work out as they should in order to make the $H$-tables easy representable. In almost all the following calculations it has been chosen not to include this case as it is straight forward that the choice will work. This is due to the definition of the $\Sigma$-operator and that unit-Monge matrices are closed under minimum distance multiplication.
+The first case in the $H_{A,B}$ definition is introduced because these entries in the corresponding $\DIST$ table are not well-defined. The values for these entries of the $H$-table are simply chosen to make everything work out as they should in order to make the $H$-tables easy representable. In almost all the following calculations it has been chosen not to include this case as it is straight forward that the choice will work. This is due to the definition of the $\Sigma$-operator and that unit-Monge matrices are closed under minimum distance product.
 
 When it is clear which strings a $\DIST$- or $H$-table are based upon they may be omitted from the notation in order to simplify the look of the expressions. I.e. $\DIST_{A,B}$ may be written as $\DIST$ and $H_{A,B}$ as $H$.
 
@@ -1208,7 +1208,7 @@ An important property of the $H$-table is that it is almost simple unit-Monge.
 \end{lemma}
 What remains is to ensure that the merge and apply operations on the $\DIST$ table can be computed efficiently using only the permutation matrix representation.
 
-\subsection{Merging of $\DIST$ tables}
+\subsection{Merging $\DIST$ tables}
 \label{sec:merging-dists}
 The following definition will come in handy:
 \begin{mydef}
@@ -1414,7 +1414,7 @@ Similarly writing out directly from the definition, it is found that
       0     & \text{if } i \geq m
     \end{cases}
 \end{align*}
-This implies that $P_{A'A'',B}^{\Sigma}(i, j) = P_{A',B}^{\Sigma}(i - m'', j - m'')$. As will be seen, this is also what is computed by the minimum distance multiplication in case \circled{3}. Writing out the result of the minimum distance multiplication, it is found that
+This implies that $P_{A'A'',B}^{\Sigma}(i, j) = P_{A',B}^{\Sigma}(i - m'', j - m'')$. As will be seen, this is also what is computed by the minimum distance product in case \circled{3}. Writing out the result of the minimum distance product, it is found that
 \begin{align*}
   \circled{$\dagger$} &= \min_{k\in \{ 0, \dots, n + m \}} { {IC'_{P_{A'}}}^{\Sigma}(i, k) + {IC''_{P_{A''}}}^{\Sigma}(k, j) } \\
               &=  \begin{aligned} \min
@@ -1464,7 +1464,7 @@ This eliminates the middle case of the minimization in $\circled{$\dagger$}$. Mo
 \[
   P_{A'}^{\Sigma}(i - m'', j - m'') \leq (j - m'') + P_{A'}^{\Sigma}(i - m'', 0) = j - m'' \leq j,
 \]
-which directly gives that $\circled{$\dagger$} = P_{A'}^{\Sigma}(i - m'', j - m'')$. Therefore the minimum distance multiplication can also be used to solve case \circled{2}. The above calculations establish the following important theorem.
+which directly gives that $\circled{$\dagger$} = P_{A'}^{\Sigma}(i - m'', j - m'')$. Therefore the minimum distance product can also be used to solve case \circled{2}. The above calculations establish the following important theorem.
 \begin{theorem}[\refbook{p.-55}{Theorem 4.19}]
   \label{thm:dist-vertical-merge}
   Given two $\DIST$ tables $DIST_{A',B}$ and $\DIST_{A'',B}$ with representations $P_{A'}$ and $P_{A''}$ they can be merged into $\DIST_{A'A'',B}$ with representation $P_{A'A''}^{\Sigma}$ by setting
@@ -1473,7 +1473,7 @@ which directly gives that $\circled{$\dagger$} = P_{A'}^{\Sigma}(i - m'', j - m'
   \]
 \end{theorem}
 
- Therefore two $\DIST$ tables can be merged vertically by a single minimum distance multiplication taking $O(x \log{x})$ time using the described in \cref{sec:algorithm:min-mult-two-unit-monge}.
+ Therefore two $\DIST$ tables can be merged vertically by a single minimum distance product taking $O(x \log{x})$ time using the described in \cref{sec:algorithm:min-mult-two-unit-monge}.
 
 \subsubsection{Horizontal merge}
 The horizontal merge will be carried out by means of a vertical merge. In order to do this, it should be efficient to compute $\DIST_{B,A}$ from $\DIST_{A,B}$. It turns out that this indeed is the case. In order to see this, the following claim provides an insightful result.
@@ -1606,12 +1606,12 @@ What remains is to show how the $\DIST$-repository can be used to fill the dynam
       \end{array}
     \right. .
 \end{align*}
-Therefore, the output can be evaluated by max-multiplying the $H$ table with a slight perturbation of the input array, followed by an addition for every resulting output. \cite{Gawrychowski:2012:FAC:2422024.2422048} gave a linear time algorithm for max-multiplying an arbitrary vector with a $H$-table which is described in \cref{sec:algorithm:max-mult-H-table-with-vector}. This gives a linear time algorithm for applying a $\DIST$ table.
+Therefore, the output can be evaluated by computing the maximum distance product of the corresponding $H$ table with a slight perturbation of the input array, followed by an addition for every resulting output. \cite{Gawrychowski:2012:FAC:2422024.2422048} gave a linear time algorithm for computing the maximum distance product of an arbitrary vector with a $H$-table which is described in \cref{sec:algorithm:max-mult-H-table-with-vector}. This gives a linear time algorithm for applying a $\DIST$ table.
 
-\section{Efficient simple unit-Monge operations}
+\section{Efficient simple unit-Monge distance products}
 The two basic building blocks for merging and applying DIST tables are the algorithms for computing the minimum/maximum distance product. They both rely on properties of simple unit-Monge matrices in order to obtain faster computation that otherwise possible.
 
-\subsection{Min-multiplication of two simple unit-Monge matrices}
+\subsection{Minimum distance product of two simple unit-Monge matrices}
 \label{sec:algorithm:min-mult-two-unit-monge}
 This section will describe how the minimum distance product of two simple unit-Monge matrices of size $n$ can be calculated in $O(n\log{n})$ time. The algorithm is the main result of \cite{Tiskin:2010:FDM:1873601.1873704} and the result has also been described in \refbook{p. 28}{Theorem 3.16}. The explanation given in \cite{Tiskin:2010:FDM:1873601.1873704} contains an error (or unexplained step) in the end of the algorithm which is fixed in \refbook{p. 28}{Theorem 3.16}. The overall presentation of this algorithm follows the ones in the literature, but additional details are supplied and indices are changed to match the \texttt{C++} implementation.
 
@@ -1803,12 +1803,12 @@ Therefore the $1$'s from the last case can also be computed in time $O(n)$.
 
 The total time for the algorithm is therefore given by the following recurrence
 \begin{align*}
-  T(1) &= O(1) \\
-  T(n) &= O(n) + 2 T\left(\left \lceil \frac{n}{2}\right \rceil \right) \quad \text{for } n > 1
+  T(1) &= c \\
+  T(n) &= c \cdot n + T\left(\left \lceil \frac{n}{2}\right \rceil \right) + T\left(\left \lfloor \frac{n}{2}\right \rfloor \right) \quad \text{for } n > 1
 \end{align*}
-which is well known and solves to $O(n \log{n})$.
+for some constant $c \in \mathbb{R}$. This recurrence is well known from ex merge-sort and solves to $O(n \log{n})$.
 
-\subsection{Max-multiplication of $H$-table with vector}
+\subsection{Maximum distance product of $H$-table with vector}
 \label{sec:algorithm:max-mult-H-table-with-vector}
 In order to apply the DIST tables to fill out the grid, it is required to be able to compute the maximum distance product between an arbitrary vector and a $H$-table. This section will describe the algorithm of \cite[Lemma 2, p. 234]{Gawrychowski:2012:FAC:2422024.2422048} which gives a linear time algorithm for solving the problem.
 
@@ -1986,7 +1986,7 @@ Therefore it is concluded that the theoretical running time is satisfied.
 It will now be checked if the time to fill out the dynamical programming grid satisfies the theoretical running time. \Cref{fig:benchmark:fill-grid-time} plots the normalized running time for the different types of input. It can be seen that all the normalized running times seem to be bounded by a constant.
 % \Cref{fig:benchmark:fill-grid-cpu} shows a plot indicating that the number of CPU instructions executed follows the theoretical bound, but an increase in L3 cache misses is seen when the running time begins to increase. Therefore this increase in running time can be explained by the hierarchical memory layout of a computer.
 
-% Another interesting thing to notice about the plots in \cref{fig:benchmark:fill-grid-time} is that the normalized running time does not stabilize around a constant before $N \approx 2^7 = 128$ which is surprisingly long sequences. This behavior can be explained by the maximum distance multiplication from \cref{sec:algorithm:max-mult-H-table-with-vector} that relies on interval union-find and a candidate list which may have an overhead in setup time for small input sizes.
+% Another interesting thing to notice about the plots in \cref{fig:benchmark:fill-grid-time} is that the normalized running time does not stabilize around a constant before $N \approx 2^7 = 128$ which is surprisingly long sequences. This behavior can be explained by the maximum distance product from \cref{sec:algorithm:max-mult-H-table-with-vector} that relies on interval union-find and a candidate list which may have an overhead in setup time for small input sizes.
 
 Another interesting thing to notice aboute \cref{fig:benchmark:fill-grid-time} is the drops in the normalized running time for the hg repetitive and hg combined test cases in the interval $[2^7; 2^{10}]$. This drop corresponds nicely to the improved compression ratio of the same inputs over random strings shown in \cref{fig:compression:quality:hg} in \cref{sec:compression:benchmarks}.
 
@@ -2113,7 +2113,7 @@ Therefore the algorithm in its current form is not practical, as the simple algo
 During the project, a number of ideas (of which most are of practical concerns) for potentially improving the approach of computing the edit distance based on SLPs have been considered. These ideas are shortly described and motivated in the following list:
 
 \begin{itemize}
-  \item The algorithm for min-multiplying two unit-Monge matrices runs in time $O(n \log{n})$, however no lower bound other than $\Omega(n)$ is known. It could be interesting to close this gap. If is is possible to make a $\Theta(n)$ algorithm, the time for building the DIST tables can be reduced to $O(n^2 x)$, and by picking $x = \frac{N}{n}$, the total running time of the algorithm becomes $O(\underbrace{n^2 x}_{\DIST} + \underbrace{\frac{N^2}{x}}_{\text{Grid}}) = O(nN)$, which is an asymptotic improvement.
+  \item The algorithm for computing the minimum distance product of two unit-Monge matrices runs in time $O(n \log{n})$, however no lower bound other than $\Omega(n)$ is known. It could be interesting to close this gap. If is is possible to make a $\Theta(n)$ algorithm, the time for building the DIST tables can be reduced to $O(n^2 x)$, and by picking $x = \frac{N}{n}$, the total running time of the algorithm becomes $O(\underbrace{n^2 x}_{\DIST} + \underbrace{\frac{N^2}{x}}_{\text{Grid}}) = O(nN)$, which is an asymptotic improvement.
 
   \item Consider if the compressed strings can be reused, such that multiple strings can be entangled into one SLP. This would make it possible for a lot of strings to share DIST tables, and also possible do a better compression of highly similar strings. This could be of interest when computing the edit distance between all pairs of a large number of sequences, which is useful when approximating a phylogeny from sequence data.
 
