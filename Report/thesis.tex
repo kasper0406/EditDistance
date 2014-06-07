@@ -878,7 +878,7 @@ As the proof of \cref{claim:unit-monge-min-prod-closed} is thoroughly described 
 \end{mydef}
 
 \section{Algorithm}
-The algorithm follows the steps of \cref{sec:edit-dist-on-slps-steps}, however instead of directly computing the edit distance between the two input SLPs, the longest common subsequence (LCS) between the two SLPs will be computed. This is done because it turns out that it is easier to succinctly represent the structures needed for the LCS computation, in such a way that it can be computed efficiently.
+The algorithm follows the steps in \cref{sec:edit-dist-on-slps-steps}, however instead of directly computing the edit distance between the two input SLPs, the longest common subsequence (LCS) between the two SLPs will be computed. This is done because it turns out that it is easier to succinctly represent the structures needed for the LCS computation, in such a way that it can be computed efficiently.
 
 \begin{mydef}
   The longest common subsequence (LCS) problem is given two input strings (or SLPs) $\str{A}{0}{m}$ and $\str{B}{0}{n}$. The result is the longest substring occurring in both strings.
@@ -928,12 +928,12 @@ The following definition describes how the dynamic programming table will be spl
 
 In order for this technique to work, it is required that the edit distance reduces to the LCS problem with only a constant overhead in time and space consumption. The reduction is given in \cite[p. 71]{DBLP:journals/corr/abs-0707-3619} where it is called the \textit{blow-up technique}.
 
-\paragraph{Blow-up technique}
-The idea is to "blow-up" the input strings by a constant fraction by inserting special characters, which in a suitable way will relate the length of the LCS of the transformed strings to the edit distance of the original input strings.
+\subsection{Blow-up technique}
+The idea is to “blow-up” the input strings by a constant fraction by inserting special characters, which in a suitable way will relate the length of the LCS of the transformed strings to the edit distance of the original input strings.
 
-The transformation is as follows: All symbols $a \in \Gamma$ in the inputs strings are transformed to $a\$$, where $\$ \not\in \Gamma$. Denote the transformed strings by $A^{\$}$ and $B^{\$}$. In order to argue that this works, one can consider the possible edit distance operations and show how these can be emulated by computing the LCS on the transformed strings. The cases are illustrated on \cref{fig:blow-up:edit-dist-cases}.
-%
-\begin{figure}[h!]
+The transformation is as follows: All symbols $a \in \Gamma$ in the inputs strings are transformed to $a\$$, where $\$ \not\in \Gamma$. Denote the transformed strings by $A^{\$}$ and $B^{\$}$. In order to argue that this works, one can consider the possible edit distance operations and show how these can be emulated by computing the LCS on the transformed strings. The cases are illustrated in \cref{fig:blow-up:edit-dist-cases}.
+
+\begin{figure}[!htb]
   \centering
   \begin{subfigure}{0.8\textwidth}
     \includegraphics[width=\textwidth]{images/blow-up-edit-dist-cases}
@@ -949,8 +949,8 @@ The transformation is as follows: All symbols $a \in \Gamma$ in the inputs strin
   \end{subfigure}
   \caption{Possible cases for aligning two transformed strings in the longest common subsequence world.}
 \end{figure}%
-%
-Notice that it is not possible to create a longest common subsequence using other matching strategies than the ones shown in \cref{fig:blow-up:edit-dist-cases}. The only ones that are omitted are cases all similar to the matching shown in \cref{fig:blow-up:not-possible}, but these matchings can always be improved by matching the $\$$'s and hence these matchings can not be in the longest common substring.
+
+Notice that it is not possible to create a longest common subsequence using other matching strategies than the ones shown in \cref{fig:blow-up:edit-dist-cases}. The only ones that are omitted are cases all similar to the matching shown in \cref{fig:blow-up:not-possible}, but these cases can always be improved by matching the $\$$'s and hence these matchings can not be in the longest common substring.
 
 Due to the scorings of the possible cases in \cref{fig:blow-up:edit-dist-cases}, it is easy to verify that
 \[
@@ -958,11 +958,11 @@ Due to the scorings of the possible cases in \cref{fig:blow-up:edit-dist-cases},
 \]
 by considering how the alignment relates for the different cases.
 
-This approach results in the strings becoming a factor of $2$ longer. For a simple $O(N^2)$ implementation of the LCS algorithm, this would result in a factor of $2^2 = 4 = O(1)$ slow down. However, for LCS working on compressed strings, the penalty might not be as severe, since the blown up strings will compress well. This follows from, and also gives an algorithm for performing the blow-up: Every terminal in the SLP (of which there are $|\Gamma|$) is replaced by a non-terminal producing the original terminal and a new terminal producing the $\$$ symbol. This results in only $|\Gamma| + 1$ new productions being added to the SLP encoding of the string.
+This approach results in the strings becoming a factor of $2$ longer. For a simple $O(N^2)$ implementation of the LCS algorithm, this would result in a factor of $2^2 = 4 = O(1)$ slow down. However, for LCS working on compressed strings, the penalty will not be as severe, since the blown up strings will compress well. This follows from, and also gives an algorithm for performing the blow-up: Every terminal in the SLP (of which there are $|\Gamma|$) is replaced by a non-terminal producing the original terminal and a new terminal producing the $\$$ symbol. This results in only $|\Gamma| + 1$ new productions being added to the SLP encoding of the string.
 
 \subsection{Selecting SLP productions}
 \label{sec:algorithm:select-productions}
-In order to be able to save time, the idea is to pre-compute DIST tables based on the productions in the SLPs, such that reused productions means that less DIST tables have to be precomputed. Obviously there is not enough time to compute DIST tables for all productions, as this would directly compute the longest common subsequence by looking at the result in the root node of the SLPs. Instead, the SLPs will be chopped into blocks deriving strings of length $O(x)$ for some $x \in \mathbb{N}$, and then the $\DIST$ tables will precomputed for these blocks.
+In order to be able to save time, the idea is to pre-compute DIST tables based on the productions in the SLPs, such that reused productions means that fewer DIST tables have to be precomputed. Obviously there is not enough time to compute DIST tables for all productions, as this would directly compute the longest common subsequence by looking at the result in the root node of the SLPs. Instead, the SLPs will be chopped into blocks deriving strings of length $O(x)$ for some $x \in \mathbb{N}$, and then the $\DIST$ tables will precomputed for these blocks.
 
 Both of the input SLPs will be blocked in the same way. The blocking process applied is from \cite[Section 4]{DBLP:journals/corr/abs-1004-1194} and consists of two steps. First what will be known as \textit{key productions} are selected and then productions in between the key productions are selected.
 
@@ -973,9 +973,9 @@ Both of the input SLPs will be blocked in the same way. The blocking process app
   \label{fig:key-production-selection}
 \end{figure}
 
-The key productions are identified by traversing the unfolded SLP bottom up. If the string derived by the current production has length less than $x$ it is annotated with an associated string, which in this case is the string it derives\footnote{In practice the actual associated string is not needed, but only the length of the associated string. Therefore only the length of the associated string is stored in the implementation.}. If the length is greater than $x$ and both its children have length less than $x$, then the production is marked as a key production and its associated string is also set to the string it derives. Otherwise no action is taken. An illustration of how key productions are selected can be seen on \cref{fig:key-production-selection}.
+The key productions are identified by traversing the unfolded SLP bottom up. If the string derived by the current production has length less than $x$ it is annotated with an associated string, which in this case is the string it derives\footnote{In practice the actual associated string is not needed, but only the length of the associated string. Therefore only the length of the associated string is stored in the implementation.}. If the length is greater than $x$ and both its children have length less than $x$, then the production is marked as a key production and its associated string is set to the string it derives. Otherwise no action is taken. An illustration of how key productions are selected can be seen on \cref{fig:key-production-selection}.
 
-All the selected key productions covers some part of the string. In order to cover the rest of the input string extra productions need to be added. These are called second type productions. In order to find these, the path between two adjacent key productions is traversed. This is done by first finding the lowest common ancestor of the two key productions, and then traversing the paths from both of the key productions to the lowest common ancestor bottom up. Notice that all productions hanging from the traversed paths must all have derived strings with length less than $x$ since they would be marked as key productions otherwise, which is a contradiction with the current choice of the key productions. See \cref{fig:slp-2nd-type} for an illustration.
+All the selected key productions covers some part of the string. In order to cover the rest of the input string extra productions need to be added. These are called second type productions. In order to find these, the path between two adjacent key productions is traversed. This is done by first finding the lowest common ancestor of the two key productions, and then traversing the paths from both of the key productions to the lowest common ancestor bottom up. Notice that all productions hanging from the traversed paths must all have derived strings with length less than $x$ since they would be marked as key productions otherwise. See \cref{fig:slp-2nd-type} for an illustration.
 
 \begin{figure}[!htb]
   \centering
@@ -984,13 +984,13 @@ All the selected key productions covers some part of the string. In order to cov
   \label{fig:slp-2nd-type}
 \end{figure}
 
-When traversing the left path, the strings derived by the productions hanging to the right are associated to the production on the path. These strings are merged bottom up in such a way that they have length less than $2x$. Every time a string of length greater than $x$ is generated, the production generating it is selected, and its associated string is the merged string on the path. This process is done analogously for the right path.
+When traversing the left path, the strings derived by the productions hanging to the right are associated to the productions on the path. These strings are merged bottom up into strings of length length less than $2x$. This is done by successively merging the string starting from the bottom. If the current string generated has length less than $x$, the current string is propagated to the next production and the productions are linked. If the current string is of length greater than $x$, the current production is selected and its associated string is the current propagated string. This process is done analogously for the right path.
 
 There is a special case with the beginning and end of the string, as there are not necessarily a key production spanning the first and the last part of the string. However, these cases can be accommodated by the path traversing algorithm applied to the left path for the beginning and one right path for the end.
 
 By this process, all the selected productions will span the entire input string and they are all associated with strings of length $O(x)$.
 
-Due to the bottom up nature of the selection process, a repeated production in two parts of the string will result in the same selected productions. This is very important in obtaining the desired speedup, since DIST tables are precomputed for all the selected productions. Therefore, reducing the number of different selected productions yields a time improvement when building the DIST repository.
+Due to the bottom up nature of the selection process, a repeated production in two parts of the string will result in the same selected productions. This is very important in obtaining the desired speedup, since DIST tables are precomputed for all the selected productions. Therefore, reducing the number of different selected productions yields a time improvement when building the DIST tables.
 
 One technical detail to notice for the above approach to work directly, is that a production is only associated with one unique string, even through a production may occur several times in the unfolded SLP. Due to the bottom up selection, this is clear for the key productions. For the second type it follows since the same key productions are selected in different parts of the strings, resulting in the paths between the key productions being unique, so that they always produce the same result.
 
@@ -1000,7 +1000,7 @@ In the previous step it was described how to selected the productions for which 
 
 The $\DIST$ tables will be constructed by means of recursively merging $\DIST$ tables for sub-productions of the selected productions. The base case for a pair of terminals is not explicitly described in this section, but will follow directly from definition once the concrete representation of the $\DIST$ tables have been described in \cref{lemma:H-permutation-representation}.
 
-The previously described production selection process divides the the selected productions into two types. The following describes how to handle the two cases.
+The previously described production selection process divides the selected productions into two types. The following describes how to handle the two cases.
 \begin{description}
   \item[Key productions] A key production is always associated with the string that the production derives. Therefore assume the DIST table for two key productions $a \in P_{\mathcal{A}}$ and $b \in P_{\mathcal{B}}$ should be built. Name the children of the two productions by $a_L, a_R$ and $b_L, b_R$ as illustrated on \cref{fig:distrepo-key}.
   
@@ -1034,7 +1034,7 @@ Since the number of productions is bounded by $O(n^2)$, memorization can be used
 
 \subsection{Filling out the dynamical programming table}
 \label{sec:algorithm:filling-grid-overview}
-The dynamical programming table is filled from top to bottom, left to right. This is done by applying the $\DIST$ tables one by one using the selected productions. This is done by keeping two columns of the table in memory and $O(x)$ of a row. These specifies the inputs $I$ to the $\DIST$ table, and by using \cref{defn:dist-table} it is easy to see that the outputs can then be computed by
+The dynamical programming table is filled from top to bottom, left to right. This is done by applying the $\DIST$ tables one by one using the selected productions. The inputs of the $\DIST$-table to be applied is kept in memory by storing two columns of the dynamic programming grid and $O(x)$ of a row. By using \cref{defn:dist-table} it is easy to see that the outputs of the $\DIST$ table can be computed as
 \begin{equation}
   \label{eqn:dist-application}
   O[j] = \min_i \{ I[i] + \DIST[i, j] \},
@@ -1062,7 +1062,7 @@ time to build. The grid can be filled in time
     = O\left( \frac{N^2 \sqrt{\log{f}}}{f} \right)
     = O\left( Nn\sqrt{\log{\frac{N}{n}}} \right).
 \]
-Since the SLP construction algorithm runs in time $O(N\log{N})$ which will always be less, the combined running time for the entire combined algorithm becomes $O\left( Nn\sqrt{\log{\frac{N}{n}}} \right)$. In the big-O notation this running time is always superior to $\Theta(N^2)$ which is the time required by the simple algorithm.
+Since the SLP construction algorithm runs in time $O(N\log{N})$, the combined running time for the combined algorithm becomes $O\left( Nn\sqrt{\log{\frac{N}{n}}} \right)$. In the big-O notation this running time is always superior to $\Theta(N^2)$ which is the time required by the simple algorithm.
 
 The theoretical combined running time from this section remains valid when $f$ and $x$ are multiplied by arbitrary constants. Call these constants respectively $\ffactor$ and $\xfactor$ such that $f = \ffactor \cdot \frac{N}{n}$ and $x = \xfactor \cdot \frac{f}{\sqrt{\log{f}}}$. It is likely that changing these constants will have a big influence on the actual running time of the algorithm. Therefore the effect of different choices have been examined in \cref{sec:benchmark:slp-partition-factors}.
 
@@ -1103,7 +1103,7 @@ When it is clear which strings a $\DIST$- or $H$-table are based upon they may b
 The precise correspondence between a $H$-table as defined in \cref{def:H-table} and a $\DIST$ table as defined by \cref{defn:dist-table} is given by the following lemma.
 \begin{lemma}[\refbook{p.-48}{mentioned but not proved}]
   \label{lemma:dist-H-relation}
-  Given a $\DIST$ table $\DIST$ from \cref{defn:dist-table} and a $H$-table $H$ from \cref{def:H-table} on the same strings $A$ and $B$, they are connected by the relation
+  Given a $\DIST$ table $\DIST$ and a $H$-table $H$ on the same strings $A$ and $B$, they are connected by the relation
   \[
   DIST[i, j] = H(i, j) + \left\{
     \begin{array}{ll}
@@ -1146,7 +1146,7 @@ The precise correspondence between a $H$-table as defined in \cref{def:H-table} 
 An important property of the $H$-table is that it is almost simple unit-Monge.
 \begin{lemma}[\refbook{p.-49}{Theorem 4.10}]
   \label{lemma:H-permutation-representation}
-  Given a $H$-table $H$ satisfying \cref{def:H-table}, there exists a permutation matrix $P$ of size $m + n - 1$ such that
+  Given a $H$-table $H$, there exists a permutation matrix $P$ of size $m + n - 1$ such that
   \[
     H(i, j) = j - (i - m) - P^{\Sigma}(i, j).
   \]
@@ -1157,7 +1157,7 @@ An important property of the $H$-table is that it is almost simple unit-Monge.
     \[
       N(i, j) := j - (i - m) - H(i, j).
     \]
-    We will prove that $N$ is simple unit-Monge by which the statement follows. First it will be shown that $N$ is Monge, that is $N^{\Box} \geq 0$. From the definition of $N$ and $\Box$ it is needed to show that
+    We will prove that $N$ is simple unit-Monge, which directly implies the statement. First it will be shown that $N$ is Monge, that is $N^{\Box} \geq 0$. From the definition of $N$ and $\Box$ it is needed to show that
     \begin{align*}
       &H(i, j + 1) - H(i, j) - H(i + 1, j + 1) + H(i + 1, j) = H^{\Box}(i, j) \leq 0 \\
       \iff &H(i, j + 1) + H(i + 1, j) \leq H(i, j) + H(i + 1, j + 1)
