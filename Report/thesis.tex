@@ -388,7 +388,7 @@ There are multiple ways to compute the edit distance between two strings. Some o
 
 \section{Simple algorithm}
 \label{sec:intro:simple}
-A standard dynamic programming algorithm for solving the edit distance problem, here denoted the simple algorithm, was given by Wagner and Fisher. It is given two string $\str{A}{0}{m}$ and $\str{B}{0}{n}$ for which the edit distance should be computed, and fills out a matrix of size $m \times n$ where a given entry $(i, j)$ corresponds to the edit distance between $\str{A}{0}{i}$ and $\str{B}{0}{j}$. The rules for filling out a table entry follows directly from the definition of edit distance when extending a string, and are as follows:
+A standard dynamic programming algorithm for solving the edit distance problem, here denoted the simple algorithm, was given by Wagner and Fisher. As input it is given two string $\str{A}{0}{m}$ and $\str{B}{0}{n}$ for which the edit distance should be computed. It does so by filling out a matrix of size $(m + 1) \times (n + 1)$ where a given entry $(i, j)$ corresponds to the edit distance between $\str{A}{0}{i}$ and $\str{B}{0}{j}$. The rules for filling out a table entry follows directly from the definition of edit distance when extending a string, and are as follows:
 \[
   T[i, j] = \max \left\{ \begin{array}{lll}
               T[i - 1, j - 1] + \delta(A[i - 1], A[j - 1]) & \text{if } i, j \geq 1 & \text{Match} \\
@@ -422,9 +422,7 @@ Another optimization for the simple algorithm is parallelization. However, both 
 More detail on how to parallelize the compression based algorithm is given in \cref{sec:conclusion:future-work}.
 
 \section{Compression based algorithms}
-There exist other approaches for speeding up the computation of the edit distance between two strings. This section presents a short overview of some of the approaches that relates to the approach investigated in this thesis.
-
-One approach for speeding up the computation of edit distance, is to compress the input strings, and then in some way do the edit distance computation using the compressed strings, which for many cases will be shorter than the original input.
+There exist other approaches for speeding up the computation of the edit distance between two strings. This section presents a brief overview of techniques that relies on compression properties of the input to gain a speedup.
 
 \subsection{The Four Russian Algorithm}
 \label{sec:4-russian}
@@ -444,11 +442,11 @@ It was found by \cite{LasseFourRussian} that the Four Russian approach improves 
 \subsection{Run-Length Encoding approach}
 As mentioned in the introduction, the algorithm of \cite{Gawrychowski:2012:FAC:2422024.2422048} implemented and benchmarked in this thesis has a theoretical running time of $O(n N \sqrt{\log{\frac{N}{n}}})$. That is, it depends on the original length of the input and not only the length of the compressed strings.
 
-There exists other approaches where the running time depends only on the lengths of the compressed strings. Such an algorithm was given by \cite{Chen:2010:FCA:1888935.1888984} which is based on run-length encoding. The run-length encoding of a string consist a sequences of runs. A run consist of a count and a symbol and represents the symbol occurring count times. For example, the run-length encoding $\text{\texttt{a}}^4\text{\texttt{c}}^3\text{\texttt{g}}^1\text{\texttt{a}}^2\text{\texttt{t}}^2$ represents the string \texttt{aaaacccgaatt}. Notice that the run-length encoding may use more space than the original string if the input string does not contain a lot of repeating symbols. 
+There exist other approaches where the running time depends only on the lengths of the compressed strings. Such an algorithm was given by \cite{Chen:2010:FCA:1888935.1888984} which is based on run-length encoding. The run-length encoding of a string consists of a sequences of runs. A run consist of a count and a symbol and represents the symbol occurring count times. For example, the run-length encoding $\text{\texttt{a}}^4\text{\texttt{c}}^3\text{\texttt{g}}^1\text{\texttt{a}}^2\text{\texttt{t}}^2$ represents the string \texttt{aaaacccgaatt}. Notice that the run-length encoding may use more space than the original string if the input string does not contain a lot of repeating symbols. 
 
-Assume that the input strings compresses into run-length encodings consisting of respectively $m$ and $n$ runs where $m \leq n$. The running time for computing the edit-distance presented in \cite{Chen:2010:FCA:1888935.1888984} is $O(mn^2)$.
+Assume that the input strings compress into run-length encodings consisting of respectively $m$ and $n$ runs where $m \leq n$. The running time for computing the edit-distance presented in \cite{Chen:2010:FCA:1888935.1888984} is $O(mn^2)$.
 
-The running time only depends on the compressed lengths of the strings, however it is easy to construct input strings such that the algorithm is a factor of the string length slower than the simple algorithm by exploiting the simplicity of the run-length encoding scheme.
+The running time only depends on the compressed lengths of the strings, however it is easy to construct input strings, where the algorithm is a factor of the string length slower than the simple algorithm, by exploiting the simplicity of the run-length encoding scheme.
 
 An important feature of the algorithm benchmarked in this thesis is that it will never have a theoretically worse running time than the simple algorithm.
 
@@ -462,7 +460,7 @@ The algorithm can be seen as a generalization of the Four Russian approach, wher
 \begin{itemize}
   \item Construct SLP representations $\SLP{A}$, $\SLP{B}$ of the two input strings $\str{A}{0}{m}$ and $\str{B}{0}{n}$. The better the compression scheme is able to compress the SLP representations the faster the algorithm will be. A natural trade-off arises in this step, namely the running time of the compression scheme versus the quality of the resulting compression. This step will be discussed in \cref{ch:compressing-strings}.
   \item Productions from the SLPs generating strings of length $O(x)$ for some fixed $x$ are selected in such a way that they cover the entire string without duplication. This can be done in $O(N)$ time by traversing the productions of the SLP bottom-up as described in \cref{sec:algorithm:select-productions}.
-  \item Blocks from the dynamic programming table are precomputed for all the selected productions (these precomputed tables are called DIST tables). By naively representing the DIST tables they take up $O(x^2)$ space each, but using a succinct representation given in \cite{DBLP:journals/corr/abs-0707-3619}, it is possibly to reduce the space consumption to $O(x)$ and also improve the time it takes to use a $\DIST$. This step is described in \cref{sec:algorithm:building-DISTs-overview}.
+  \item Blocks from the dynamic programming table are precomputed for all the selected productions (these precomputed tables are called DIST tables). By naively representing the DIST tables they take up $O(x^2)$ space each, but using a succinct representation given in \cite{DBLP:journals/corr/abs-0707-3619}, it is possibly to reduce the space consumption to $O(x)$ and also improve the time it takes to use a $\DIST$ table. This step is described in \cref{sec:algorithm:building-DISTs-overview}.
   \item The dynamical programming table is filled up by using the partition and the precomputed $\DIST$ tables. This step takes time $O\left(\left(\frac{N}{x}\right)^2 \cdot AP(x)\right)$ where $AP(x)$ is the time to apply a DIST table. Using the succinct representation, \cite{Gawrychowski:2012:FAC:2422024.2422048} shows how to make $AP(x) = O(x)$, leading to a total running time of $O(\frac{N^2}{x})$. This step is described in \cref{sec:algorithm:filling-grid-overview}.
 \end{itemize}
 
@@ -475,8 +473,8 @@ The algorithm examined in this thesis is working over straight-line programs (SL
   \label{def:slp}
   A straight-line program (SLP) is a restricted context-free grammar $G = (V, T, R, S)$, where
   \begin{itemize}
-    \item $V = \{ S_1, \dots, S_k\}$ is a ordered set of non-terminals
-    \item $T = \{ S_{k + 1}, \dots, S_{k + l} \}$ is a ordered set of terminals
+    \item $V = \{ S_1, \dots, S_k\}$ is an ordered set of non-terminals
+    \item $T = \{ S_{k + 1}, \dots, S_{k + l} \}$ is an ordered set of terminals
     \item $R$ is a set of production rules mapping $V$ to $(V \cup T)^2$, with the condition that if $(S_i \to S_jS_k) \in R$, then $j,k \geq i$. This ensures that a SLP generates exactly one string.
     \item The start production $S = S_1$.
   \end{itemize}
@@ -494,15 +492,15 @@ From this definition it is not possible for a SLP to generate the empty string, 
   \label{compression:problem:minimum-slp}
   Given an input string $\str{A}{0}{m}$ find a SLP $\SLP{A}$ of minimum size generating $A$.
 \end{problem}
-It is known from \cite[p. 212]{Rytter2003211} that this problem is NP-complete, hence a general, exact and efficient algorithm should not be expected to be easily obtainable. However, a number of articles (ex. \cite{Rytter2003211} and \cite{Sakamoto2005416}) have studied how to approximate a minimum size SLP for the input string. The approach implemented in this article is a $O(\log{m})$-approximation given in \cite{Rytter2003211}, which is based on the Lempel-Ziv factorization (LZ-factorization), which is a version of the popular LZ77 compression scheme. The algorithm is described in \cref{sec:compression:alg}.
+It is known from \cite[p. 212]{Rytter2003211} that this problem is NP-complete, hence a general, exact and efficient algorithm should not be expected to be easily obtainable. However, a number of articles (ex. \cite{Rytter2003211} and \cite{Sakamoto2005416}) have studied how to approximate a minimum size SLP for the input string. The approach implemented in this thesis is a $O(\log{m})$-approximation given in \cite{Rytter2003211}. This compression algorithm is based on the Lempel-Ziv factorization (LZ-factorization), which is a version of the popular LZ77 compression scheme. The algorithm is described in \cref{sec:compression:alg}.
 
-A small theoretical improvement was given in \cite{Rytter2003211}, reducing the approximation factor to $O(\log{\frac{m}{g^*}})$ where $g^*$ denotes the size of the minimal SLP compression. As suggested by \cite{Rytter2003211} the improvement is mostly cosmetic, and from the description of the approach, I find it very likely that the approach will significantly increase the constant in front of the big-$O$ notation. Therefore, I have not chosen to implement this theoretical improvement.
+A small theoretical improvement was given in \cite{Rytter2003211}, reducing the approximation factor to $O(\log{\frac{m}{g^*}})$ where $g^*$ denotes the size of the minimal SLP compression. As suggested by \cite{Rytter2003211} the improvement is mostly cosmetic, and from the description of the approach, I find it very likely that the approach will increase the constant in front of the big-$O$ notation. Therefore, I have not chosen to implement this theoretical improvement.
 
-For computing the LZ-factorization a suffix tree is used. Suffix tress often comes with a large constant space overhead, making them undesirable in practice in some cases. \cite{Sakamoto2005416} gave another algorithm for solving \cref{compression:problem:minimum-slp} which also achieves the $O(\log{\frac{m}{g^*}})$ approximation factor, but does it based on the RE-PAIR encoding scheme, which can be made to work without using a suffix tree. The reason for not implementing this approach, is that I find the LZ-factorization approach more intuitive, and for the benchmarks in this report the space consumption of the suffix tree has not been a problem.
+For computing the LZ-factorization a suffix tree is used. Suffix trees often come with a large constant space overhead, in some cases making them undesirable in practice. \cite{Sakamoto2005416} gave another algorithm for solving \cref{compression:problem:minimum-slp} which also achieves the $O(\log{\frac{m}{g^*}})$ approximation factor, but does so based on the RE-PAIR encoding scheme, which can be made to work without using a suffix tree. The reason for not implementing this approach, is that I find the LZ-factorization approach more intuitive, and for the benchmarks in this report the space consumption of the suffix tree has not been a problem.
 
 In other areas of lossless compression, ex. bzip2 compression, the input string is encoded using a Burrows-Wheeler transform (BWT) \cite{BurrowsWheeler}. The intuition why the BWT works, is that it permutes the string in such a way that highly repetitive parts of the string are grouped together, making them easier to compress. However building the SLP over the BWT of the input string will not work because the BTW permutes the string, such that productions of the SLP does not corresponds to a continuous area in the input string. I have not been able to find any articles able to take advantage of the BWT for SLP based compression.
 
-In lossless compression there exist Entropy-based encoding schemes. Such schemes uses the frequencies of the appearing alphabet symbols in the string to compress them to use as few bits as possible. This type of compression is not of significant interest in this context, since we are only interest in minimizing the number of productions in the resulting SLP.
+In lossless compression there exist Entropy-based encoding schemes. Such schemes uses the frequencies of the appearing alphabet symbols in the string to compress them to use as few bits as possible. This type of compression is not of significant interest in this context, since it is only of interest to minimize the number of productions in the resulting SLP.
 
 \paragraph{Notes about size}
 Given input strings over the finite alphabet $\Gamma$, all strings over this alphabet can trivially be encoded using $\ceil{\log_2 |\Gamma|}$ bits per symbol. However, for a direct representation of the SLP using pointers, a left and a right pointer has to be stored together with the symbol, which on a new machine uses up $64$ bits each. Moreover, the algorithms working on the SLPs are likely to require more information annotated to each node in the tree. This results in a huge constant blow up on the space required to store the input string, especially for strings not compressing very well.
@@ -512,6 +510,7 @@ It could be both of practical and theoretical interest to find a succinct repres
 \section{Algorithm}
 \label{sec:compression:alg}
 The idea behind the algorithm is to iteratively build the SLP for the string. This incremental building process will be based on repeating parts of the string called the LZ-factorization, which will be described after the overview of the algorithm has been given. The overall algorithm is given in \cref{alg:compression:approx}.
+\enlargethispage{\baselineskip}
 
 \begin{algorithm}[H]
   \label{alg:compression:approx}
@@ -526,14 +525,16 @@ The idea behind the algorithm is to iteratively build the SLP for the string. Th
   \caption{Algorithm for generating a $O(\log{m})$ approximation of the minimal SLP of the input string $\str{A}{0}{m}$.}
 \end{algorithm}
 
-When building the SLP it will be considered as an AVL-tree. Therefore it is known how to search and concatenate two SLPs in a way that keeps the resulting SLP balanced. The idea is to add a repeating factor in the string one at a time. The repeating factor is added by reusing the productions already in the SLP generating the factor. During the concatenating operation of SLPs, the resulting tree is balanced using appropriate AVL-tree rotations.
+The invariant of the algorithm is the following: After every iteration of the for-loop, it is the case that $\SLP{A}$ generates $\substr{A}{0}{|f_1| + \dots + |f_i|}$.
 
-The $Concat$ process referenced in the code, is function almost the same way as concatenating two AVL trees. The only difference is that productions in the SLP may be shared, hence when adding nodes and making rotations, special care needs to be taken in order to ensure the balance of the tree and that the derived string is correct. This is easy to fix simply by introducing a constant number of new productions for every insertion and rotation. Amortized, the number of rotations that happen on every concatenation is constant and therefore only a constant number of extra productions are added every time $Concat$ is called.
+When building the SLP it will be considered as an AVL-tree. Therefore it is known how to search and concatenate two SLPs in a way that keeps the resulting SLP balanced. As mentioned, the idea is to add a repeating factor in the string one at a time. The repeating factor is added by reusing the productions already in the SLP generating the factor. During the concatenating operation, the resulting tree is balanced using appropriate AVL-tree rotations.
+
+The $Concat$ process referenced in the code, is function almost the same way as concatenating two AVL trees. The only difference is that productions in the SLP may be shared, hence when adding nodes and making rotations, special care needs to be taken in order to ensure the balance of the tree and that the derived string is correct. This is easy to fix simply by introducing a constant number of new productions for every insertion and rotation. It is shown in \cite[p. 215, Lemma 2]{Rytter2003211} that this does not add too many in order to satisfy the $O(\log{m})$ approximation factor.
 
 \paragraph{LZ-Factorization}
 The factors iteratively added to the SLP are the LZ-factors of the input string $f_1 f_2 \dots f_k = \str{A}{0}{m}$, where $f_1 = A[0]$ and for $i \in \{2 \dots k\}$ $f_i$ is the longest prefix of $f_i \dots f_k$ occurring in $f_1 \dots f_{i - 1}$.
 
-The LZ-factors of a string is found by scanning the string from left to right. Assume that the current position is $i \in \{0, \dots, m - 1\}$, then the next LZ factor is found by finding the longest string starting at position $i$ that have occurred in the input string before position $i$. \Cref{fig:lz-factor} illustrates the situation.
+The LZ-factors of a string can be found by scanning the string from left to right. Assume that the current position is $i \in \{0, \dots, m - 1\}$, then the next LZ factor is found by finding the longest string starting at position $i$ that have occurred in the input string before position $i$. \Cref{fig:lz-factor} illustrates the situation.
 
 \begin{figure}[!htb]
   \centering
@@ -549,9 +550,11 @@ Using these indices it is easy to find the corresponding productions in the SLP 
 \paragraph{Computing the LZ-factorization}
 The only step of the SLP construction algorithm not thoroughly described in \cite{Rytter2003211}, is how to compute the LZ-factorization of a string efficiently. They only state that it can be done efficiently using a suffix tree. Although the algorithm is quite simple, it is included in this report for completeness.
 
-First the suffix tree for the input string is generated. Then every node $v$ in the tree is annotated with the first index in the string where the substring spelled out from the root to $v$ occurs. This is done by traversing the tree bottom up. Any leaf is annotated by its suffix number and any non-leaf is annotated by the minimum over its children.
+First the suffix tree for the input string is built. Then every node $v$ in the suffix tree is annotated with the first index in the string where the substring spelled out from the root to $v$ occurs. This is done by traversing the tree bottom up. Any leaf is annotated by its suffix number and any non-leaf is annotated by the minimum over its children.
 
 Having the described suffix tree, the LZ-factorization can be found by scanning the input string and follow the corresponding path in the suffix tree. While the string spelled out from the root to the current node has already occurred before in the string, the path is extended. Otherwise a new LZ factor is added and the search begins from the top of the suffix tree. Pseudo code for the algorithm is given in \cref{alg:compression:lz-factorization}. The algorithm could potentially be improved a bit by following an entire suffix tree edge in every iteration. However, since the SLP construction is not the time consuming part of the algorithm this has not been implemented as the gain will be almost non noticeable.
+
+The total time for computing the LZ factorization of a string of length $m$ is bounded by $O(m\log{\Gamma})$, where there $\log{\Gamma}$ factor comes from the used suffix tree \cite{SDSL}. Because the alphabet in this thesis is assumed to be of constant size, the LZ factorization can be computed in linear time.
 
 \begin{center}
   \begin{algorithm}[!htb]
