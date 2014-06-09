@@ -609,7 +609,7 @@ It is also expected that a pointer based SLP will suffer for such a penalty when
 This section will examine how well different types of strings can be compressed to SLPs. It will also be verified that the theoretical running time of $O(m\log{m})$ is satisfied in practice for a input string $\str{A}{0}{m}$.
 
 \subsection{Compression quality}
-First the quality of the compressions is examined for the different types of inputs as described in \cref{sec:intro:test-data}.
+First the quality of the compressions is examined for the different types of input as described in \cref{sec:intro:test-data}.
 
 \subsubsection{Fibonacci strings}
 \label{sec:compressing-Fibonacci-strings}
@@ -629,35 +629,35 @@ Therefore Fibonacci strings compress very well to a SLP, where a representation 
   \begin{proof}
     From the definition of Fibonacci strings it can be seen that the $i$'th Fibonacci string, $F_i$, has $i$ LZ-Factors. This follows since the $F_{i-2}$ factor in $F_i = F_{i - 1} F_{i - 2}$ will always occur before in the strings and therefore will contribute exactly one LZ-factor.
 
-    By a slight modification of \cite[Theorem 1]{Rytter2003211} where it is used that a SLP for a Fibonacci strings must have at least two non-terminals, it is found that for all grammars $G_i$ deriving $F_i$ it must be the case that $|LZ(F_i)| + 1 \leq |G_i|$. Therefore it must be the case that $i + 1 \leq |G_i|$, hence the previously described grammar for Fibonacci strings is optimal.
+    By a slight modification of \cite[Theorem 1]{Rytter2003211} where it is used that a SLP for a Fibonacci strings must have at least two non-terminals, it is found that for all grammars $G_i$ deriving $F_i$ it must be the case that $i + 1 = |LZ(F_i)| + 1 \leq |G_i|$. Therefore it must be the case that the previously described grammars for the Fibonacci strings are optimal.
   \end{proof}
 \end{claim}
 
-Therefore the quality of the compressed Fibonacci strings can be measured relative to the optimal SLP. \Cref{fig:compression:quality:fibonacci} shows a plot where the blue line shows how big a factor the computed SLP is bigger than the optimal SLP.
+Using this, the quality of the compressed Fibonacci strings can be measured relative to the optimal SLP. \Cref{fig:compression:quality:fibonacci} shows a plot where the blue line shows how big a factor the computed SLP is bigger than the optimal SLP.
 
 By the proof in \cite{Rytter2003211} this overhead should be bounded by $O(\log{m})$. The green line of \cref{fig:compression:quality:fibonacci} plots the production overhead normalized by $\log{m}$. From theory this should converge towards a constant, which also seems to be the case in practice.
 
-As mentioned above it is easy to construct a SLP of size $n = O(\log{m})$ for a Fibonacci string of length $m$. Because of the approximation factor in the SLP approximation algorithm, this bound worsens to $O(\log^2{m})$. From \cref{fig:compression:quality:fibonacci} it is seems that the $O(\log{m})$ bound is not satisfied but that the $O(\log^2{m})$ bound is.
+As mentioned above, it is easy to construct a SLP of size $n = O(\log{m})$ for a Fibonacci string of length $m$. Because of the approximation factor in the SLP approximation algorithm, this bound worsens to $O(\log^2{m})$. From \cref{fig:compression:quality:fibonacci} it is seems that the $O(\log{m})$ bound is not satisfied but that the $O(\log^2{m})$ bound is.
 
 All following benchmarks in the report are using the SLP constructed by the approximation algorithm. That is, for all benchmarks the Fibonacci strings compress such that $n = O(\log^2{m})$.
 %
 \begin{figure}[h!]
   \centering
-  \includegraphics[width=10cm]{compression/fib}
+  \includegraphics[width=11cm]{compression/fib}
   \caption{Plot of how well Fibonacci strings compress to a SLP relative to the minimal SLP describing the corresponding Fibonacci string.}
   \label{fig:compression:quality:fibonacci}
 \end{figure}
 
 \subsubsection{Random strings}
-In these benchmarks the compressibility in terms on the compression ratio to the original input is examined. A new random string has been generated for every benchmarked input length.
+In these benchmarks the compressibility in terms of the compression ratio to the original input is examined. A new random string has been generated for every benchmarked input length.
 
-Random strings contains no systematic patterns, and will by design maximize the average information rate, which by information theory should make them very hard to compress. The only type of compression in this type of string occurs since the alphabet is finite and the strings are of arbitrary length.
+Random strings should contain no systematic patterns and will by design maximize the average information rate, which by information theory should make them very hard to compress. The only type of compression in this type of string is expected to occur because the alphabet is of constant size and the strings are of arbitrary length.
 
-It can be seen on \cref{fig:compression:quality:random} that the compression ratio of the string is decreasing as the input size gets larger. This is also expected due to the fixed alphabet size, and this is also why the Four Russian approach sketched in \cref{sec:4-russian} works.
+It can be seen on \cref{fig:compression:quality:random} that the compression ratio of the string is decreasing as the input size gets larger. For the largest input sizes, \cref{fig:compression:quality:random} shows that the corresponding SLP is approximately half the size of original input length. This behavior is expected due to the constant alphabet size, which is also why the Four Russian approach sketched in \cref{sec:4-russian} works.
 %
 \begin{figure}[h!]
   \centering
-  \includegraphics[width=10cm]{compression/random}
+  \includegraphics[width=11cm]{compression/random}
   \caption{Plot of compression quality for random strings.}
   \label{fig:compression:quality:random}
 \end{figure}
@@ -667,13 +667,13 @@ Like for the random strings, the compressibility of the human genome is examined
 
 \Cref{fig:compression:quality:hg} shows a plot of the compression ratios for the human genome data sets. It can be seen that the non-repetitive part of the human genome is close to the compression ratio of a random string. It drops somewhat below the compression ratio for random string around $m = 2^{18}$, however as the string size grows, it seems to converge to the compression ratio for the random string again.
 
-The combined and repetitive compression ratio is exactly the same until around $m = 2^{10}$. This is because the first part of the combined human genome is a repetitive region, hence the first prefixes of these strings are the same. In the beginning the repetitive string compresses significantly better than the random string, but as the prefix length grows the compression ratio is only a bit below the compression ratio for random strings.
+The compression ratios for the combined and repetitive test cases are exactly the same until around $m = 2^{10}$. This is because the first part of the combined human genome is a repetitive region, hence the first prefixes of these strings are the same. In the beginning the repetitive string compresses significantly better than the random string, but as the prefix length grows the compression ratio is only a bit below the compression ratio for random strings.
 
 Since random strings should not compress very well, it is not desirable that the human genome, which is considered to be a realistic type of input, only compresses a little better. However, the compression factor is still $\approx 0.4$ for large input, and therefore there is still hope that the edit distance algorithm based on SLP compression may perform better than the simple edit distance algorithm.
 
 \begin{figure}[h!]
   \centering
-  \includegraphics[width=10cm]{compression/hg}
+  \includegraphics[width=11cm]{compression/hg}
   \caption{Plot of how well the human genome of \cref{sec:intro:test-data} compresses compared to a random string.}
   \label{fig:compression:quality:hg}
 \end{figure}
@@ -681,11 +681,11 @@ Since random strings should not compress very well, it is not desirable that the
 \subsection{Running time}
 The running time of the algorithm is bounded by $O(m\log{m})$ for a input string $\str{A}{0}{m}$. This follows since the LZ-factorization $f_1, \dots, f_k$ can be found in linear time and the concatenation and search steps all can be done in time $O(\log{m} + \log{|f_i|}) = O(\log{m})$ for each factor $f_i$. Because $k = O(m)$ the running time follows.
 
-\Cref{fig:compression:runningtime} shows the normalized running time for constructing the SLP. From the plot it can be seen that the normalized running time for the different types of input more or less converges to a constant. For the longest input sizes especially the human genome test cases seems to increase. \Cref{fig:compression:instructions} shows that the normalized instruction count does not have this increase, but that the L2 cache misses increases. Therefore the extra increase can be explained by the hierarchical memory layout of a modern computer.
+\Cref{fig:compression:runningtime} shows the normalized running time for SLP construction. From the plot it can be seen that the normalized running time for the different types of input more or less converges to a constant. However, for the longest input sizes especially the human genome test cases seem to increase. \Cref{fig:compression:instructions} shows that the normalized instruction count does not have this increase, but that the L2 cache misses increases. Therefore the extra increase can be explained by the hierarchical memory layout of a modern computer.
 
-An interesting thing to notice that is not explained by the theoretical running time bound, is that the normalized running times are stabilizing at different constants across the different input types. Before concluding that the theoretical running time seems to be satisfied up to the hierarchical memory layout, it is needed to argue that there does not exist types of input that results in arbitrarily large constants.
+An interesting thing to notice that is not explained by the theoretical running time bound, is that the normalized running times are stabilizing at different constants across the different input types. Before concluding that the theoretical running time seems to be satisfied up to the hierarchical memory layout, it is needed to argue that there does not exist types of input that result in arbitrarily large constants.
 
-From the algorithm, the places where the running time may significantly differ for different types of inputs are when building the suffix tree and balancing the SLP. This matches well with \cref{fig:compression:runningtime} that suggests that input with a less repeating structure has a higher constant. When less of the input repeats more insertions are made into the SLP and more balancing is needed, which leads to a larger constant.
+From the algorithm, the places where the running time may significantly differ for different types of input are when building the suffix tree and balancing the SLP. This matches well with \cref{fig:compression:runningtime} that suggests that input with a less repeating structure has a higher constant. When less of the input repeats more insertions are made into the SLP and more balancing is needed, which leads to a larger constant.
 
 Because it is known that there can not exist input that performs too many tree rotations in the AVL tree, it is concluded that the running time in the implementation does satisfy the theoretical running time.
 
@@ -693,14 +693,14 @@ Therefore the construction of the SLP should not be the bottleneck of the combin
 %
 \begin{figure}[!htb]
   \centering
-  \includegraphics[width=10cm]{compression/runningtime}
+  \includegraphics[width=11cm]{compression/runningtime}
   \caption{Normalized running time for construction of compressed SLP.}
   \label{fig:compression:runningtime}
 \end{figure}
 
 \begin{figure}[!htb]
   \centering
-  \includegraphics[width=10cm]{compression/instructions}
+  \includegraphics[width=11cm]{compression/instructions}
   \caption{Normalized instruction counts and L2 cache misses for construction of SLP. Solid lines are instructions, dashed lines are L2 cache misses.}
   \label{fig:compression:instructions}
 \end{figure}
@@ -1977,7 +1977,7 @@ First the time taken to build the $\DIST$ repository will be examined. \Cref{fig
 
 % The increase in the normalized running time seen for the random input and human genome for building the DIST repository in the interval $[2^3,2^11]$ can be contributed to a large number of L2 cache misses. \Cref{fig:benchmark:dist-repo-cpu} plots the normalized number of instructions, which in the RAM should be directly correlated to the running time. The normalized instructions converges very quickly towards a constant, meaning that the number of retired instructions are as expected wrt. the theoretical running time. \Cref{fig:benchmark:dist-repo-cpu} also plots the L2 cache miss percentage and it can be seen that the percentage of L2 cache misses is high when the running time of the algorithm increases more than expected. Therefore the increase in wall time can be explained by the hierarchical memory layout of a modern computer.
 
-The normalized runnign time seems to be bounded by a constant for all different types of inputs. In fact, up to a length of $\approx 2^{13}$ the running time for the random and human genome seems to be decreasing. The same is seen for the Fibonacci string, however its decrease seems to continue throughout all measurements.
+The normalized runnign time seems to be bounded by a constant for all different types of input. In fact, up to a length of $\approx 2^{13}$ the running time for the random and human genome seems to be decreasing. The same is seen for the Fibonacci string, however its decrease seems to continue throughout all measurements.
 Therefore it is concluded that the theoretical running time is satisfied.
 
 \begin{figure}[!htb]
