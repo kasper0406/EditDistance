@@ -366,6 +366,7 @@ The following test data have been chosen for benchmarking:
 \end{description}
 In \cref{sec:compression:benchmarks} the actual compressibility of all the above input types are examined. \Cref{sec:algorithm:benchmarks} test how fast the compression based algorithm is able to handle the different types of input.
 
+\clearpage
 \section{Implementation and test setup}
 All measurements presented in this report were performed on a computer with an Intel i5-4258U CPU with the following technical specifications:
 \begin{itemize}
@@ -1796,7 +1797,7 @@ Since the witness can be computed in constant time, it takes $O(n)$ times to bui
   By the unit monotonicity of $\delta$, $r_{lo}$ will be located below $r_{hi}$. For this reason, it will be the case that $r_{lo}(d') \geq r_{hi}(d')$ for all $d' \in \{-n, \dots, n\}$, which squeezes the possible values of $r_{hi}(j - i) \in \{r_{lo}(j - i), r_{lo}(j - i) + 1\}$. However, by construction it must always be the case that $r(d') + d'$ is even, for both $r_{lo}$ and $r_{hi}$. Hence it follows that the condition is satisfied iff $r_{hi}(j - i) = r_{lo}(j - i)$.
 \end{description}%
 %
-The check if $P_C(i, j)$ should contain a $1$ can now be formulated as
+The checks specifying if $P_C(i, j)$ should contain a $1$ can now be formulated as
 \begin{align}
   &P_{C,lo}(i, j) = 1 \text{ and } r_{lo}(j - i) \geq i + j + 2 \\
   &P_{C,hi}(i, j) = 1 \text{ and } r_{hi}(j - i) \leq i + j \\
@@ -1821,7 +1822,7 @@ for some constant $c \in \mathbb{R}$. This recurrence is well known from ex merg
 \label{sec:algorithm:max-mult-H-table-with-vector}
 In order to apply the DIST tables to fill out the grid, it is required to be able to compute the maximum distance product between an arbitrary vector and a $H$-table. This section will describe the algorithm of \cite[Lemma 2, p. 234]{Gawrychowski:2012:FAC:2422024.2422048} which gives a linear time algorithm for solving the problem.
 
-Let $v$ denote the input vector of size $n$ and assume we are given a $n \times n$ $H$-table $H$. The algorithm incrementally computes the maximum distance product where each iteration takes $O(1)$ time, leading to a $O(n)$ time algorithm. The output of the algorithm should be
+Let $v$ denote the input vector of size $n$ and assume we are given a $n \times n$ $H$-table $H$. The algorithm incrementally computes the maximum distance product where each iteration takes amortized $O(1)$ time, leading to a $O(n)$ time algorithm. The output of the algorithm should be
 \[
   u(j) = \max_i v(i) + H(i, j) = \max_i v(i) + j - (i - m) - P^{\Sigma}(i, j)
 \]
@@ -1872,7 +1873,7 @@ The interval union find data-structure implemented is the one of \cite{Itai06lin
 \clearpage
 \section{Benchmarks}
 \label{sec:algorithm:benchmarks}
-This section will benchmark the compression based edit distance algorithm. Both with respect to the theoretical running time and also by comparing it to the performance of the simple algorithm. First it will be verified that the distance product algorithms performs as expected and then the combined algorithm for computing the edit distance of compressed strings will be evaluated.
+This section will present benchmarks of the compression based edit distance algorithm. Both with respect to the theoretical running time and also by comparing it to the performance of the simple algorithm. First it will be verified that the distance product algorithms perform as expected and then the combined algorithm for computing the edit distance of compressed strings will be evaluated.
 
 \subsection{Distance products}
 In this section the distance product operations on unit-Monge matrices will be benchmarked and optimized for later use.
@@ -1887,16 +1888,16 @@ Another thing to notice about \cref{fig:benchmark:min-distance:bc} is that it lo
 
 \begin{figure}[h!]
   \centering
-  \includegraphics[width=10cm]{distance-mult/min-dist-mult-bc}
+  \includegraphics[width=11.3cm]{distance-mult/min-dist-mult-bc}
   \caption{Normalized running time of the minimum distance product algorithm for varying base case sizes.}
   \label{fig:benchmark:min-distance:bc}
 \end{figure}
 
-Notice that the normalized running times for the base case size of $50$ experience periodic peaks. These are due to the actual base case size when running the algorithm. In every step the algorithm splits the input size by $2$ until the input size gets smaller than the base case size. Therefore assuming that the input size is always divisible by $2$, the number of times the input is split becomes $x = \lceil \log{\frac{N}{k}} \rceil$ where $k$ is the base case size. That is, the actual instance size when the base case is hit becomes $\frac{N}{2^x}$. As can be seen on \cref{fig:benchmark:min-distance:bc50} this correlates very nicely with the running time of the algorithm. The reason these jumps are not seen for smaller base case sizes is that the simple unfolding approach is fast for small base case sizes.
+Notice that the normalized running time for the base case size of $50$ experience periodic peaks. These are due to the actual base case size when running the algorithm. In every step the algorithm splits the input size by $2$ until the input size gets smaller than the base case size. Therefore assuming that the input size is always divisible by $2$, the number of times the input is split becomes $x = \lceil \log{\frac{N}{k}} \rceil$ where $k$ is the base case size. That is, the actual instance size when the base case is hit becomes $\frac{N}{2^x}$. As can be seen on \cref{fig:benchmark:min-distance:bc50} this correlates very nicely with the running time of the algorithm. The reason these jumps are not seen for smaller base case sizes is that the simple unfolding approach is fast for small base case sizes.
 
 \begin{figure}[h!]
   \centering
-  \includegraphics[width=10cm]{distance-mult/min-dist-mult-bc50}
+  \includegraphics[width=11.3cm]{distance-mult/min-dist-mult-bc50}
   \caption{Examination of the jumps occurring when the base case size is 50.}
   \label{fig:benchmark:min-distance:bc50}
 \end{figure}
@@ -1909,31 +1910,31 @@ The efficient maximum distance product algorithm is a bit more input sensitive t
 \begin{description}
   \item[Increasing input] is given by $v_i = i$ for all entries $i$. This type of input should make the candidate list to only be of length 1.
   \item[Decreasing input] is given by the input vector $v_i = 2 \cdot (n - i)$ where $n$ is the input size. This type should make the length of the candidate list as long as possible.
-  \item[Random permutation] is a vector $v = \sigma(1, \dots, n)$ where $\sigma \in S_n$. Ie. $v$ is a random permutation of the values $1, \dots, n$.
+  \item[Random permutation] is a vector $v = \sigma(1, \dots, n)$ where $\sigma \in_R S_n$. Ie. $v$ is a permutation of the values $1, \dots, n$ sampled uniformly at random from all possible permutations.
 \end{description}
 \Cref{fig:benchmark:max-distance} plots the normalized running time of both the naive $O(n^2)$ algorithm, and the efficient $O(n)$ algorithm of \cite{Gawrychowski:2012:FAC:2422024.2422048}. It can be seen that the algorithm of \cite{Gawrychowski:2012:FAC:2422024.2422048} is superior to the naive algorithm even for relatively small input sizes.
 
 Also, it can be seen that the algorithm behaves as expected wrt. to the different types of input. The input generating the longest candidate list takes the longest time and the one with only one candidate is the fastest.
 
-It can also be seen that the normalized running times seems to be bounded by a constant, which indicates that the theoretical running time is satisfied. However, for large input sizes a small increase in normalized running time for the long candidate list input. From \cref{fig:benchmark:max-distance-cpu} it can be seen that the normalized CPU instructions remain constant as the input size grows. Therefore the increase in running time can be explained by a mismatch with the RAM model and the actual realization of a computer. The measurements from the experiments suggest that the blame is not cache misses as they also approaches a constant when normalized. Therefore it is not exactly known which part of the CPU is responsible for the slight increase in running time, but reasonable guesses could be TLB misses or branch mispredictions.
+It can also be seen that the normalized running times seems to be bounded by a constant, which indicates that the theoretical running time is satisfied. However, for large input sizes of the long candidate list input, the normalized running time seems to increase a bit. From \cref{fig:benchmark:max-distance-cpu} it can be seen that the normalized CPU instructions remain constant as the input size grows. Therefore the increase in running time can be explained by a mismatch with the RAM model and the actual realization of a computer. The measurements from the experiments suggest that the blame is not cache misses as they also approaches a constant when normalized. Therefore it is not exactly known which part of the CPU is responsible for the slight increase in running time, but reasonable guesses could be TLB misses or branch mispredictions.
 
 \begin{figure}[h!]
   \centering
-  \includegraphics[width=10cm]{distance-mult/max-dist-mult}
+  \includegraphics[width=11cm]{distance-mult/max-dist-mult}
   \caption{Running time of the efficient and naive algorithms for computing the maximum distance product of a permutation matrix and a vector.}
   \label{fig:benchmark:max-distance}
 \end{figure}
 
 \begin{figure}[!htb]
   \centering
-  \includegraphics[width=10cm]{distance-mult/max-dist-mult-cpu}
+  \includegraphics[width=11cm]{distance-mult/max-dist-mult-cpu}
   \caption{Normalized instruction count for the Maximum Distance Multiplication benchmarks.}
   \label{fig:benchmark:max-distance-cpu}
 \end{figure}
 
 \clearpage
 \subsection{Combined algorithm}
-This section will present and discuss measurements of the combined algorithm. First it will be examined that the two main steps of the algorithm (the DIST repository construction and grid computation) satisfies their theoretical running times. Also the time distribution between these two steps will be examined.
+This section will present and discuss measurements of the combined algorithm. First it will be examined that the two main steps of the algorithm (the DIST repository construction and grid computation) satisfy their theoretical running times. Also the time distribution between these two steps will be examined.
 
 In the end it will be checked that all the steps combined into the complete algorithm satisfies the theoretical running time and the running time will be compared to the running time of the simple algorithm on the same inputs.
 
@@ -1945,13 +1946,13 @@ The compressibility of the input may have a big influence on how the factors are
 
 \begin{figure}[!htb]
   \centering
-  \begin{subfigure}{0.6\textwidth}
+  \begin{subfigure}{0.75\textwidth}
     \centering
     \includegraphics[width=\textwidth]{parameter-test-random}
     \caption{Aligning two Random strings of length 610.}
     \label{fig:benchmark:estimating-factors:random}
   \end{subfigure}\\
-  \begin{subfigure}{0.6\textwidth}
+  \begin{subfigure}{0.75\textwidth}
     \centering
     \includegraphics[width=\textwidth]{parameter-test-fib}
     \caption{Aligning two Fibonacci string of length 610.}
@@ -1961,9 +1962,9 @@ The compressibility of the input may have a big influence on how the factors are
   \label{fig:benchmark:estimating-factors}
 \end{figure}
 
-It can be seen on \cref{fig:benchmark:estimating-factors} that the effect of different factors are behaving differently for different input types. This shows that the theoretically choice from \cref{sec:combining-the-two-steps} is a simplification of the real world. In practice the best thing to do is to have a more advanced procedure determining the factors for the given input strings.
+It can be seen on \cref{fig:benchmark:estimating-factors} that different factors are behaving differently for different input types. This shows that the theoretically choice from \cref{sec:combining-the-two-steps} is a simplification of the real world. In practice the best thing to do is to have a more advanced procedure determining the factors for the given input strings.
 
-\Cref{fig:benchmark:estimating-factors:random} shows that the factors minimizing the running time was $\xfactor = 0.4$ and $\ffactor = 2$. For the following benchmarks this choice will be used for both the random string and the human genome test cases. The reason for choosing the same factors for the human genome is because the compression characteristics of the human genome and a random string was found to be similar in \cref{sec:compression:benchmarks}.
+\Cref{fig:benchmark:estimating-factors:random} shows that the factors minimizing the running time for random strings was $\xfactor = 0.4$ and $\ffactor = 2$. For the following benchmarks this choice will be used for both the random string and the human genome test cases. The reason for choosing the same factors for the human genome is because the compression characteristics of the human genome and a random string was found to be similar in \cref{sec:compression:benchmarks}.
 
 For the Fibonacci string \cref{fig:benchmark:estimating-factors:fib} shows that the best running time is obtained by choosing $\xfactor = 2$ and $\ffactor = 2$. Therefore this choice is used in the following benchmarks for Fibonacci strings.
 
@@ -1982,7 +1983,7 @@ Therefore it is concluded that the theoretical running time is satisfied.
 
 \begin{figure}[!htb]
   \centering
-  \includegraphics[width=10cm]{combined/dist_runningtime}
+  \includegraphics[width=11.3cm]{combined/dist_runningtime}
   \caption{Plot of the normalized running time for building the DIST repository.}
   \label{fig:benchmark:dist-repo-time}
 \end{figure}
@@ -1994,17 +1995,18 @@ Therefore it is concluded that the theoretical running time is satisfied.
 %   \label{fig:benchmark:dist-repo-cpu}
 % \end{figure}
 
+\clearpage
 \paragraph{Grid computation}
 It will now be checked if the time to fill out the dynamical programming grid satisfies the theoretical running time. \Cref{fig:benchmark:fill-grid-time} plots the normalized running time for the different types of input. It can be seen that all the normalized running times seem to be bounded by a constant.
 % \Cref{fig:benchmark:fill-grid-cpu} shows a plot indicating that the number of CPU instructions executed follows the theoretical bound, but an increase in L3 cache misses is seen when the running time begins to increase. Therefore this increase in running time can be explained by the hierarchical memory layout of a computer.
 
 % Another interesting thing to notice about the plots in \cref{fig:benchmark:fill-grid-time} is that the normalized running time does not stabilize around a constant before $N \approx 2^7 = 128$ which is surprisingly long sequences. This behavior can be explained by the maximum distance product from \cref{sec:algorithm:max-mult-H-table-with-vector} that relies on interval union-find and a candidate list which may have an overhead in setup time for small input sizes.
 
-Another interesting thing to notice aboute \cref{fig:benchmark:fill-grid-time} is the drops in the normalized running time for the hg repetitive and hg combined test cases in the interval $[2^7; 2^{10}]$. This drop corresponds nicely to the improved compression ratio of the same inputs over random strings shown in \cref{fig:compression:quality:hg} in \cref{sec:compression:benchmarks}.
+Another interesting thing to notice aboute \cref{fig:benchmark:fill-grid-time} is the drops in the normalized running time for the repetitive and combined human genome test cases in the interval $[2^7; 2^{10}]$. This drop corresponds nicely to the improved compression ratio of the same inputs over random strings shown in \cref{fig:compression:quality:hg} in \cref{sec:compression:benchmarks}.
 
 \begin{figure}[!htb]
   \centering
-  \includegraphics[width=10cm]{combined/grid_runningtime}
+  \includegraphics[width=11.3cm]{combined/grid_runningtime}
   \caption{Plot of the normalized running time for filling out the grid.}
   \label{fig:benchmark:fill-grid-time}
 \end{figure}
@@ -2032,13 +2034,13 @@ It can be seen that the constant of the normalized running time for the random d
 
 \clearpage
 \paragraph{Running time distribution}
-It will now be examined how much of the running time is spend on the different parts of the algorithm for different input types and sizes. \Cref{fig:benchmark:relative-runningtime} shows how the relative time distribution is for the different input types.
+It will now be examined how much of the running time is spent on the different parts of the algorithm for different input types and sizes. \Cref{fig:benchmark:relative-runningtime} shows how the relative time distribution is for the different input types.
 
 It can be seen that the time for constructing and blocking the SLP takes almost all of the time for input sizes up to $\approx 2^9 = 512$. This is due to the high running time constant of building the suffix tree used to compute the LZ-factorization. However, as the input size gets larger, the relative time for computing the SLP gets negligible in the total running time. This is also what is predicted by the theoretical running times.
 
 For the Fibonacci input, it can be seen that the running time between the grid computation and the DIST repository construction is more or less balanced. This is opposed to other the three inputs (the human genome combinations and the random string) where almost all the time is spend by the grid computation.
 
-The time distribution is a result of the choice of the $\ffactor$ and $\xfactor$ from \cref{sec:benchmark:slp-partition-factors}. An interesting observation is that for random and human genome inputs the partition size is in the interval $[2, 3]$. This is the same block size giving the optimal running time for the Four Russian algorithm \cite{LasseFourRussian}. It was also found in \cite{LasseFourRussian} that the Four Russian algorithm used almost all the time filling out the grid. This indicates that the Four Russian algorithm will be a better choice for aligning these types of data, since the Four Russian algorithm uses a simpler algorithm for using the precomputed blocks.
+The time distribution is a result of the choice of the $\ffactor$ and $\xfactor$ from \cref{sec:benchmark:slp-partition-factors}. An interesting observation is that for random and human genome inputs the block size is in the interval $[2, 3]$. This is the same block size giving the optimal running time for the Four Russian algorithm \cite{LasseFourRussian}. It was also found in \cite{LasseFourRussian} that the Four Russian algorithm used almost all the time filling out the grid. This indicates that the Four Russian algorithm will be a better choice for aligning these types of data, since the Four Russian algorithm uses a simpler algorithm for using the precomputed blocks.
 
 Because Fibonacci inputs compress better the longer the input is, the partition size is increasing with the input size for the Fibonacci input. This is also why relatively the $\DIST$ repository computation takes up longer time for the Fibonacci input.
 
@@ -2078,14 +2080,14 @@ Because Fibonacci inputs compress better the longer the input is, the partition 
 \restoregeometry
 
 \clearpage
-\subsubsection{Comparison with simple algorithms}
+\subsubsection{Comparison with the simple algorithm}
 This section will present measurements on how the compression based algorithm performs compared to the simple algorithm. \Cref{fig:benchmark:simple-vs-lcsblowup} plots the speedup factor obtained over the simple algorithm for the different inputs.
 
 For all the human genome inputs and the random inputs it can be seen that the algorithm performs $\approx 2^{8} = 256$ times slow than the simple algorithm. This is a quite disappointing result from the perspective of using the algorithm for DNA alignment and comparison. One natural thought is if there is something in the code that is directly responsible for the large slow down, but no such areas in the code was found by profiling. It is probably the case that some parts of the implementation can be optimized\footnote{Possible optimizations include double-dispatching without dynamic casts and better memory control.}. However, these optimizations should not be able to speed up the computation nowhere near the measured slowdown.
 
-Since the alphabet is finite, the input strings can in theory be made to compress arbitrarily well by making the strings sufficiently long. The rate of this compression happens by a factor of $\Omega(\log_{|\Gamma|}{N})$ whereby the running time of the combined algorithm for all strings should be bounded by $O\left( N^2 \frac{\sqrt{\log{\log{N}}}}{\log{N}} \right)$. Because $\log{N}$ grows quite slow and the tremendous overhead in the compressed edit distance algorithm, the compression based algorithm will never be better than the simple algorithm for practical sized inputs that does not compress well under the SLP compression scheme.
+Since the alphabet is of constant size, the input strings can in theory be made to compress arbitrarily well by making the strings sufficiently long. The rate of this compression happens by a factor of $\Omega(\log_{|\Gamma|}{N})$ whereby the running time of the combined algorithm for all strings should be bounded by $O\left( N^2 \frac{\sqrt{\log{\log{N}}}}{\log{N}} \right)$. Because $\log{N}$ grows quite slow and the tremendous overhead in the compressed edit distance algorithm, the compression based algorithm will never be better than the simple algorithm for practical sized inputs that does not compress well under the SLP compression scheme.
 
-It is also worth noticing that the simple algorithm may be improved. \cite{LasseFourRussian} experimented with the Four Russian algorithm for sequence alignment and found a speedup factor of $\approx 6-8$. Therefore the algorithm implemented in this thesis is not feasible for use in DNA sequence alignment.
+It is also worth noticing that the simple algorithm may be improved. \cite{LasseFourRussian} experimented with the Four Russian algorithm for sequence alignment and found a speedup factor of $\approx 6-8$. The author of \cite{LasseFourRussian} has also made an implementation of the Four Russian algorithm running on the GPU using CUDA, where a speedup of 221x was found \cite{LasseFourRussianCUDA}. Therefore the algorithm implemented in this thesis is not feasible for use in DNA sequence alignment.
 
 The situation is different for Fibonacci inputs, which by \cref{sec:compression:benchmarks} is compressed such that $n = O(\log^2{N})$. This means that the total running time of the algorithm for Fibonacci input becomes $O\left( N\log^2{N} \sqrt{\log{\frac{N}{\log^2{N}}}} \right) = O(N\log^{\frac{5}{2}}{N})$. Therefore the running time of the compression based algorithm should improve by a factor $\Omega\left( \frac{N}{\log^{\frac{5}{2}}{N}} \right)$ over the simple algorithm.
 
@@ -2093,30 +2095,31 @@ It can be seen on \cref{fig:benchmark:simple-vs-lcsblowup-fib} that the actual s
 
 However, from \cref{fig:benchmark:simple-vs-lcsblowup} it can be seen that the length of the Fibonacci input should be longer than $\approx 2^{15} \approx 30000$ in order for the SLP-based algorithm to be faster than the simple edit-distance algorithm.
 
-The benchmarks suggests that the algorithm is able to achieve a speedup in the edit distance computation for highly repetitive strings. However, in order to actually see any speedup the strings should be long. Moreover, it may be hard to think of practical input data that fulfill the highly repetitive structure. Therefore, the simple algorithm will for almost any practical purpose be a better choice.
-\enlargethispage{\baselineskip}
+The benchmarks suggest that the algorithm is able to achieve a speedup in the edit distance computation for highly repetitive strings. However, in order to actually see any speedup the strings should be long. Moreover, it may be hard to think of practical input data that fulfill the highly repetitive structure. Therefore, the simple algorithm will for any practical purpose be a better choice.
 
 \begin{figure}[!htb]
   \centering
-  \includegraphics[width=10cm]{combined/simple_vs_lcs}
+  \includegraphics[width=13cm]{combined/simple_vs_lcs}
   \caption{Plot of the running time improvement of the compression based algorithm compared to the Simple algorithm.}
   \label{fig:benchmark:simple-vs-lcsblowup}
 \end{figure}
 
 \begin{figure}[!htb]
   \centering
-  \includegraphics[width=10cm]{combined/simple-vs-lcs-fib}
+  \includegraphics[width=11cm]{combined/simple-vs-lcs-fib}
   \caption{Comparison of the actual speed-up factor versus the theoretical speed-up factor for Fibonacci input.}
   \label{fig:benchmark:simple-vs-lcsblowup-fib}
 \end{figure}
+\enlargethispage{10\baselineskip}
 
 \chapter{Conclusion}
 \label{chapter:conclusion}
-During the work with this thesis, the algorithm for computing the Edit Distance described in \cite{Gawrychowski:2012:FAC:2422024.2422048} has been described, implemented and tested in practice.
+\enlargethispage{\baselineskip}
+During the work with this thesis, the algorithm for computing the edit distance by using string compression given in \cite{Gawrychowski:2012:FAC:2422024.2422048} has been described, implemented and tested in practice.
 
-The compression to SLPs of the input strings provides the foundation for obtaining a speedup. For the Fibonacci input, the inputs can automatically be compressed to a size of $O(\log^2{n})$ where the original input size is $n$. This results in an asymptotic improvement by a factor of $\Omega\left( \frac{N}{\log^{\frac{5}{2}}{N}} \right)$ for the theoretical running time of the compression based algorithm over the simple algorithm.
+The compression to SLPs of the input strings provides the foundation for obtaining a speedup. For the Fibonacci input, the inputs can automatically be compressed to a size of $O(\log^2{N})$ where the original input size is $N$. This results in an asymptotic improvement by a factor of $\Omega\left( \frac{N}{\log^{\frac{5}{2}}{N}} \right)$ for the theoretical running time of the compression based algorithm over the simple algorithm.
 
-For the human genome and the random input, they obtain a compression to something above $0.2N$ for all tested input sizes, which was tested up to $\approx 4\cdot 10^6$ symbols. Therefore, for all practical applications, the algorithm on such input data has a theoretical running no better than the simple algorithm. Therefore all benchmarks with the human genome and random input the competition in practice becomes a battle on constants.
+The human genome and the random inputs obtain a compression ratio bigger than $0.2$ for all tested input sizes, which was tested up to $\approx 4\cdot 10^6$ symbols. Therefore, for all practical purposes, the algorithm on such input data has a theoretical running no better than the simple algorithm. Therefore all benchmarks with the human genome and random input, the competition in practice becomes a battle on constants.
 
 The running time of the algorithm when testing on Fibonacci input was found to be faster than the simple algorithm, when the input was longer than $\approx 30000$ symbols. This shows that there exist classes of inputs that does give a speedup in practice. However, it has not been possible to find any real world problems where the edit distance between such highly repetitive strings is desirable.
 
@@ -2129,17 +2132,19 @@ Therefore the algorithm in its current form is not practical, as the simple algo
 \section{Future work}
 \label{sec:conclusion:future-work}
 During the project, a number of ideas (of which most are of practical concerns) for potentially improving the approach of computing the edit distance based on SLPs have been considered. These ideas are shortly described and motivated in the following list:
+\enlargethispage{20\baselineskip}
 
 \begin{itemize}
-  \item The algorithm for computing the minimum distance product of two unit-Monge matrices runs in time $O(n \log{n})$, however no lower bound other than $\Omega(n)$ is known. It could be interesting to close this gap. If is is possible to make a $\Theta(n)$ algorithm, the time for building the DIST tables can be reduced to $O(n^2 x)$, and by picking $x = \frac{N}{n}$, the total running time of the algorithm becomes $O(\underbrace{n^2 x}_{\DIST} + \underbrace{\frac{N^2}{x}}_{\text{Grid}}) = O(nN)$, which is an asymptotic improvement.
+  \item The algorithm for computing the minimum distance product of two unit-Monge matrices runs in time $O(n \log{n})$, however no lower bound other than $\Omega(n)$ is known. It could be interesting to close this gap. If is is possible to make a $\Theta(n)$ algorithm, the time for building the DIST tables can be reduced to $O(n^2 x)$, and by picking $x = \frac{N}{n}$, the total running time of the algorithm becomes $O(\underbrace{n^2 x}_{\mathclap{\DIST}} + \underbrace{\frac{N^2}{x}}_{\mathclap{\text{Grid}}}) = O(nN)$, which is an asymptotic improvement.
 
   \item Consider if the compressed strings can be reused, such that multiple strings can be entangled into one SLP. This would make it possible for a lot of strings to share DIST tables, and also possible do a better compression of highly similar strings. This could be of interest when computing the edit distance between all pairs of a large number of sequences, which is useful when approximating a phylogeny from sequence data.
 
-  \item As mentioned in \cref{ch:compressing-strings}, the space consumption of the SLP has a very high constant when measured in terms of the number of productions in the SLP. As previously noted, this will mean that the approach is not applicable to long strings not compressing well. For the measurements performed in this thesis it did not turn out as a problem, however a succinct representation of a SLP may be of interest if it is possible to improve the running time of the algorithm.
+  \item As mentioned in \cref{ch:compressing-strings}, the space consumption of the SLP has a very high constant when measured in terms of the number of productions in the SLP. As previously noted, this will mean that the approach is not applicable to long strings not compressing well. For the measurements performed in this thesis it did not turn out as a problem, however a succinct representation of a SLP may be of interest if it is possible to improve the running time of the algorithm, making it applicable to longer inputs.
 
   \item Another more direct way of obtaining a speedup is to parallelize the algorithm. The two SLP representations can easily be computed in parallel. Inside the construction of the SLPs the parallelization is not obvious, however, it was found in the benchmarks that this part only contribute a small fraction of the running time. Therefore the lack of parallelization in this step will not be a problem.
 
-  For the expensive parts of the algorithm (constructing the DISTs and filling the dynamical programming grid), efficient parallelization is easy. For construction of the DIST repository, parallelization can be applied on every recursive merge, which happens for every pair of selected SLP productions and every recursive call.
+  For the expensive parts of the algorithm (constructing the DISTs and filling the dynamical programming grid), efficient parallelization is easy. For construction of the DIST repository, parallelization can be applied on every recursive merge, which happens for every pair of selected SLP productions.
+  %
   For filling out the grid, the algorithm can be parallelized in the same way as the simple algorithm, by choosing a suitable order to fill out the blocks.
 \end{itemize}
 
