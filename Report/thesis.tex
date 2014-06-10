@@ -716,7 +716,7 @@ In order to describe the algorithm and argue its correctness, some notation will
 
 It has been chosen that all matrices used in this report are $0$-indexed. That is, an entry in a matrix $A$ of size $m \times n$ is indexed by $A(i, j)$ where $i \in \{0, \dots, m - 1\}, j \in \{0, \dots, n - 1\}$. Note that this is a different choice than the referenced literature describing the algorithm (most notably \cite{Tiskin:2010:FDM:1873601.1873704} and \cite{DBLP:journals/corr/abs-0707-3619}), who for convenience use odd half-integers to index some of the matrices. This approach was not chosen in order to make the calculations in this report closer to the actual \texttt{C++} implementation.
 
-Almost all matrices considered in this report will be square matrices, ie. of size $n \times n$ for some $n \in \mathbb{N}$. Therefore all following definitions will only be given for square matrices, but most of them could easily be generalized to matrices of arbitrary dimension.
+All matrices considered in this report will be square matrices, ie. of size $n \times n$ for some $n \in \mathbb{N}$. Therefore all following definitions will only be given for square matrices, but most of them could easily be generalized to matrices of arbitrary dimension.
 
 \begin{mydef}
   A permutation matrix of size $n$ is a matrix over $\{0,1\}^{n \times n}$ where each row and each column contains exactly one $1$. That is, it can be seen as the identity matrix of size $n \times n$ where the rows (or columns) are permuted.
@@ -731,7 +731,7 @@ The algorithm stores a lot of permutation matrices in memory. Therefore it is de
 hence $\Omega(\log{n!}) = \Omega(n \log{n})$ bits are required to represent the permutation matrix, which is also what is used in the row/column-permutation representation.
 
 \paragraph{Permutation matrix properties}
-This section will defined and classify different useful properties about matrices, where especially permutation matrices are of interest. 
+This section will define and classify different useful properties about matrices, where especially permutation matrices are of interest. 
 %
 \begin{mydef}
   The distribution matrix $A^{\Sigma}$ of a $n \times n$ matrix $A$ is a $(n + 1) \times (n + 1)$ matrix defined as
@@ -860,7 +860,7 @@ An important observation required for the algorithm described in \cref{sec:algor
             0  & \text{o/w}
           \end{cases},
     \end{align*}
-    where the latter can be calculated in $O(1)$ time by assumption of constant query time on permutation matrices.
+    where the latter can be calculated in $O(1)$ time by the assumption of constant query time on permutation matrices.
   \end{proof}
 \end{lemma}
 
@@ -884,10 +884,10 @@ As the proof of \cref{claim:unit-monge-min-prod-closed} is thoroughly described 
 \end{mydef}
 
 \section{Algorithm}
-The algorithm follows the steps in \cref{sec:edit-dist-on-slps-steps}, however instead of directly computing the edit distance between the two input SLPs, the longest common subsequence (LCS) between the two SLPs will be computed. This is done because it turns out that it is easier to succinctly represent the structures needed for the LCS computation, in such a way that it can be computed efficiently.
+The algorithm follows the steps in \cref{sec:edit-dist-on-slps-steps}, however instead of directly computing the edit distance between the two input SLPs, the longest common substring (LCS) between the two SLPs will be computed. This is done because it turns out that it is easier to succinctly represent the structures needed for the LCS computation, in such a way that it can be computed efficiently.
 
 \begin{mydef}
-  The longest common subsequence (LCS) problem is given two input strings (or SLPs) $\str{A}{0}{m}$ and $\str{B}{0}{n}$. The result is the longest substring occurring in both strings.
+  The longest common substring (LCS) problem is given two input strings (or SLPs) $\str{A}{0}{m}$ and $\str{B}{0}{n}$. The result is the longest substring occurring in both strings.
 \end{mydef}
 
 The LCS problem can up to a simple transformation of the result be seen as a restricted type of edit distance where substitutions are not allowed. This transformation is given by
@@ -902,14 +902,14 @@ The following definition describes how the dynamic programming table will be spl
 
 \begin{mydef}
   \label{defn:dist-table}
-  A $\DIST$ table between two strings $\str{A'}{0}{m}$ and $\str{B'}{0}{n}$ (or two SLP productions) stores for all prefix-suffix pairs of $A'$ and $B'$ the longest common substring between them. More specifically for input and outputs $i, o \in \{0, \dots, m + n\}$ where $i \leq o + m$ and $o \leq i + n$ the $\DIST$ tables stores
+  A $\DIST$ table between two strings $\str{A'}{0}{m}$ and $\str{B'}{0}{n}$ (or two SLP productions) stores for all prefix-suffix pairs of $A'$ and $B'$ the longest common substring between them. More specifically for input and outputs $i, j \in \{0, \dots, m + n\}$ where $i \leq j + m$ and $j \leq i + n$ the $\DIST$ tables stores
   \[
-    \DIST_{A',B'}[i, o] = \left\{
+    \DIST_{A',B'}[i, j] = \left\{
     \begin{array}{ll}
-      lcs(\substr{A'}{m - i}{m}, \substr{B'}{0}{o})             & \text{if } i < m, o < n \\
-      lcs(A', \substr{B'}{i - m}{o})                            & \text{if } i \geq m, o < n \\
-      lcs(\substr{A'}{m - i}{m - (o - n)}, B')                  & \text{if } i < m, o \geq n \\
-      lcs(\substr{A'}{0}{m - (o - n)}, \substr{B'}{i - m}{n})   & \text{if } i \geq m, o \geq n
+      lcs(\substr{A'}{m - i}{m}, \substr{B'}{0}{j})             & \text{if } i < m, j < n \\
+      lcs(A', \substr{B'}{i - m}{j})                            & \text{if } i \geq m, j < n \\
+      lcs(\substr{A'}{m - i}{m - (j - n)}, B')                  & \text{if } i < m, j \geq n \\
+      lcs(\substr{A'}{0}{m - (j - n)}, \substr{B'}{i - m}{n})   & \text{if } i \geq m, j \geq n
     \end{array}
   \right. .
   \]
@@ -941,7 +941,7 @@ The transformation is as follows: All symbols $a \in \Gamma$ in the input string
 
 \begin{figure}[!htb]
   \centering
-  \begin{subfigure}{0.8\textwidth}
+  \begin{subfigure}{0.9\textwidth}
     \includegraphics[width=\textwidth]{images/blow-up-edit-dist-cases}
     \caption{Cases that corresponds to edit distance operations.}
     \label{fig:blow-up:edit-dist-cases}
@@ -949,26 +949,26 @@ The transformation is as follows: All symbols $a \in \Gamma$ in the input string
   %
   \begin{subfigure}{0.8\textwidth}
     \centering
-    \includegraphics[width=0.15\textwidth]{images/blow-up-not-possible-case}
-    \caption{Case that is not possible in longest common subsequence.}
+    \includegraphics[width=0.2\textwidth]{images/blow-up-not-possible-case}
+    \caption{Case that is not possible in longest common substring.}
     \label{fig:blow-up:not-possible}
   \end{subfigure}
-  \caption{Possible cases for aligning two transformed strings in the longest common subsequence world.}
+  \caption{Possible cases for aligning two transformed strings in the longest common substring world.}
 \end{figure}%
 
-Notice that it is not possible to create a longest common subsequence using other matching strategies than the ones shown in \cref{fig:blow-up:edit-dist-cases}. The only ones that are omitted are cases all similar to the matching shown in \cref{fig:blow-up:not-possible}, but these cases can always be improved by matching the $\$$'s and hence these matchings can not be in the longest common substring.
+Notice that it is not possible to create a longest common substring using other matching strategies than the ones shown in \cref{fig:blow-up:edit-dist-cases}. The only ones that are omitted are cases all similar to the matching shown in \cref{fig:blow-up:not-possible}, but these cases can always be improved by matching the $\$$'s and hence these matchings can not be in the longest common substring.
 
-Due to the scorings of the possible cases in \cref{fig:blow-up:edit-dist-cases}, it is easy to verify that
+Due to the scorings of the possible cases in \cref{fig:blow-up:edit-dist-cases}, it can be verified that
 \[
   \EditDist(A, B) = n + m - lcs(A^{\$}, B^{\$}),
 \]
-by considering how the alignment relates for the different cases.
+by considering how the alignment relates for the different cases. The $n + m$ part denotes the worst-case cost of a edit distance alignment of the original strings. For every match operation in the LCS string as depicted in \cref{fig:blow-up:edit-dist-cases}, the edit distance alignment can be changed to match these symbols leading to a reduction of the cost by $2$. For the substitution without a match, only a singe gap is avoided meaning that the edit distance cost should be reduced by $1$. This is also what happens by \cref{fig:blow-up:edit-dist-cases}. For the insertion and deletion cases it also follow that their cost reduction correspond to their LCS scores.
 
-This approach results in the strings becoming a factor of $2$ longer. For a simple $O(N^2)$ implementation of the LCS algorithm, this would result in a factor of $2^2 = 4 = O(1)$ slow down. However, for LCS working on compressed strings, the penalty will not be as severe, since the blown up strings will compress well. This follows from, and also gives an algorithm for performing the blow-up: Every terminal in the SLP (of which there are $|\Gamma|$) is replaced by a non-terminal producing the original terminal and a new terminal producing the $\$$ symbol. This results in only $|\Gamma| + 1$ new productions being added to the SLP encoding of the string.
+This approach results in the strings becoming a factor of $2$ longer. For the simple $O(N^2)$ implementation of the LCS algorithm, this would result in a factor of $2^2 = 4 = O(1)$ slow down. However, for the compression based algorithm, the penalty will not be as severe, since the blown up strings will compress well. This follows from, and also gives an algorithm for performing the blow-up: Every terminal in the SLP (of which there are $|\Gamma|$) is replaced by a non-terminal producing the original terminal and a new terminal producing the $\$$ symbol. This results in only $|\Gamma| + 1$ new productions being added to the SLP encoding of the string.
 
 \subsection{Selecting SLP productions}
 \label{sec:algorithm:select-productions}
-In order to be able to save time, the idea is to pre-compute DIST tables based on the productions in the SLPs, such that reused productions means that fewer DIST tables have to be precomputed. Obviously there is not enough time to compute DIST tables for all productions, as this would directly compute the longest common subsequence by looking at the result in the root node of the SLPs. Instead, the SLPs will be chopped into blocks deriving strings of length $O(x)$ for some $x \in \mathbb{N}$, and then the $\DIST$ tables will precomputed for these blocks.
+In order to be able to save time, the idea is to pre-compute DIST tables based on the productions in the SLPs, such that reused productions means that fewer DIST tables have to be precomputed. There is not enough time to compute DIST tables for all productions. Instead, the SLPs will be chopped into blocks corresponding to productions, covering the entire string, where each block derives strings of length $O(x)$ for some $x \in \mathbb{N}$. $\DIST$ tables will then be precomputed for these blocks.
 
 Both of the input SLPs will be blocked in the same way. The blocking process applied is from \cite[Section 4]{DBLP:journals/corr/abs-1004-1194} and consists of two steps. First what will be known as \textit{key productions} are selected and then productions in between the key productions are selected.
 
@@ -979,14 +979,14 @@ Both of the input SLPs will be blocked in the same way. The blocking process app
   \label{fig:key-production-selection}
 \end{figure}
 
-The key productions are identified by traversing the unfolded SLP bottom up. If the string derived by the current production has length less than $x$ it is annotated with an associated string, which in this case is the string it derives\footnote{In practice the actual associated string is not needed, but only the length of the associated string. Therefore only the length of the associated string is stored in the implementation.}. If the length is greater than $x$ and both its children have length less than $x$, then the production is marked as a key production and its associated string is set to the string it derives. Otherwise no action is taken. An illustration of how key productions are selected can be seen on \cref{fig:key-production-selection}.
+The key productions are identified by traversing the unfolded SLP bottom up. If the string derived by the current production has length less than $x$ it is annotated with an associated string, which in this case is the string it derives\footnote{In practice the actual associated string is not needed, but only the length of the associated string. Therefore only the length of the associated string is stored in the implementation.}. If the length is greater than $x$ and both its children have length less than $x$, the production is marked as a key production and its associated string is set to the string it derives. Otherwise no action is taken. An illustration of how key productions are selected can be seen on \cref{fig:key-production-selection}.
 
-All the selected key productions covers some part of the string. In order to cover the rest of the input string extra productions need to be added. These are called second type productions. In order to find these, the path between two adjacent key productions is traversed. This is done by first finding the lowest common ancestor of the two key productions, and then traversing the paths from both of the key productions to the lowest common ancestor bottom up. Notice that all productions hanging from the traversed paths must all have derived strings with length less than $x$ since they would be marked as key productions otherwise. See \cref{fig:slp-2nd-type} for an illustration.
+All the selected key productions cover some part of the string. In order to cover the rest of the input string extra productions need to be added. These are called second type productions. In order to find these, the path between two adjacent key productions is traversed. This is done by first finding the lowest common ancestor of the two key productions, and then traversing the paths from both of the key productions to the lowest common ancestor bottom up. Notice that all productions hanging from the traversed paths must all have derived strings with length less than $x$ since they would be marked as key productions otherwise. See \cref{fig:slp-2nd-type} for an illustration.
 
 \begin{figure}[!htb]
   \centering
   \includegraphics[width=10cm]{images/slp-2nd-type}
-  \caption{An illustration of how production of the second type relates to the key productions. The productions inside the green areas spans the part of the string that is not covered by the key productions. The productions on the path between the two key productions are labeled by $l_0, \dots, l_{k_l}$ and $r_0, \dots, r_{k_r}$.}
+  \caption{An illustration of how production of the second type relates to the key productions $k_i, k_{i+1}$. The productions inside the green areas span the part of the string that is not covered by the key productions. The productions on the path between the two key productions are labeled by $l_0, \dots, l_{k_l}$ and $r_0, \dots, r_{k_r}$.}
   \label{fig:slp-2nd-type}
 \end{figure}
 
@@ -996,17 +996,17 @@ There is a special case with the beginning and end of the string, as there are n
 
 By this process, all the selected productions will span the entire input string and they are all associated with strings of length $O(x)$.
 
-Due to the bottom up nature of the selection process, a repeated production in two parts of the string will result in the same selected productions. This is very important in obtaining the desired speedup, since DIST tables are precomputed for all the selected productions. Therefore, reducing the number of different selected productions yields a time improvement when building the DIST tables.
+Due to the bottom up nature of the selection process, a repeated production in two parts of the string will result in the same selected productions. This is very important in order to obtain the desired speedup, since DIST tables are precomputed for all the selected productions. Therefore, reducing the number of different selected productions yields a time improvement when building the DIST tables.
 
 One technical detail to notice for the above approach to work directly, is that a production is only associated with one unique string, even through a production may occur several times in the unfolded SLP. Due to the bottom up selection, this is clear for the key productions. For the second type it follows since the same key productions are selected in different parts of the strings, resulting in the paths between the key productions being unique, so that they always produce the same result.
 
 \subsection{Building the DIST repository}
 \label{sec:algorithm:building-DISTs-overview}
-In the previous step it was described how to select the productions for which the $\DIST$ repository should be build. This section will focus on how the $\DIST$ repository is constructed. More specifically the $\DIST$ repository contains a $\DIST$ table for every pair of selected productions in the two SLPs. In other words, let $P_\mathcal{A}$ and $P_\mathcal{B}$ denotes the selected productions in respectively the SLPs $\mathcal{A}$ and $\mathcal{B}$. Then the $\DIST$ repository contains a $\DIST$ table $\DIST_{a,b}$ for all $a \in P_\mathcal{A}, b \in P_{\mathcal{B}}$.
+In the previous step it was described how to select the productions for which the $\DIST$ repository should be built. This section will focus on how the $\DIST$ repository is constructed. More specifically the $\DIST$ repository contains a $\DIST$ table for every pair of selected productions in the two SLPs. In other words, let $P_\mathcal{A}$ and $P_\mathcal{B}$ denotes the selected productions in respectively the SLPs $\mathcal{A}$ and $\mathcal{B}$. Then the $\DIST$ repository contains a $\DIST$ table $\DIST_{a,b}$ for all $a \in P_\mathcal{A}, b \in P_{\mathcal{B}}$.
 
 The $\DIST$ tables will be constructed by means of recursively merging $\DIST$ tables for sub-productions of the selected productions. The base case for a pair of terminals is not explicitly described in this section, but will follow directly from definition once the concrete representation of the $\DIST$ tables have been described in \cref{lemma:H-permutation-representation}.
 
-The previously described production selection process divides the selected productions into two types. The following describes how to handle the two cases.
+The previously described production selection process, divides the selected productions into two types. The following describes how to handle the two cases.
 \\
 \begin{description}
   \item[Key productions] A key production is always associated with the string that the production derives. Therefore assume the DIST table for two key productions $a \in P_{\mathcal{A}}$ and $b \in P_{\mathcal{B}}$ should be built. Name the children of the two productions by $a_L, a_R$ and $b_L, b_R$ as illustrated on \cref{fig:distrepo-key}.
@@ -1038,7 +1038,7 @@ The previously described production selection process divides the selected produ
   By adopting the notation of $a_L$ and $a_R$ from \cref{fig:distrepo-key}, and using the appropriate definitions of $b_L, b_R$ from the type of the $b$ production, the merging process of \cref{fig:compression:dist:merge} gives the desired result.
   \enlargethispage{\baselineskip}
 \end{description}
-Since the number of productions is bounded by $O(n^2)$, memorization can be used in combination with the above procedure to construct the $\DIST$-repository in time $O(n^2 M(x))$, where $M(x)$ denotes the time for merging two $\DIST$ tables. As will be seen in \cref{sec:merging-dists} the merging can be done in time $M(x) = O(x\log{x})$, leading to a total running time of $O(n^2x\log{x})$ for computing the DIST repository.
+Since the number of productions is bounded by $O(n^2)$, memorization can be used in combination with the above procedure to construct the $\DIST$ repository in time $O(n^2 M(x))$, where $M(x)$ denotes the time for merging two $\DIST$ tables. As will be seen in \cref{sec:merging-dists} the merging can be done in time $M(x) = O(x\log{x})$, leading to a total running time of $O(n^2x\log{x})$ for computing the DIST repository.
 
 \subsection{Filling out the dynamical programming table}
 \label{sec:algorithm:filling-grid-overview}
@@ -1053,7 +1053,7 @@ However, by representing the $\DIST$ tables in a clever way, the time required t
 
 \subsection{Combining the two steps}
 \label{sec:combining-the-two-steps}
-In order to reduce the running time, the idea is to balance the time used to compute the $\DIST$ repository and to fill out the grid. In order to do this, define $f = \frac{N}{n}$ to be the inverse compression ratio of the input strings.
+In order to reduce the running time, the idea is to asymptotically balance the time used to compute the $\DIST$ repository and to fill out the grid. In order to do this, define $f = \frac{N}{n}$ to be the inverse compression ratio of the input strings.
 
 The size parameter for the SLP blocking $x$ is defined to be $x = \frac{f}{\sqrt{\log{f}}}$. This choice results in the $\DIST$ repository taking
 \begin{align*}
@@ -1104,7 +1104,7 @@ A different way of describing the LCS between these prefix-suffix pairs, is by t
   \]
   where $? \not\in \Gamma$ denotes a wildcard character matching all other symbols.
 \end{mydef}
-The first case in the $H_{A,B}$ definition is introduced because these entries in the corresponding $\DIST$ table are not well-defined. The values for these entries of the $H$-table are simply chosen to make everything work out as they should in order to make the $H$-tables easy representable. In almost all the following calculations it has been chosen not to include this case as it is straight forward that the choice will work. This is due to the definition of the $\Sigma$-operator and that unit-Monge matrices are closed under minimum distance product.
+The first case in the $H_{A,B}$ definition is introduced because these entries in the corresponding $\DIST$ table are not well-defined. The values for these entries of the $H$-table are simply chosen to make everything work out as they should in order to make the $H$-tables easy representable. In almost all the following calculations it has been chosen not to include this case as it is straight forward that the choice will work. This is due to the definition of the $\Sigma$-operator and that unit-Monge matrices are closed under the minimum distance product.
 
 When it is clear which strings a $\DIST$- or $H$-table are based upon they may be omitted from the notation in order to simplify the look of the expressions. I.e. $\DIST_{A,B}$ may be written as $\DIST$ and $H_{A,B}$ as $H$.
 
@@ -1127,7 +1127,7 @@ The precise correspondence between a $H$-table as defined in \cref{def:H-table} 
     \begin{description}
       \item[\circled{1}] For $i \in \{0, \dots, m\}, j \in \{0, \dots, n\}$,
        \begin{align*}
-         H(i, j) &= lcs(A, \substr{?^mB?^m}{i}{j + m}) = lcs(A, ?^{m - i}(\substr{B}{0}{j})) \\
+         H(i, j) &= lcs(A, \substr{?^mB?^m}{i}{j + m}) = lcs(A, ?^{m - i}\substr{B}{0}{j}) \\
                  &= (m - i) + lcs(\substr{A}{m - i}{m}, \substr{B}{0}{j}) = \DIST[i, j] + m - i
        \end{align*}
 
@@ -1176,7 +1176,7 @@ An important property of the $H$-table is that it is almost simple unit-Monge.
     \begin{figure}[h!]
       \centering
       \includegraphics[width=11cm]{images/monge-condition-illustration}
-      \caption{Illustration of how the longest common subsequence extension relates to the Monge property.}
+      \caption{Illustration of how the longest common substring extension relates to the Monge property.}
       \label{fig:H-permutation-representation:monge}
     \end{figure}
 
@@ -1219,7 +1219,7 @@ What remains is to ensure that the merge and apply operations on the $\DIST$ tab
 
 \subsection{Merging $\DIST$ tables}
 \label{sec:merging-dists}
-The following definition will come in handy:
+First it will be shown how the merge operations can be efficiently computed. The following definition will come in handy:
 \begin{mydef}
   Let $P_{A'}$ and $P_{A''}$ be permutation matrices describing the $\DIST$ tables for the strings $\str{A'}{0}{m'}$ and $\str{A''}{0}{m''}$ with $B$ respectively. Then define the following index change matrices
   \[
@@ -1232,7 +1232,7 @@ The following definition will come in handy:
       0 & I^{m' \times m'}
     \end{pmatrix}.
   \]
-  Notice that both of these new matrices are also permutation matrices, and that they can be efficiently computed by a single scan of the original matrices.
+  Notice that both of these new matrices are also permutation matrices, and that they can be efficiently computed by a single scan of the original matrices.\footnote{Notice that \cite[p. 55, Theorem 4.19]{DBLP:journals/corr/abs-0707-3619} has a typo, where it is claimed that the identity matrices should be what they call offset identity matrices. These are identity matrices where the diagonal is offset by some fixed amount. It has been checked by the following calculations and by experimental testing with algorithm that it should be ordinary identity matrices.}
 \end{mydef}
 
 The following convenient fact that will be useful later, follows directly from the definition of the $\Sigma$-operator:
@@ -1265,7 +1265,7 @@ It will now be explained how to vertically merge $\DIST_{A',B}$ and $\DIST_{A'',
       \DIST[i, j] = \max_{k \in \{0, \dots, n\} } \left\{ \DIST_{A',B}[i - m'', k] + \DIST_{A'',B}[m'' + k, j] \right\}
     \]
   \begin{proof}
-    Straight forward from the definition of the $\DIST$ tables in term of the dynamic programming table by the simple LCS algorithm. Illustration of the three different cases is shown in \cref{fig:dist-vertical-merge-cases}.
+    Straight forward from the definition of the $\DIST$ tables in term of the dynamic programming table by the simple LCS algorithm. An illustration of the three different cases is shown in \cref{fig:dist-vertical-merge-cases}.
 
     \begin{figure}[h!]
       \centering
@@ -1303,7 +1303,7 @@ First consider case \circled{3}. Using \cref{claim:dist-vertical-merge} the case
                       0                   & \text{if } i \geq m, j < n
                     \end{cases}.
 \end{align*}
-Using the previous expression in \cref{lemma:dist-H-relation} it is found that
+Using the relation between $\DIST$ tables and the $H$-table of \cref{lemma:dist-H-relation} it is found that
 \begin{align*}
   H_{A'A'',B}(i, j) &= \max_k \left\{ H_{A',B}(i - m'', k) + H_{A'',B}(m'' + k, j) \right\} \\
                     &= \max_k \left\{ k - (i - m'' - m') - P_{A'}^{\Sigma}(i - m'', k) + j - (k + m'' - m'') - P_{A''}^{\Sigma}(k + m'', j) \right\} \\
@@ -1336,7 +1336,7 @@ It will now be shown that this computation also gives the result for case \circl
       0             & \text{if } j < n \\
       n - j         & \text{if } j \geq n
     \end{array}
-  \right.
+  \right. .
 \end{align*}
 By a similar analysis of the statement given by \cref{claim:dist-vertical-merge}, it is found that
 \begin{align*}
@@ -1346,11 +1346,11 @@ By a similar analysis of the statement given by \cref{claim:dist-vertical-merge}
       (i - m'') + (n - j) & \text{if } j \geq n
     \end{array}
   \right. \\
-  &= j - (i - m'') - P_{A'',B}^{\Sigma}(i, j) +
+  &= j - (i - m'') - P_{A'',B}^{\Sigma}(i, j) + \left\{
       \begin{array}{ll}
         i - m''             & \text{if } j < n \\
         (i - m'') + (n - j) & \text{if } j \geq n
-      \end{array} \\
+      \end{array} \right. \\
   &= j - P_{A'',B}^{\Sigma}(i, j) + \left\{
     \begin{array}{ll}
       0             & \text{if } j < n \\
@@ -1358,7 +1358,7 @@ By a similar analysis of the statement given by \cref{claim:dist-vertical-merge}
     \end{array}
   \right. .
 \end{align*}
-Subtracting the two expressions yields $P_{A'',B}^{\Sigma}(i, j) = P_{A'A'',B}^{\Sigma}(i, j)$. It will now be verified that this indeed what is computed by the minimum distance product from case \circled{3}. Writing from the minimum distance product, it is found that
+Subtracting the two expressions yields $P_{A'',B}^{\Sigma}(i, j) = P_{A'A'',B}^{\Sigma}(i, j)$. It will now be verified that this is indeed what is begin computed by the minimum distance product from case \circled{3}. Writing from the minimum distance product, it is found that
 \begin{align*}
   \circled{$\star$} &= \min_{k \in \{0,\dots,n+m\}} \{ {IC'_{P_{A'}}}^{\Sigma}(i, k) + {IC''_{P_{A''}}}^{\Sigma}(k, j) \} \\
   &= \min\left\{
@@ -1381,7 +1381,7 @@ In order to simplify the expression the following claim is useful.
     P_{A''}^{\Sigma}(i, j) \leq k + P_{A''}^{\Sigma}(i + k, j)
   \]
   \begin{proof}
-    Follows almost directly from decreasing unit monotonicity of the $\Sigma$-operator used on permutation matrices in both coordinates (only the $i$ coordinate monotonicity used here).
+    Follows almost directly from decreasing unit monotonicity of the $\Sigma$-operator used on permutation matrices in both coordinates (only the $i$ coordinate monotonicity is used here).
   \end{proof}
 \end{claim}
 Using \cref{claim:bounding-sigma} at the boundary condition $i + k = n + m''$, it is found that $P_{A''}^{\Sigma}(i, j) \leq n + m'' - i + P_{A''}^{\Sigma}(n + m'', j) = n + m'' - i$. Hence, by first using decreasing unit monotonicity of the $\Sigma$-operator and \cref{claim:bounding-sigma} followed by the claim at the boundary condition, it follows that
@@ -1423,7 +1423,7 @@ Similarly writing out directly from the definition, it is found that
       0     & \text{if } i \geq m
     \end{cases}
 \end{align*}
-This implies that $P_{A'A'',B}^{\Sigma}(i, j) = P_{A',B}^{\Sigma}(i - m'', j - m'')$. As will be seen, this is also what is computed by the minimum distance product in case \circled{3}. Writing out the result of the minimum distance product, it is found that
+This implies that $P_{A'A'',B}^{\Sigma}(i, j) = P_{A',B}^{\Sigma}(i - m'', j - m'')$. As will be seen, this is also what is computed by the minimum distance product of case \circled{3}. Writing out the result of the minimum distance product, it is found that
 \begin{align*}
   \circled{$\dagger$} &= \min_{k\in \{ 0, \dots, n + m \}} { {IC'_{P_{A'}}}^{\Sigma}(i, k) + {IC''_{P_{A''}}}^{\Sigma}(k, j) } \\
               &=  \begin{aligned} \min
@@ -1457,7 +1457,7 @@ Notice that the second case always dominates the first, hence the second case ca
 The following claim will help to simplify the expression.
 \begin{claim}
   \label{claim:bounding-sigma-col}
-  The following bound is valid $\forall a \in \mathbb{N}: j - a \geq 0$:
+  The following bound is valid $\forall a \in \{0, \dots, j\}$:
   \[
     P_{A'}^{\Sigma}(i - m'', j) \leq a + P_{A'}^{\Sigma}(i - m'', j - a)
   \]
@@ -1482,7 +1482,7 @@ which directly gives that $\circled{$\dagger$} = P_{A'}^{\Sigma}(i - m'', j - m'
   \]
 \end{theorem}
 
- Therefore two $\DIST$ tables can be merged vertically by a single minimum distance product taking $O(x \log{x})$ time using the described in \cref{sec:algorithm:min-mult-two-unit-monge}.
+ Therefore two $\DIST$ tables can be merged vertically by a single minimum distance product taking $O(x \log{x})$ time using the algorithm described in \cref{sec:algorithm:min-mult-two-unit-monge}.
 
 \subsubsection{Horizontal merge}
 The horizontal merge will be carried out by means of a vertical merge. In order to do this, it should be efficient to compute $\DIST_{B,A}$ from $\DIST_{A,B}$. It turns out that this indeed is the case. In order to see this, the following claim provides an insightful result.
@@ -1580,19 +1580,19 @@ It is now possible to show how the representation of the two $\DIST$ tables $\DI
   \end{proof}
 \end{lemma}
 %
-Since it is known how to merge two $\DIST$ tables vertically, the following statement follows.
+Since it is known how to merge two $\DIST$ tables vertically, the following theorem follows.
 \begin{theorem}
   \label{thm:dist-horizontal-merge}
   Given two $\DIST$ tables $\DIST_{A,B'}$ and $\DIST_{A,B''}$ of size $O(x)$, they can be merged into $\DIST_{A,B'B''}$ in time $O(x\log{x})$.
   \begin{proof}
-    Following \cref{lemma:swap_strings} a horizontal merge can be carried out by first swapping the strings, then performing a vertical merge, and then swapping the strings of the merged $\DIST$ table again. Since swapping the strings runs in time $O(x)$, the total time of a horizontal merge is bounded by the time of the vertical merging. Therefore, the total time of either of the merge routines is bounded by $O(x\log{x})$.
+    Following \cref{lemma:swap_strings} a horizontal merge can be carried out by first swapping the strings, then performing a vertical merge, and then swapping the strings of the merged $\DIST$ table again. Since swapping the strings runs in time $O(x)$, the total time of a horizontal merge is bounded by the time of the vertical merge. Therefore, the total time of either of the merge routines is bounded by $O(x\log{x})$.
   \end{proof}
 \end{theorem}
-This completes the description on how to build the $\DIST$-repository within the specified time bounds.
+This completes the description on how to build the $\DIST$ repository within the specified time bounds.
 
 \subsection{Applying a $\DIST$ table}
 \label{sec:applying-a-dist-table}
-What remains is to show how the $\DIST$-repository can be used to fill the dynamic programming grid efficiently. Assume that the outputs of a block in the grid with input $I$ need to be computed. The outputs are given by \cref{eqn:dist-application} which by \cref{lemma:dist-H-relation} can be re-written as
+What remains is to show how the $\DIST$ repository can be used to fill the dynamic programming grid efficiently. Assume that the outputs of a block in the grid with input $I$ need to be computed. The outputs are given by \cref{eqn:dist-application} which by \cref{lemma:dist-H-relation} can be re-written as
 \begin{align*}
   O[j] &= \max_i \left\{ I[i] + \DIST[i, j] \right\} \\
     &= \max_i \left\{ I[i] + H(i, j) + \left\{
