@@ -104,7 +104,7 @@ Edit distance is a measure of the similarity between two strings and has applica
 
 The thesis is based on the algorithm described in \cite{Gawrychowski:2012:FAC:2422024.2422048} which is the latest paper in an ongoing refinement process of the algorithm. The objective of the thesis is to give a coherent description of the algorithm, prove that it works and implement and benchmark the algorithm to examine its practical feasibility.
 
-The string compression method used, converts the input string into a restricted form of a context free grammar called a straight-line program (SLP). By utilizing a succinct representations of intermediate structures in the algorithm, it is possible to gain a theoretical speedup for compressible input.
+The string compression method used converts the input string into a restricted form of a context free grammar called a straight-line program (SLP). By utilizing a succinct representation of intermediate structures in the algorithm, it is possible to gain a theoretical speedup for compressible input.
 
 In practice it was found that the compression based algorithm is only faster for highly repetitive input (for example Fibonacci strings and strings from a singleton alphabet) of length longer than $\approx 30000$ characters. For all other inputs the simple edit distance algorithm performed better. Therefore the compression based algorithm of \cite{Gawrychowski:2012:FAC:2422024.2422048}, in its current state, is not found to be favourable in any real-world practical problems.
 
@@ -506,7 +506,7 @@ In lossless compression there exist Entropy-based encoding schemes. Such schemes
 \paragraph{Notes about size}
 Given input strings over the finite alphabet $\Gamma$, all strings over this alphabet can trivially be encoded using $\ceil{\log_2 |\Gamma|}$ bits per symbol. However, for a direct representation of the SLP using pointers, a left and a right pointer has to be stored together with the symbol, which on a new machine uses up $64$ bits each. Moreover, the algorithms working on the SLPs are likely to require more information annotated to each node in the tree. This results in a huge constant blow up on the space required to store the input string, especially for strings not compressing very well.
 
-It could be both of practical and theoretical interest to find a succinct representation of a SLP, in order to make the space consumption smaller. This would potentially make the SLP approach practical for long strings that does not compress very well.
+It could be both of practical and theoretical interest to find a succinct representation of a SLP, in order to make the space consumption smaller. This would potentially make the SLP approach practical for long strings that do not compress very well.
 
 \section{Algorithm}
 \label{sec:compression:alg}
